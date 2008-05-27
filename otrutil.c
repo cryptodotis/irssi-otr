@@ -26,7 +26,6 @@ static OtrlUserState otr_state = NULL;
 static OtrlMessageAppOps otr_ops;
 static int otrinited = FALSE;
 
-
 /* Key generation stuff */
 
 typedef enum { KEYGEN_NO, KEYGEN_RUNNING } keygen_status_t;
@@ -66,7 +65,7 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition, gpointer da
 		otr_logst(LVL_NOTICE,KEYGENMSG "completed in %d seconds. Reloading keys",
 			kg_st.accountname,
 			time(NULL)-kg_st.started);
-		otrl_privkey_forget_all(otr_state);
+		//otrl_privkey_forget_all(otr_state); <-- done by lib
 		key_load();
 	}
 
@@ -85,11 +84,15 @@ void keygen_run(const char *accname) {
 	gcry_error_t err;
 	int ret;
 	int fds[2];
-	char *filename = g_strconcat(getenv("HOME"),KEYFILE,NULL);
+	char *filename = g_strconcat(get_irssi_dir(),KEYFILE,NULL);
 	char *dir = dirname(g_strdup(filename));
 
 	if (kg_st.status!=KEYGEN_NO) {
-		otr_logst(LVL_NOTICE,KEYGENMSG "another generation is already in progress",accname);
+		if (strcmp(accname,kg_st.accountname)!=0)
+			otr_logst(LVL_NOTICE,KEYGENMSG 
+				"aborted. Key generation for %s"
+				"still in progress",
+				accname,kg_st.accountname);
 		return;
 	}
 
@@ -142,6 +145,22 @@ void keygen_run(const char *accname) {
         _exit(0);
 }
 
+void otr_writefps() {
+	gcry_error_t err;
+	char *filename = g_strconcat(get_irssi_dir(),FPSFILE,NULL);
+
+	err = otrl_privkey_write_fingerprints(otr_state,filename);
+
+	if (err == GPG_ERR_NO_ERROR) {
+	    otr_logst(LVL_NOTICE,"fingerprints saved");
+	} else {
+	    otr_logst(LVL_NOTICE,"Error saving fingerprints: %s (%s)",
+		    gcry_strerror(err),
+		    gcry_strsource(err));
+	}
+	g_free(filename);
+}
+
 /* Callbacks from the OTR lib */
 
 OtrlPolicy ops_policy(void *opdata, ConnContext *context) {
@@ -162,9 +181,14 @@ void ops_create_privkey(void *opdata, const char *accountname,
 void ops_inject_msg(void *opdata, const char *accountname,
 	    const char *protocol, const char *recipient, const char *message) {
 	SERVER_REC *a_serv;
+	char *msgcopy = g_strdup(message);
+
+	/* OTR sometimes gives us multiple lines (e.g. the init message) */
+	g_strdelimit (msgcopy,"\n",' ');
 	a_serv = active_win->active_server; 
-	a_serv->send_message(a_serv, recipient, message,
+	a_serv->send_message(a_serv, recipient, msgcopy,
 		GPOINTER_TO_INT(SEND_TARGET_NICK));
+	g_free(msgcopy);
 }
 
 /*
@@ -220,13 +244,20 @@ void ops_still_secure(void *opdata, ConnContext *context, int is_reply) {
 }
 
 void ops_log(void *opdata, const char *message) {
-	otr_logst(LVL_NOTICE,"log msg: ",message);
+	otr_logst(LVL_NOTICE,"log msg: %s",message);
 }
 
 int ops_max_msg(void *opdata, ConnContext *context) {
 	return OTR_MAX_MSG_SIZE;
 }
 
+void ops_up_ctx_list(void *opdata) {
+	statusbar_items_redraw("otr");
+}
+
+void ops_writefps(void *data) {
+	otr_writefps();
+}
 
 /*
  * init otr lib.
@@ -240,9 +271,11 @@ int otrlib_init() {
 
 	otr_state = otrl_userstate_create();
 
-	/* load keys */
+	/* load keys and fingerprints */
 
 	key_load();
+	fps_load();
+
 	//otrl_privkey_generate(otr_state,"/tmp/somekey","jesus@somewhere.com","proto");
 
 	/* set otr ops */
@@ -258,12 +291,14 @@ int otrlib_init() {
 	otr_ops.still_secure = ops_still_secure;
 	otr_ops.log_message = ops_log;
 	otr_ops.max_message_size = ops_max_msg;
-
+	otr_ops.update_context_list = ops_up_ctx_list;
+	otr_ops.write_fingerprints = ops_writefps;
 	return otr_state==NULL;
 }
 
 void otrlib_deinit() {
 	if (otr_state) {
+		otr_writefps();
 		otrl_userstate_free(otr_state);
 		otr_state = NULL;
 	}
@@ -273,11 +308,11 @@ void otrlib_deinit() {
 
 
 /*
- * load private keys from given file.
+ * load private keys.
  */
 void key_load() {
 	gcry_error_t err;
-	char *filename = g_strconcat(getenv("HOME"),KEYFILE,NULL);
+	char *filename = g_strconcat(get_irssi_dir(),KEYFILE,NULL);
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		otr_logst(LVL_NOTICE,"no private keys found");
@@ -294,6 +329,42 @@ void key_load() {
 		    gcry_strsource(err));
 	}
 	g_free(filename);
+}
+
+/*
+ * load fingerprints.
+ */
+void fps_load() {
+	gcry_error_t err;
+	char *filename = g_strconcat(get_irssi_dir(),FPSFILE,NULL);
+
+	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
+		otr_logst(LVL_NOTICE,"no fingerprints found");
+		return;
+	}
+
+	err =  otrl_privkey_read_fingerprints(otr_state,filename,NULL,NULL);
+
+	if (err == GPG_ERR_NO_ERROR) {
+	    otr_logst(LVL_NOTICE,"fingerprints loaded");
+	} else {
+	    otr_logst(LVL_NOTICE,"Error loading fingerprints: %s (%s)",
+		    gcry_strerror(err),
+		    gcry_strsource(err));
+	}
+	g_free(filename);
+}
+
+ConnContext *otr_getcontext(const char *accname,const char *nick,int create) {
+	return otrl_context_find(
+		otr_state,
+		nick,
+		accname,
+		PROTOCOLID,
+		create,
+		NULL,
+		NULL,
+		NULL);
 }
 
 /*
@@ -335,17 +406,7 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 
 	/* OTR message. Need to do fragmentation */
 
-	co = otrl_context_find(
-		otr_state,
-		to,
-		accname,
-		PROTOCOLID,
-		FALSE,
-		NULL,
-		NULL,
-		NULL);
-
-	if (!co) {
+	if (!(co = otr_getcontext(accname,to,FALSE))) {
 		otr_logst(LVL_NOTICE,"couldn't find context: acc=%s to=%s",accname,to);
 		return NULL;
 	}
@@ -366,6 +427,47 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 	return NULL;
 }
 
+char *otr_getstatus(char *mynick, char *nick, char *server) {
+	ConnContext *co;
+	char accname[128];
+
+	sprintf(accname, "%s@%s", mynick, server);
+
+	if (!(co = otr_getcontext(accname,nick,FALSE))) {
+		//otr_logst(LVL_NOTICE,"couldn't find context: acc=%s to=%s",accname,nick);
+		return NULL;
+	}
+
+	switch (co->msgstate) {
+		case OTRL_MSGSTATE_PLAINTEXT:
+			return "plaintext";
+		case OTRL_MSGSTATE_ENCRYPTED:
+		{
+			char *trust = co->active_fingerprint->trust;
+			return trust&&*trust!='\0' ? trust : "encrypted";
+		}
+		case OTRL_MSGSTATE_FINISHED:
+			return "finished";
+		default:
+			return "unknown(BUG)";
+	}
+}
+
+void otr_trust(char *mynick, char *nick, char *server) {
+	ConnContext *co;
+	char accname[128];
+
+	sprintf(accname, "%s@%s", mynick, server);
+
+	if (!(co = otr_getcontext(accname,nick,FALSE))) {
+		otr_logst(LVL_NOTICE,"couldn't find context: acc=%s nick=%s",accname,nick);
+		return;
+	}
+
+	otrl_context_set_trust(co->active_fingerprint,"trusted");
+	otr_logst(LVL_NOTICE,"trusting fingerprint from %s",accname);
+}
+
 /*
  * Hand the given message to OTR.
  * Returns NULL if its an OTR protocol message and 
@@ -383,17 +485,7 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 
 	sprintf(accname, "%s@%s", nick, address);
 
-	co = otrl_context_find(
-		otr_state,
-		from,
-		accname,
-		PROTOCOLID,
-		TRUE,
-		NULL,
-		NULL,
-		NULL);
-
-	if (!co) {
+	if (!(co = otr_getcontext(accname,from,TRUE))) {
 		otr_logst(LVL_NOTICE,"couldn't create/find context: acc=%s from=%s",accname,from);
 		return NULL;
 	}

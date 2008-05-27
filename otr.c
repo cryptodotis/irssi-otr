@@ -45,6 +45,11 @@ static void sig_message_private(SERVER_REC *server, const char *msg,
 {
 	char *newmsg;
 
+	/* hack for bitlbee so we're not too busy 
+	 * with the jabber xml console */
+	if (strstr(nick,"xmlconsole"))
+		return;
+	
 	newmsg = otr_receive(server,msg,nick);
 
 	if (newmsg&&(newmsg!=msg)) {
@@ -65,12 +70,35 @@ static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item) {
 	}
 }
 
+static void cmd_trust(const char *data, void *server, WI_ITEM_REC *item) {
+	QUERY_REC *query = QUERY(item);
+	if (query&&query->server&&query->server->connrec)
+		otr_trust(query->server->nick,query->name,query->server->connrec->address);
+	else
+		otr_log(item->server,NULL,query ? query->name : NULL,LVL_NOTICE,
+			"failed: Can't get query details");
+}
+
 /*
  * /otr debug
  */
 static void cmd_debug(const char *data, void *server, WI_ITEM_REC *item) {
 	debug = !debug;
 	otr_logst(LVL_NOTICE,"Debug mode %s", debug ? "on" : "off" );
+}
+
+static void otr_statusbar(SBAR_ITEM_REC *item, int get_size_only) {
+	WI_ITEM_REC *wi = active_win->active;
+	QUERY_REC *query = QUERY(wi);
+	char *data = NULL;
+
+	if (query&&query->server&&query->server->connrec)
+		data = otr_getstatus(query->server->nick,query->name,query->server->connrec->address);
+	
+	statusbar_item_default_handler(
+		item, 
+		get_size_only, 
+		 data ? "{sb Otr: $0-}" : "",data,FALSE);
 }
 
 /*
@@ -87,7 +115,11 @@ void otr_init(void) {
 	
 	command_bind("otr", NULL, (SIGNAL_FUNC) cmd_otr);
 	command_bind("otr debug", NULL, (SIGNAL_FUNC) cmd_debug);
+	command_bind("otr trust", NULL, (SIGNAL_FUNC) cmd_trust);
 
+	statusbar_item_register("otr", NULL, otr_statusbar);
+
+	statusbar_items_redraw("window");
 	/* use standard irssi style messages */
 	theme_register_module(MODULE_NAME,fecommon_core_formats);
 }
@@ -99,6 +131,8 @@ void otr_deinit(void) {
 
 	signal_remove("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
 	signal_remove("message private", (SIGNAL_FUNC) sig_message_private);
+
+	statusbar_item_unregister("otr");
 
 	otrlib_deinit();
 

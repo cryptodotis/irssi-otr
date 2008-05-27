@@ -27,11 +27,15 @@
 /* otr protocol id */
 #define PROTOCOLID "IRC"
 
-#define KEYFILE "/.irssi/otr/otr.key"
+#define KEYFILE "/otr/otr.key"
+#define FPSFILE "/otr/otr.fp"
 
 int otrlib_init();
 void otrlib_deinit();
 void key_load();
+void fps_load();
 char *otr_send(SERVER_REC *server,const char *msg,const char *to);
 char *otr_receive(SERVER_REC *server,const char *msg,const char *from);
 void keygen_run(const char *accname);
+char *otr_getstatus(char *mynick, char *nick, char *server);
+void otr_trust(char *mynick, char *nick, char *server);

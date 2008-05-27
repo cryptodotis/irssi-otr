@@ -39,6 +39,9 @@
 #include <fe-common/core/module-formats.h>
 #include <core/modules.h>
 
+/* copied over, see FS#535 */
+#include <statusbar.h>
+
 /* glib */
 
 #include <glib.h>
