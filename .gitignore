@@ -1,3 +1,5 @@
 *.o
 *.so
-config.h
+term.h
+statusbar.h
+mainwindows.h
