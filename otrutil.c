@@ -1,268 +1,35 @@
 /*
-	Off-the-Record Messaging (OTR) module for the irssi IRC client
-	Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
-
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2 of the License, or
-	(at your option) any later version.
-
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
-*/
+ * Off-the-Record Messaging (OTR) module for the irssi IRC client
+ * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
+ */
 
 #include "otr.h"
 
-#include <libgen.h>
 #include <gcrypt.h>
 
-static OtrlUserState otr_state = NULL;
-static OtrlMessageAppOps otr_ops;
+OtrlUserState otr_state = NULL;
+extern OtrlMessageAppOps otr_ops;
 static int otrinited = FALSE;
-
-/* Key generation stuff */
-
-typedef enum { KEYGEN_NO, KEYGEN_RUNNING } keygen_status_t;
-
-struct {
-	keygen_status_t status;
-	char *accountname;
-	char *protocol;
-	time_t started;
-	GIOChannel *ch[2];
-	guint eid;
-} kg_st = {.status = KEYGEN_NO };
-
-#define KEYGENMSG "Key generation for %s: "
-
-/*
- * Installed as g_io_watch and called when the key generation
- * process finishs.
- */
-gboolean keygen_complete(GIOChannel *source, GIOCondition condition, gpointer data) {
-	gcry_error_t err;
-
-	read(g_io_channel_unix_get_fd(kg_st.ch[0]),&err,sizeof(err));
-
-	g_io_channel_shutdown(kg_st.ch[0],FALSE,NULL);
-	g_io_channel_shutdown(kg_st.ch[1],FALSE,NULL);
-	g_io_channel_unref(kg_st.ch[0]);
-	g_io_channel_unref(kg_st.ch[1]);
-
-	if (err)
-		otr_logst(LVL_NOTICE,KEYGENMSG "failed: %s (%s)",
-			kg_st.accountname,
-			gcry_strerror(err),
-			gcry_strsource(err));
-	else {
-		/* reload keys */
-		otr_logst(LVL_NOTICE,KEYGENMSG "completed in %d seconds. Reloading keys",
-			kg_st.accountname,
-			time(NULL)-kg_st.started);
-		//otrl_privkey_forget_all(otr_state); <-- done by lib
-		key_load();
-	}
-
-	kg_st.status = KEYGEN_NO;
-	g_free(kg_st.accountname);
-
-	return FALSE;
-}
-
-/*
- * Run key generation in a seperate process (takes ages).
- * The other process will rewrite the key file, we shouldn't 
- * change anything till it's done and we've reloaded the keys.
- */
-void keygen_run(const char *accname) {
-	gcry_error_t err;
-	int ret;
-	int fds[2];
-	char *filename = g_strconcat(get_irssi_dir(),KEYFILE,NULL);
-	char *dir = dirname(g_strdup(filename));
-
-	if (kg_st.status!=KEYGEN_NO) {
-		if (strcmp(accname,kg_st.accountname)!=0)
-			otr_logst(LVL_NOTICE,KEYGENMSG 
-				"aborted. Key generation for %s"
-				"still in progress",
-				accname,kg_st.accountname);
-		return;
-	}
-
-	if (!g_file_test(dir, G_FILE_TEST_EXISTS)) {
-		if (g_mkdir(dir,S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)) {
-			otr_logst(LVL_NOTICE,KEYGENMSG "aborted, failed creating directory %s: %s",
-				accname,dir,strerror(errno));
-			g_free(dir);
-			g_free(filename);
-			return;
-		} else
-			otr_logst(LVL_NOTICE,KEYGENMSG "created directory %s\n",dir);
-	}
-	g_free(dir);
-
-	if (pipe(fds) != 0) {
-		otr_logst(LVL_NOTICE,KEYGENMSG "error creating pipe: %s",accname,strerror(errno));
-		g_free(filename);
-		return;
-	}
-
-	kg_st.ch[0] = g_io_channel_unix_new(fds[0]);
-	kg_st.ch[1] = g_io_channel_unix_new(fds[1]);
-
-	kg_st.accountname = g_strdup(accname);
-	kg_st.protocol = PROTOCOLID;
-	kg_st.started = time(NULL);
-
-	if ((ret = fork())) {
-		g_free(filename);
-		if (ret==-1) {
-			otr_logst(LVL_NOTICE,KEYGENMSG "fork() error: %s",accname,strerror(errno));
-			return;
-		}
-
-		kg_st.status = KEYGEN_RUNNING;
-		otr_logst(LVL_NOTICE,KEYGENMSG "initiated. This might take several minutes.",accname);
-
-		kg_st.eid = g_io_add_watch(kg_st.ch[0], G_IO_IN, (GIOFunc) keygen_complete, NULL);
-		kg_st.started = time(NULL);
-		return;
-	}
-	
-	/* child */
-
-	err = otrl_privkey_generate(otr_state,filename,accname,PROTOCOLID);
-	write(fds[1],&err,sizeof(err));
-
-	//g_free(filename);
-        _exit(0);
-}
-
-void otr_writefps() {
-	gcry_error_t err;
-	char *filename = g_strconcat(get_irssi_dir(),FPSFILE,NULL);
-
-	err = otrl_privkey_write_fingerprints(otr_state,filename);
-
-	if (err == GPG_ERR_NO_ERROR) {
-	    otr_logst(LVL_NOTICE,"fingerprints saved");
-	} else {
-	    otr_logst(LVL_NOTICE,"Error saving fingerprints: %s (%s)",
-		    gcry_strerror(err),
-		    gcry_strsource(err));
-	}
-	g_free(filename);
-}
-
-/* Callbacks from the OTR lib */
-
-OtrlPolicy ops_policy(void *opdata, ConnContext *context) {
-	/* meaning opportunistic */
-	return OTRL_POLICY_DEFAULT;
-}
-
-void ops_create_privkey(void *opdata, const char *accountname,
-	const char *protocol) {
-	keygen_run(accountname);
-}
-
-/*
- * Inject OTR message.
- * Deriving the server is currently a hack,
- * need to derive the server from accountname.
- */
-void ops_inject_msg(void *opdata, const char *accountname,
-	    const char *protocol, const char *recipient, const char *message) {
-	SERVER_REC *a_serv;
-	char *msgcopy = g_strdup(message);
-
-	/* OTR sometimes gives us multiple lines (e.g. the init message) */
-	g_strdelimit (msgcopy,"\n",' ');
-	a_serv = active_win->active_server; 
-	a_serv->send_message(a_serv, recipient, msgcopy,
-		GPOINTER_TO_INT(SEND_TARGET_NICK));
-	g_free(msgcopy);
-}
-
-/*
- * OTR notification. Haven't seen one yet.
- */
-void ops_notify(void *opdata, OtrlNotifyLevel level, const char *accountname, 
-		const char *protocol, const char *username, 
-		const char *title, const char *primary, 
-		const char *secondary) {
-	otr_log(active_win->active_server,accountname,username,LVL_NOTICE,
-		"title: %s prim: %s sec: %s",title,primary,secondary);
-}
-
-/*
- * OTR message. E.g. "following has been transmitted in clear: ...".
- * We're trying to kill the ugly HTML.
- */
-int ops_display_msg(void *opdata, const char *accountname, 
-		    const char *protocol, const char *username, 
-		    const char *msg) {
-	/* This is kind of messy. */
-	GRegex *regex_bold  = g_regex_new("</?i([ /][^>]*)?>",0,0,NULL);
-	GRegex *regex_del   = g_regex_new("</?b([ /][^>]*)?>",0,0,NULL);
-	gchar *msgnohtml = g_regex_replace_literal(regex_del,msg,-1,0,"",0,NULL);
-	msg = g_regex_replace_literal(regex_bold,msgnohtml,-1,0,"%9",0,NULL);
-
-	otr_log(active_win->active_server,accountname,username,LVL_NOTICE,
-		"msg: %s",msg);
-
-	g_free(msgnohtml);
-	g_free((char*)msg);
-	g_regex_unref(regex_del);
-	g_regex_unref(regex_bold);
-	return 0;
-}
-
-void ops_secure(void *opdata, ConnContext *context) {
-	otr_log(active_win->active_server,context->accountname,
-		context->username,LVL_NOTICE,"gone %s","%9secure%9");
-}
-
-void ops_insecure(void *opdata, ConnContext *context) {
-	otr_log(active_win->active_server,context->accountname,
-	context->username,LVL_NOTICE,"gone %s","%9insecure%9");
-}
-
-void ops_still_secure(void *opdata, ConnContext *context, int is_reply) {
-	otr_log(active_win->active_server,context->accountname,
-		context->username,LVL_NOTICE,
-		"still %s (%s reply)", 
-		"%9secure%9",
-		is_reply ? "is" : "is not");
-}
-
-void ops_log(void *opdata, const char *message) {
-	otr_logst(LVL_NOTICE,"log msg: %s",message);
-}
-
-int ops_max_msg(void *opdata, ConnContext *context) {
-	return OTR_MAX_MSG_SIZE;
-}
-
-void ops_up_ctx_list(void *opdata) {
-	statusbar_items_redraw("otr");
-}
-
-void ops_writefps(void *data) {
-	otr_writefps();
-}
 
 /*
  * init otr lib.
  */
-int otrlib_init() {
+int otrlib_init()
+{
 
 	if (!otrinited) {
 		OTRL_INIT;
@@ -276,95 +43,75 @@ int otrlib_init() {
 	key_load();
 	fps_load();
 
-	//otrl_privkey_generate(otr_state,"/tmp/somekey","jesus@somewhere.com","proto");
+	otr_initops();
 
-	/* set otr ops */
-	memset(&otr_ops,0,sizeof(otr_ops));
-
-	otr_ops.policy = ops_policy;
-	otr_ops.create_privkey = ops_create_privkey;
-	otr_ops.inject_message = ops_inject_msg;
-	otr_ops.notify = ops_notify;
-	otr_ops.display_otr_message = ops_display_msg;
-	otr_ops.gone_secure = ops_secure;
-	otr_ops.gone_insecure = ops_insecure;
-	otr_ops.still_secure = ops_still_secure;
-	otr_ops.log_message = ops_log;
-	otr_ops.max_message_size = ops_max_msg;
-	otr_ops.update_context_list = ops_up_ctx_list;
-	otr_ops.write_fingerprints = ops_writefps;
 	return otr_state==NULL;
 }
 
-void otrlib_deinit() {
+/*
+ * deinit otr lib.
+ */
+void otrlib_deinit()
+{
 	if (otr_state) {
 		otr_writefps();
 		otrl_userstate_free(otr_state);
 		otr_state = NULL;
 	}
-	if (kg_st.status==KEYGEN_RUNNING)
-		g_source_remove(kg_st.eid);
+
+	keygen_abort();
 }
 
 
 /*
- * load private keys.
+ * Free our app data.
  */
-void key_load() {
-	gcry_error_t err;
-	char *filename = g_strconcat(get_irssi_dir(),KEYFILE,NULL);
-
-	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		otr_logst(LVL_NOTICE,"no private keys found");
-		return;
+void context_free_app_info(void *data)
+{
+	struct co_info *coi = data;
+	if (coi->msgqueue) {
+		g_free(coi->msgqueue);
 	}
-
-	err =  otrl_privkey_read(otr_state, filename);
-
-	if (err == GPG_ERR_NO_ERROR) {
-	    otr_logst(LVL_NOTICE,"private keys loaded");
-	} else {
-	    otr_logst(LVL_NOTICE,"Error loading private keys: %s (%s)",
-		    gcry_strerror(err),
-		    gcry_strsource(err));
-	}
-	g_free(filename);
 }
 
 /*
- * load fingerprints.
+ * Add app data to context.
+ * See struct co_info for details.
  */
-void fps_load() {
-	gcry_error_t err;
-	char *filename = g_strconcat(get_irssi_dir(),FPSFILE,NULL);
+void context_add_app_info(void *data,ConnContext *co)
+{
+	SERVER_REC *server = data;
+	struct co_info *coi = g_malloc(sizeof(struct co_info));
 
-	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		otr_logst(LVL_NOTICE,"no fingerprints found");
-		return;
-	}
+	memset(coi,0,sizeof(struct co_info));
+	co->app_data = coi;
+	co->app_data_free = context_free_app_info;
 
-	err =  otrl_privkey_read_fingerprints(otr_state,filename,NULL,NULL);
-
-	if (err == GPG_ERR_NO_ERROR) {
-	    otr_logst(LVL_NOTICE,"fingerprints loaded");
-	} else {
-	    otr_logst(LVL_NOTICE,"Error loading fingerprints: %s (%s)",
-		    gcry_strerror(err),
-		    gcry_strsource(err));
-	}
-	g_free(filename);
+	coi->server = server;
+	sprintf(coi->better_msg_two,formats[TXT_OTR_BETTER_TWO].def,co->accountname);
 }
 
-ConnContext *otr_getcontext(const char *accname,const char *nick,int create) {
-	return otrl_context_find(
+/*
+ * Get a context from a pair.
+ */
+ConnContext *otr_getcontext(const char *accname,const char *nick,
+			    int create,void *data)
+{
+	ConnContext *co = otrl_context_find(
 		otr_state,
 		nick,
 		accname,
 		PROTOCOLID,
 		create,
 		NULL,
-		NULL,
-		NULL);
+		context_add_app_info,
+		data);
+
+	/* context came from a fingerprint */
+	if (co&&data&&!co->app_data)
+		context_add_app_info(data,co);
+
+	return co;
 }
 
 /*
@@ -393,11 +140,11 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 		msg, 
 		NULL, 
 		&newmessage, 
-		NULL, 
-		NULL);
+		context_add_app_info, 
+		server);
 
 	if (err != 0) {
-		otr_logst(LVL_NOTICE,"send failed: acc=%s to=%s msg=%s",accname,to,msg);
+		otr_notice(server,to,TXT_SEND_FAILED,msg);
 		return NULL;
 	}
 
@@ -406,8 +153,8 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 
 	/* OTR message. Need to do fragmentation */
 
-	if (!(co = otr_getcontext(accname,to,FALSE))) {
-		otr_logst(LVL_NOTICE,"couldn't find context: acc=%s to=%s",accname,to);
+	if (!(co = otr_getcontext(accname,to,FALSE,server))) {
+		otr_notice(server,to,TXT_SEND_CHANGE);
 		return NULL;
 	}
 
@@ -420,52 +167,176 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 		NULL);
 
 	if (err != 0) {
-		otr_logst(LVL_NOTICE,"failed to fragment message: msg=%s",msg);
+		otr_notice(server,to,TXT_SEND_FRAGMENT,msg);
 	} else
-		otr_log(server,accname,to,LVL_DEBUG,"OTR converted sent message to %s",newmessage);
+		otr_debug(server,to,TXT_SEND_CONVERTED,newmessage);
 
 	return NULL;
 }
 
-char *otr_getstatus(char *mynick, char *nick, char *server) {
+/*
+ * Get the OTR status of this conversation.
+ * This wouldn't be half as long if the SMP state machine would work better.
+ */
+int otr_getstatus(char *mynick, char *nick, char *server)
+{
 	ConnContext *co;
 	char accname[128];
+	struct co_info *coi;
 
 	sprintf(accname, "%s@%s", mynick, server);
 
-	if (!(co = otr_getcontext(accname,nick,FALSE))) {
-		//otr_logst(LVL_NOTICE,"couldn't find context: acc=%s to=%s",accname,nick);
-		return NULL;
+	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
+		return 0;
 	}
 
+	coi = co->app_data;
+
 	switch (co->msgstate) {
-		case OTRL_MSGSTATE_PLAINTEXT:
-			return "plaintext";
-		case OTRL_MSGSTATE_ENCRYPTED:
-		{
-			char *trust = co->active_fingerprint->trust;
-			return trust&&*trust!='\0' ? trust : "encrypted";
-		}
-		case OTRL_MSGSTATE_FINISHED:
-			return "finished";
+	case OTRL_MSGSTATE_PLAINTEXT:
+		return TXT_ST_PLAINTEXT;
+	case OTRL_MSGSTATE_ENCRYPTED: {
+		char *trust = co->active_fingerprint->trust;
+		int ex = co->smstate->nextExpected;
+
+		if (trust&&(*trust!='\0'))
+			return strcmp(trust,"smp")==0 ? TXT_ST_TRUST_SMP : TXT_ST_TRUST_MANUAL;
+
+		switch (ex) {
+		case OTRL_SMP_EXPECT1:
+			return TXT_ST_UNTRUSTED;
+		case OTRL_SMP_EXPECT2:
+			if (!coi->received_smp_reply)
+				return TXT_ST_SMP_WAIT_2;
+			else
+				return TXT_ST_SMP_HAVE_2;
+		case OTRL_SMP_EXPECT3: 
+			/* unfortunately, this also covers the case 
+			 * where authentication failed */
+			return coi->smp_failed ? 
+				TXT_ST_SMP_FAILED : TXT_ST_SMP_FINALIZE;
+		case OTRL_SMP_EXPECT4: /* unreachable with libotr 3.1 */
+			return TXT_ST_SMP_FINALIZE;
 		default:
-			return "unknown(BUG)";
+			return TXT_ST_SMP_UNKNOWN;
+		}
+	}
+	case OTRL_MSGSTATE_FINISHED:
+		return TXT_ST_FINISHED;
+	default:
+		return TXT_ST_UNKNOWN;
 	}
 }
 
-void otr_trust(char *mynick, char *nick, char *server) {
+/*
+ * Trust our peer.
+ */
+void otr_trust(SERVER_REC *server, char *nick)
+{
 	ConnContext *co;
 	char accname[128];
 
-	sprintf(accname, "%s@%s", mynick, server);
+	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
 
-	if (!(co = otr_getcontext(accname,nick,FALSE))) {
-		otr_logst(LVL_NOTICE,"couldn't find context: acc=%s nick=%s",accname,nick);
+	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
+		otr_noticest(TXT_CTX_NOT_FOUND,
+			     accname,nick);
 		return;
 	}
 
-	otrl_context_set_trust(co->active_fingerprint,"trusted");
-	otr_logst(LVL_NOTICE,"trusting fingerprint from %s",accname);
+	otrl_context_set_trust(co->active_fingerprint,"manual");
+
+	otr_notice(server,nick,TXT_FP_TRUST,accname);
+}
+
+/*
+ * Abort any ongoing SMP authentication.
+ */
+void otr_abort_auth(ConnContext *co, SERVER_REC *server, const char *nick)
+{
+	struct co_info *coi;
+
+	coi = co->app_data;
+
+	coi->received_smp_reply = FALSE;
+	coi->received_smp_init = FALSE;
+	coi->smp_failed = FALSE;
+
+	otrl_message_abort_smp(otr_state,&otr_ops,NULL,co);
+
+	otr_notice(server,nick,
+		   co->smstate->nextExpected!=OTRL_SMP_EXPECT1 ? 
+		   TXT_AUTH_ABORTED_ONGOING :
+		   TXT_AUTH_ABORTED);
+}
+
+/*
+ * implements /otr authabort
+ */
+void otr_authabort(SERVER_REC *server, char *nick)
+{
+	ConnContext *co;
+	char accname[128];
+
+	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
+
+	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
+		otr_noticest(TXT_CTX_NOT_FOUND,
+			     accname,nick);
+		return;
+	}
+
+	otr_abort_auth(co,server,nick);
+}
+
+/*
+ * Initiate or respond to SMP authentication.
+ */
+void otr_auth(SERVER_REC *server, char *nick, const char *secret)
+{
+	ConnContext *co;
+	char accname[128];
+	struct co_info *coi;
+
+	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
+
+	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
+		otr_noticest(TXT_CTX_NOT_FOUND,
+			     accname,nick);
+		return;
+	}
+
+	coi = co->app_data;
+
+	/* Aborting an ongoing auth */
+	if (co->smstate->nextExpected!=OTRL_SMP_EXPECT1)
+		otr_abort_auth(co,server,nick);
+
+	/* reset trust level */
+	otrl_context_set_trust(co->active_fingerprint, "");
+	otr_writefps();
+
+	if (!coi->received_smp_init)
+		otrl_message_initiate_smp(
+			otr_state, 
+			&otr_ops,
+			NULL,
+			co,
+			(unsigned char*)secret,
+			strlen(secret));
+	else
+		otrl_message_respond_smp(
+			otr_state,
+			&otr_ops,
+			NULL,
+			co,
+			(unsigned char*)secret,
+			strlen(secret));
+
+	otr_notice(server,nick,coi->received_smp_init ? 
+		   TXT_AUTH_RESPONDING : 
+		   TXT_AUTH_INITIATED);
+	statusbar_items_redraw("otr");
 }
 
 /*
@@ -477,37 +348,61 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 {
 	int ignore_message;
 	char *newmessage = NULL;
-	const char *nick = server->nick;
-	const char *address = server->connrec->address;
 	char accname[256];
 	char *lastmsg;
 	ConnContext *co;
+	struct co_info *coi;
+	OtrlTLV *tlvs;
 
-	sprintf(accname, "%s@%s", nick, address);
+	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
 
-	if (!(co = otr_getcontext(accname,from,TRUE))) {
-		otr_logst(LVL_NOTICE,"couldn't create/find context: acc=%s from=%s",accname,from);
+	if (!(co = otr_getcontext(accname,from,TRUE,server))) {
+		otr_noticest(TXT_CTX_NOT_CREATE,
+			     accname,from);
+		return NULL;
+	}
+
+	coi = co->app_data;
+
+	/* Really lame but I don't see how you could do this in a generic
+	 * way unless the IRC server would somehow marks continuation messages.
+	 */
+	if ((strcmp(msg,coi->better_msg_two)==0)||
+	    (strcmp(msg,formats[TXT_OTR_BETTER_THREE].def)==0)) {
+		otr_debug(server,from,TXT_RECEIVE_IGNORE_QUERY);
 		return NULL;
 	}
 
 	/* The server might have split lines that were too long 
 	 * (bitlbee does that). The heuristic is simple: If we can find ?OTR:
 	 * in the message but it doesn't end with a ".", queue it and wait
-	 * for the rest. This works if there are only two fragments which
-	 * (fortunately) seems to be the maximum.
+	 * for the rest.
 	 */
 	lastmsg = co->app_data;
 
-	if (lastmsg) {
-		strcpy(lastmsg+strlen(lastmsg),msg);
-		otr_log(server,accname,from,LVL_DEBUG,"dequeued");
-		msg = lastmsg;
-		co->app_data = NULL;
-	} else if (strstr(msg,"?OTR:")&&(strlen(msg)>OTR_MAX_MSG_SIZE)&&msg[strlen(msg)-1]!='.') {
-		co->app_data = malloc(1024*sizeof(char));
-		strcpy(co->app_data,msg);
-		co->app_data_free = g_free;
-		otr_log(server,accname,from,LVL_DEBUG,"queued");
+	if (coi->msgqueue) { /* already something in the queue */
+		strcpy(coi->msgqueue+strlen(coi->msgqueue),msg);
+
+		/* wait for more? */
+		if ((strlen(msg)>OTR_MAX_MSG_SIZE)&&msg[strlen(msg)-1]!='.')
+			return NULL;
+
+		otr_debug(server,from,TXT_RECEIVE_DEQUEUED,
+			  strlen(coi->msgqueue));
+
+		msg = coi->msgqueue;
+		coi->msgqueue = NULL;
+
+		/* this is freed thru our caller by otrl_message_free.
+		 * Currently ok since that just uses free().
+		 */
+
+	} else if (strstr(msg,"?OTR:")&&
+		   (strlen(msg)>OTR_MAX_MSG_SIZE)&&
+		   msg[strlen(msg)-1]!='.') {
+		coi->msgqueue = malloc(4096*sizeof(char));
+		strcpy(coi->msgqueue,msg);
+		otr_debug(server,from,TXT_RECEIVE_QUEUED,strlen(msg));
 		return NULL;
 	}
 
@@ -520,17 +415,75 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 		from, 
 		msg, 
 		&newmessage,
-		NULL,
+		&tlvs,
 		NULL,
 		NULL);
 
+	if (tlvs) {
+		OtrlTLV *tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP1);
+		int abort = FALSE;
+		if (tlv) {
+			if (co->smstate->nextExpected != OTRL_SMP_EXPECT1) {
+				otr_notice(server,from,TXT_AUTH_HAVE_OLD,
+					   accname);
+				abort = TRUE;
+			} else {
+				otr_notice(server,from,TXT_AUTH_PEER,
+					   accname);
+				coi->received_smp_init = TRUE;
+			}
+		} else
+			coi->received_smp_init = FALSE;
+		tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP2);
+		if (tlv) {
+			if (co->smstate->nextExpected != OTRL_SMP_EXPECT2) {
+				otr_notice(server,from,
+					   TXT_AUTH_PEER_REPLY_WRONG,
+					   accname);
+				abort = TRUE;
+			} else {
+				otr_notice(server,from,
+					   TXT_AUTH_PEER_REPLIED,
+					   accname);
+				coi->received_smp_reply = TRUE;
+			}
+		} else
+			coi->received_smp_reply = FALSE;
+		tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP3);
+		if (tlv) {
+			if (co->smstate->nextExpected != OTRL_SMP_EXPECT3) {
+				otr_notice(server,from,TXT_AUTH_PEER_WRONG_SMP3,accname);
+				abort = TRUE;
+			} else {
+				char *trust = co->active_fingerprint->trust;
+				if (trust&&(*trust!='\0'))
+					otr_notice(server,from,
+						   TXT_AUTH_SUCCESSFUL,
+						   accname);
+				else {
+					otr_notice(server,from,
+						   TXT_AUTH_FAILED,
+						   accname);
+					coi->smp_failed = TRUE;
+				}
+			}
+		} else
+			coi->smp_failed = FALSE;
+
+		if (abort)
+			otr_abort_auth(co,server,from);
+
+		statusbar_items_redraw("otr");
+	}
+
 	if (ignore_message) {
-		otr_log(server,accname,from,LVL_DEBUG,"ignoring protocol message of length %zd, acc=%s, from=%s", strlen(msg),accname,from);
+		otr_debug(server,from,
+			  TXT_RECEIVE_IGNORE, strlen(msg),accname,from);
 		return NULL;
 	}
 
 	if (newmessage)
-		otr_log(server,accname,from,LVL_DEBUG,"OTR converted received message");
+		otr_notice(server,from,TXT_RECEIVE_CONVERTED);
 
 	return newmessage ? : (char*)msg;
 }

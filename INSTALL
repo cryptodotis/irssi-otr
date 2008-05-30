@@ -1,0 +1,10 @@
+Usually the following will do:
+
+	$ cmake /path/to/src
+	$ make
+	$ make install
+
+"make install" will install libotr.so either
+
+1. into the system wide irssi modules folder if you're root or
+2. into ~/.irssi/modules if you're not root

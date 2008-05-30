@@ -1,0 +1,36 @@
+Usually, you shouldn't have to do anything besides "/load otr" to have encrypted
+conversations.  However,  some IRC  servers  strip  off  the  tabs OTR  uses  as
+announcement, there you or your buddy will have to type "?OTR?" to get going.
+
+Initially  a private  key will  also have  to be  generated...that can  take two
+minutes or even  an hour. You can wait  for OTR to trigger key  generation or do
+"/otr genkey nick@irc.server.com" yourself.
+
+To make  sure that you are  actually talking to your  buddy, you can agree  on a
+secret somehow  and then one does  "/otr auth <secret>". Shortly  afterwards the
+other one will be asked to do  the same and you're done. Well, unfortunately the
+world ain't perfect and  it seems libotr isn't either (goes for  me as well), so
+currently only the responder will be  able to authenticate this way. You'll have
+to switch roles and do this twice - sry.
+
+I also strongly  recommend to do "/statusbar window add  otr" so you're informed
+about  what's going  on.  Status  of "manual"  means  manual authentication  was
+performed,  "smp"  means  the  above  protocol  was  used  (the  thing's  called
+"socialist millionaire protocol").
+
+In  "~/.irssi/otr/otr.{key,fp}" you'll  find the  fingerprints and  your private
+keys(should you at any point be interested).
+
+Commands:
+
+/otr genkey nick@irc.server.com 
+	Manually generate a key for the given account(also done on demand)
+/otr auth <secret>
+	Initiate or respond to an authentication challenge
+/otr authabort
+	Abort any ongoing authentication
+/otr trust
+	Trust the fingerprint of the user in the current window blindly.
+	Better use "/otr auth"
+/otr debug
+	Switch debug mode on/off
