@@ -136,7 +136,7 @@ static void cmd_debug(const char *data, void *server, WI_ITEM_REC *item)
  */
 static void cmd_help(const char *data, void *server, WI_ITEM_REC *item)
 {
-	printformat(NULL,NULL,MSGLEVEL_CRAP,TXT_HELP);
+	printtext(NULL,NULL,MSGLEVEL_CRAP,otr_help);
 }
 
 /*

@@ -98,7 +98,7 @@ int ops_display_msg(void *opdata, const char *accountname,
 	GRegex *regex_del   = g_regex_new("</?b([ /][^>]*)?>",0,0,NULL);
 	gchar *msgnohtml = 
 		g_regex_replace_literal(regex_del,msg,-1,0,"",0,NULL);
-	msg = g_regex_replace_literal(regex_bold,msgnohtml,-1,0,"%9",0,NULL);
+	msg = g_regex_replace_literal(regex_bold,msgnohtml,-1,0,"*",0,NULL);
 
 	if (co) {
 		coi = co->app_data;

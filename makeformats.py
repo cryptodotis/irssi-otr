@@ -12,11 +12,9 @@ lines = map(lambda x: x.strip(),open(sys.argv[1],"r").readlines())
 hdr = open("otr-formats.h","w")
 src = open("otr-formats.c","w")
 
-src.write('#include "otr.h"\nFORMAT_REC formats[] = {\n')
+src.write('#include "otr.h"\n');
 
-src.write('{ MODULE_NAME, "otr", 0},\n')
-
-src.write("""{ "help", "%s", 0 }""" % "\\n".join(
+src.write("""char *otr_help = "%s";\n""" % "\\n".join(
 	["{hilight - OTR help -}"]+
 	[re.sub('^(/otr.*)$','%_\\1%_',
 		re.sub('"(.*)"','\\"%_\\1%_\\"',
@@ -25,9 +23,15 @@ src.write("""{ "help", "%s", 0 }""" % "\\n".join(
 		for x in open(sys.argv[2],"r").readlines()]+
 	["{hilight - End of OTR help -}"]))
 
+src.write('FORMAT_REC formats[] = {\n')
+
+src.write('{ MODULE_NAME, "otr", 0}\n')
+
+hdr.write("extern char *otr_help;\n\n");
+
 hdr.write("enum {\n")
 
-hdr.write("TXT_OTR_MODULE_NAME,\nTXT_HELP")
+hdr.write("TXT_OTR_MODULE_NAME")
 
 for line in lines:
 	src.write(",\n")
@@ -44,7 +48,7 @@ for line in lines:
 			params += ['1']
 		else:
 			params += ['0']
-		new += fo[last:m.start()]+"$%d" % i
+		new += fo[last:m.start()+len(m.group(1))]+"$%d" % i
 		last = m.end()
 		i += 1
 

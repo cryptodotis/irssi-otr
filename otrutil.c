@@ -483,7 +483,7 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 	}
 
 	if (newmessage)
-		otr_notice(server,from,TXT_RECEIVE_CONVERTED);
+		otr_debug(server,from,TXT_RECEIVE_CONVERTED);
 
 	return newmessage ? : (char*)msg;
 }
