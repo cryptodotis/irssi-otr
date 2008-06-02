@@ -33,10 +33,22 @@ hdr.write("enum {\n")
 
 hdr.write("TXT_OTR_MODULE_NAME")
 
+fills = 0
+
 for line in lines:
 	src.write(",\n")
 
 	e = line.split("\t")
+
+	if len(e)==1:
+		# Section name
+		src.write("""{ NULL, "%s", 0 }\n""" % (e[0]))
+
+		hdr.write(",\nTXT_OTR_FILL_%d" % fills)
+		
+		fills += 1
+
+		continue
 
 	params = []
 	fo = e[1]

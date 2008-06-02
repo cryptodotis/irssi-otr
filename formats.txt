@@ -1,6 +1,4 @@
-damn	{hilight Damn!}
-bumsum	One {hilight two}
-whatever	One %s hell %s
+Keys
 kg_failed	Key generation for %s: failed: %s (%s)
 kg_completed	Key generation for %s: completed in %d seconds. Reloading keys
 kg_aborted_dup	Key generation for %s: aborted. Key generation for %s still in progress
@@ -9,8 +7,17 @@ kg_mkdir	created directory %s
 kg_pipe	Key generation for %s: error creating pipe: %s
 kg_fork	Key generation for %s: fork() error: %s
 kg_initiated	Key generation for %s: initiated. This might take several minutes or on some systems even an hour. If you wanna check that something is happening, see if there are two irssi processes.
+key_not_found	no private keys found
+key_loaded	private keys loaded
+key_load_error	Error loading private keys: %s (%s)
+Fingerprints
 fp_saved	fingerprints saved
 fp_save_error	Error saving fingerprints: %s (%s)
+fp_not_found	no fingerprints found
+fp_loaded	fingerprints loaded
+fp_load_error	Error loading fingerprints: %s (%s)
+fp_trust	Trusting fingerprint from %s
+Callbacks
 ops_notify_bug	BUG() in ops_notify
 ops_notify	title: %s prim: %s sec: %s
 ops_display_bug	BUG() in ops_display
@@ -20,28 +27,26 @@ ops_insec	gone %9insecure%9
 ops_still_reply	still %9secure%9 (is reply)
 ops_still_no_reply	still %9secure%9 (is not reply)
 ops_log	log msg: %s
-key_not_found	no private keys found
-key_loaded	private keys loaded
-key_load_error	Error loading private keys: %s (%s)
-fp_not_found	no fingerprints found
-fp_loaded	fingerprints loaded
-fp_load_error	Error loading fingerprints: %s (%s)
-fp_trust	Trusting fingerprint from %s
+SendingReceiving
 send_failed	send failed: msg=%s
 send_change	couldn't find context also OTR changed the outgoing message(BUG?)
 send_fragment	failed to fragment message: msg=%s
 send_converted	OTR converted sent message to %s
-ctx_not_found	couldn't find context: acc=%s nick=%s
-auth_aborted_ongoing	Ongoing authentication aborted
-auth_aborted	Authentication aborted
-auth_responding	Responding to authentication request...
-auth_initiated	Initiated authentication...
-ctx_not_create	couldn't create/find context: acc=%s from=%s
 receive_ignore_query	ignoring rest of OTR default query msg
 receive_dequeued	dequeued msg of length %d
 receive_queued	queued msg of length %d
 receive_ignore	ignoring protocol message of length %s, acc=%s, from=%s
 receive_converted	OTR converted received message
+otr_better_two	<b>%s</b> has requested an <a href=\"http://otr.cypherpunks.ca/\">Off-the-Record private conversation</a>.  However, you do not have a plugin to support that.
+otr_better_three	See <a href=\"http://otr.cypherpunks.ca/\">http://otr.cypherpunks.ca/</a> for more information.
+Context
+ctx_not_found	couldn't find context: acc=%s nick=%s
+ctx_not_create	couldn't create/find context: acc=%s from=%s
+Authentication
+auth_aborted_ongoing	Ongoing authentication aborted
+auth_aborted	Authentication aborted
+auth_responding	Responding to authentication request...
+auth_initiated	Initiated authentication...
 auth_have_old	%s wanted to authenticate but an old authentication was still ongoing.  Old authentication will be aborted, please try again.
 auth_peer	%s wants to authenticate. Type /otr auth <your-shared-secret> to complete.
 auth_peer_reply_wrong	%s replied to an auth we didn't start.
@@ -49,14 +54,15 @@ auth_peer_replied	%s replied to our auth request...
 auth_peer_wrong_smp3	%s sent a wrong authentication message (SMP3).
 auth_successful	Authentication successful!
 auth_failed	Authentication failed!
-otr_better_two	<b>%s</b> has requested an <a href=\"http://otr.cypherpunks.ca/\">Off-the-Record private conversation</a>.  However, you do not have a plugin to support that.
-otr_better_three	See <a href=\"http://otr.cypherpunks.ca/\">http://otr.cypherpunks.ca/</a> for more information.
+Commands
 cmd_otr	We're alive
 cmd_trust	failed: Can't get query details
 cmd_auth	Please agree on a secret and then run /otr auth <secret>
 cmd_debug_on	Debug mode is on
 cmd_debug_off	Debug mode is off
+Nickignore
 nickignore	xmlconsole
+Statusbar
 st_plaintext	{sb plaintext}
 st_untrusted	{sb {hilight encrypted}(untrusted)}
 st_trust_smp	{sb {hilight authenticated}(smp)}
