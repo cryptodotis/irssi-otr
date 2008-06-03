@@ -92,7 +92,8 @@ hdr.write("""
 extern FORMAT_REC formats[];
 """)
 
-src.write("""
+src.write(""",
+{ NULL, NULL, 0 }
 };
 """)
 

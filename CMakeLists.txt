@@ -27,6 +27,13 @@ INCLUDE(cmake-extensions/cscope.cmake)
 FIND_PACKAGE(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 
+# Python
+
+FIND_PACKAGE(PythonInterp)
+IF(NOT PYTHON_EXECUTABLE)
+  MESSAGE(FATAL_ERROR "Couldn't find a python interpreter")
+ENDIF(NOT PYTHON_EXECUTABLE)
+
 # LIBOTR
 
 FIND_PACKAGE(LibOTR REQUIRED)
@@ -83,6 +90,7 @@ ADD_DEFINITIONS(-DHAVE_CONFIG_H -Wall -g)
 ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/otr-formats.c 
   DEPENDS makeformats.py formats.txt README
   COMMAND 
+  ${PYTHON_EXECUTABLE}
   ${PROJECT_SOURCE_DIR}/makeformats.py 
   ${PROJECT_SOURCE_DIR}/formats.txt
   ${PROJECT_SOURCE_DIR}/README
