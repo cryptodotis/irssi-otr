@@ -206,16 +206,9 @@ int otr_getstatus(char *mynick, char *nick, char *server)
 		case OTRL_SMP_EXPECT1:
 			return TXT_ST_UNTRUSTED;
 		case OTRL_SMP_EXPECT2:
-			if (!coi->received_smp_reply)
-				return TXT_ST_SMP_WAIT_2;
-			else
-				return TXT_ST_SMP_HAVE_2;
+			return TXT_ST_SMP_WAIT_2;
 		case OTRL_SMP_EXPECT3: 
-			/* unfortunately, this also covers the case 
-			 * where authentication failed */
-			return coi->smp_failed ? 
-				TXT_ST_SMP_FAILED : TXT_ST_SMP_FINALIZE;
-		case OTRL_SMP_EXPECT4: /* unreachable with libotr 3.1 */
+		case OTRL_SMP_EXPECT4:
 			return TXT_ST_SMP_FINALIZE;
 		default:
 			return TXT_ST_SMP_UNKNOWN;
@@ -235,6 +228,7 @@ void otr_trust(SERVER_REC *server, char *nick)
 {
 	ConnContext *co;
 	char accname[128];
+	struct co_info *coi;
 
 	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
 
@@ -245,6 +239,9 @@ void otr_trust(SERVER_REC *server, char *nick)
 	}
 
 	otrl_context_set_trust(co->active_fingerprint,"manual");
+
+	coi = co->app_data;
+	coi->smp_failed = FALSE;
 
 	otr_notice(server,nick,TXT_FP_TRUST,accname);
 }
@@ -258,16 +255,14 @@ void otr_abort_auth(ConnContext *co, SERVER_REC *server, const char *nick)
 
 	coi = co->app_data;
 
-	coi->received_smp_reply = FALSE;
 	coi->received_smp_init = FALSE;
-	coi->smp_failed = FALSE;
-
-	otrl_message_abort_smp(otr_state,&otr_ops,NULL,co);
 
 	otr_notice(server,nick,
 		   co->smstate->nextExpected!=OTRL_SMP_EXPECT1 ? 
 		   TXT_AUTH_ABORTED_ONGOING :
 		   TXT_AUTH_ABORTED);
+
+	otrl_message_abort_smp(otr_state,&otr_ops,NULL,co);
 }
 
 /*
@@ -312,6 +307,8 @@ void otr_auth(SERVER_REC *server, char *nick, const char *secret)
 	if (co->smstate->nextExpected!=OTRL_SMP_EXPECT1)
 		otr_abort_auth(co,server,nick);
 
+	coi->smp_failed = FALSE;
+
 	/* reset trust level */
 	otrl_context_set_trust(co->active_fingerprint, "");
 	otr_writefps();
@@ -333,9 +330,99 @@ void otr_auth(SERVER_REC *server, char *nick, const char *secret)
 			(unsigned char*)secret,
 			strlen(secret));
 
-	otr_notice(server,nick,coi->received_smp_init ? 
-		   TXT_AUTH_RESPONDING : 
+	otr_notice(server,nick,
+		   coi->received_smp_init ?
+		   TXT_AUTH_RESPONDING :
 		   TXT_AUTH_INITIATED);
+
+	statusbar_items_redraw("otr");
+}
+
+/* 
+ * Handles incoming TLVs of the SMP authentication type. We're not only updating
+ * our own state but also giving libotr a leg up so it gets through the auth.
+ */
+void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co, 
+		     struct co_info *coi, 
+		     SERVER_REC *server, const char *from) {
+	int abort = FALSE;
+
+	OtrlTLV *tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP1);
+	if (tlv) {
+		if (co->smstate->nextExpected != OTRL_SMP_EXPECT1) {
+			otr_notice(server,from,TXT_AUTH_HAVE_OLD,
+				   from);
+			abort = TRUE;
+		} else {
+			otr_notice(server,from,TXT_AUTH_PEER,
+				   from);
+			coi->received_smp_init = TRUE;
+		}
+	}
+
+	tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP2);
+	if (tlv) {
+		if (co->smstate->nextExpected != OTRL_SMP_EXPECT2) {
+			otr_notice(server,from,
+				   TXT_AUTH_PEER_REPLY_WRONG,
+				   from);
+			abort = TRUE;
+		} else {
+			otr_notice(server,from,
+				   TXT_AUTH_PEER_REPLIED,
+				   from);
+			co->smstate->nextExpected = OTRL_SMP_EXPECT4;
+		}
+	}
+
+	tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP3);
+	if (tlv) {
+		if (co->smstate->nextExpected != OTRL_SMP_EXPECT3) {
+			otr_notice(server,from,
+				   TXT_AUTH_PEER_WRONG_SMP3,
+				   from);
+			abort = TRUE;
+		} else {
+			char *trust = co->active_fingerprint->trust;
+			if (trust&&(*trust!='\0'))
+				otr_notice(server,from,
+					   TXT_AUTH_SUCCESSFUL);
+			else {
+				otr_notice(server,from,
+					   TXT_AUTH_FAILED);
+				coi->smp_failed = TRUE;
+			}
+			co->smstate->nextExpected = OTRL_SMP_EXPECT1;
+			coi->received_smp_init = FALSE;
+		}
+	}
+
+	tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP4);
+	if (tlv) {
+		if (co->smstate->nextExpected != OTRL_SMP_EXPECT4) {
+			otr_notice(server,from,
+				   TXT_AUTH_PEER_WRONG_SMP4,
+				   from);
+			abort = TRUE;
+		} else {
+			char *trust = co->active_fingerprint->trust;
+			if (trust&&(*trust!='\0'))
+				otr_notice(server,from,
+					   TXT_AUTH_SUCCESSFUL);
+			else {
+				/* unreachable since 4 is never sent out on
+				 * error */
+				otr_notice(server,from,
+					   TXT_AUTH_FAILED);
+				coi->smp_failed = TRUE;
+			}
+			co->smstate->nextExpected = OTRL_SMP_EXPECT1;
+			coi->received_smp_init = FALSE;
+		}
+	}
+	if (abort)
+		otr_abort_auth(co,server,from);
+
 	statusbar_items_redraw("otr");
 }
 
@@ -365,7 +452,7 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 	coi = co->app_data;
 
 	/* Really lame but I don't see how you could do this in a generic
-	 * way unless the IRC server would somehow marks continuation messages.
+	 * way unless the IRC server would somehow mark continuation messages.
 	 */
 	if ((strcmp(msg,coi->better_msg_two)==0)||
 	    (strcmp(msg,formats[TXT_OTR_BETTER_THREE].def)==0)) {
@@ -419,63 +506,9 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 		NULL,
 		NULL);
 
-	if (tlvs) {
-		OtrlTLV *tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP1);
-		int abort = FALSE;
-		if (tlv) {
-			if (co->smstate->nextExpected != OTRL_SMP_EXPECT1) {
-				otr_notice(server,from,TXT_AUTH_HAVE_OLD,
-					   accname);
-				abort = TRUE;
-			} else {
-				otr_notice(server,from,TXT_AUTH_PEER,
-					   accname);
-				coi->received_smp_init = TRUE;
-			}
-		} else
-			coi->received_smp_init = FALSE;
-		tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP2);
-		if (tlv) {
-			if (co->smstate->nextExpected != OTRL_SMP_EXPECT2) {
-				otr_notice(server,from,
-					   TXT_AUTH_PEER_REPLY_WRONG,
-					   accname);
-				abort = TRUE;
-			} else {
-				otr_notice(server,from,
-					   TXT_AUTH_PEER_REPLIED,
-					   accname);
-				coi->received_smp_reply = TRUE;
-			}
-		} else
-			coi->received_smp_reply = FALSE;
-		tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP3);
-		if (tlv) {
-			if (co->smstate->nextExpected != OTRL_SMP_EXPECT3) {
-				otr_notice(server,from,TXT_AUTH_PEER_WRONG_SMP3,accname);
-				abort = TRUE;
-			} else {
-				char *trust = co->active_fingerprint->trust;
-				if (trust&&(*trust!='\0'))
-					otr_notice(server,from,
-						   TXT_AUTH_SUCCESSFUL,
-						   accname);
-				else {
-					otr_notice(server,from,
-						   TXT_AUTH_FAILED,
-						   accname);
-					coi->smp_failed = TRUE;
-				}
-			}
-		} else
-			coi->smp_failed = FALSE;
-
-		if (abort)
-			otr_abort_auth(co,server,from);
-
-		statusbar_items_redraw("otr");
-	}
-
+	if (tlvs) 
+		otr_handle_tlvs(tlvs,co,coi,server,from);
+	
 	if (ignore_message) {
 		otr_debug(server,from,
 			  TXT_RECEIVE_IGNORE, strlen(msg),accname,from);

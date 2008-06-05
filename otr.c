@@ -76,8 +76,10 @@ static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item)
 static void cmd_trust(const char *data, void *server, WI_ITEM_REC *item)
 {
 	QUERY_REC *query = QUERY(item);
-	if (query&&query->server&&query->server->connrec)
+	if (query&&query->server&&query->server->connrec) {
 		otr_trust(query->server,query->name);
+		statusbar_items_redraw("otr");
+	}
 	else
 		otr_notice(item->server,query ? query->name : NULL,
 			   TXT_CMD_TRUST);
@@ -122,8 +124,10 @@ static void cmd_authabort(const char *data, void *server, WI_ITEM_REC *item)
 	WI_ITEM_REC *wi = active_win->active;
 	QUERY_REC *query = QUERY(wi);
 
-	if (query&&query->server&&query->server->connrec)
+	if (query&&query->server&&query->server->connrec) {
 		otr_authabort(query->server,query->name);
+		statusbar_items_redraw("otr");
+	}
 }
 
 /*

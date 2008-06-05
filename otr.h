@@ -74,8 +74,7 @@ struct co_info {
 					   messages */
 	SERVER_REC *server;		/* irssi server object for this peer */
 	int received_smp_init;		/* received SMP init msg */
-	int received_smp_reply;		/* received SMP reply msg */
-	int smp_failed;			/* SMP failed */
+	int smp_failed;			/* last SMP failed */
 	char better_msg_two[256];	/* what the second line of the "better"
 					   default query msg should like. Eat it
 					   up when it comes in */

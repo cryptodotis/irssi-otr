@@ -58,21 +58,22 @@ auth_peer	%s wants to authenticate. Type /otr auth <your-shared-secret> to compl
 auth_peer_reply_wrong	%s replied to an auth we didn't start.
 auth_peer_replied	%s replied to our auth request...
 auth_peer_wrong_smp3	%s sent a wrong authentication message (SMP3).
+auth_peer_wrong_smp4	%s sent a wrong authentication message (SMP4).
 auth_successful	Authentication successful!
 auth_failed	Authentication failed!
 Commands
 cmd_otr	We're alive
 cmd_trust	failed: Can't get query details
-cmd_auth	Please agree on a secret and then run /otr auth <secret>
+cmd_auth	Please agree on a secret with your peer and then initiate the authentication with /otr auth <secret> or let him initiate. Should you initiate your peer will after a little while be instructed to enter the secret as well. Once he has done so the authentication will finish up. Should you have both typed in the same secret the authentication should be successful.
 cmd_debug_on	Debug mode is on
 cmd_debug_off	Debug mode is off
 Nickignore
 nickignore	xmlconsole
 Statusbar
 st_plaintext	{sb plaintext}
-st_untrusted	{sb {hilight encrypted}(untrusted)}
-st_trust_smp	{sb {hilight authenticated}(smp)}
-st_trust_manual	{sb {hilight authenticated}(manual)}
+st_untrusted	{sb %rOTR(not auth'ed)%n}
+st_trust_smp	{sb %gOTR%n}
+st_trust_manual	{sb %gOTR%n}
 st_smp_wait_2	{sb {hilight awaiting auth reply...}}
 st_smp_have_2	{sb {hilight finalizing auth... (won't happen with libotr 3.1(bug), ask the other guy to initiate)}}
 st_smp_failed	{sb {hilight auth failed}}
