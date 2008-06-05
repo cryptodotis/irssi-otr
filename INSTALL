@@ -1,3 +1,5 @@
+---------- INSTALL ----------
+
 Usually the following will do:
 
 	$ cmake /path/to/src
@@ -8,3 +10,16 @@ Usually the following will do:
 
 1. into the system wide irssi modules folder if you're root or
 2. into ~/.irssi/modules if you're not root
+
+---------- MAJOR DEPENDENCIES ----------
+
+* 	cmake. Sry for that, but I'm not an autofoo fan. If you're running
+	< cmake-2.4.7 then configure will try to download a missing module
+	(pkgconfig) from the cmake-2.4.7 sources. Should work.
+
+*	libotr >= 3.1.0. Fragmentation has been introduced in that version so
+	nothing smaller will work.
+
+---------- OTHER DEPENDENCIES ----------
+
+irssi,wget,pkg-config,glib,python

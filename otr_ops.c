@@ -202,6 +202,15 @@ void ops_writefps(void *data)
 	otr_writefps();
 }
 
+int ops_is_logged_in(void *opdata, const char *accountname, 
+		    const char *protocol, const char *recipient)
+{
+	/*TODO register a handler for event 401 no such nick and set
+	 * a variable offline=TRUE. Reset it to false in otr_receive and
+	 * otr_send */
+	return TRUE;
+}
+
 /*
  * Initialize our OtrlMessageAppOps
  */
@@ -220,4 +229,5 @@ void otr_initops() {
 	otr_ops.max_message_size = ops_max_msg;
 	otr_ops.update_context_list = ops_up_ctx_list;
 	otr_ops.write_fingerprints = ops_writefps;
+	otr_ops.is_logged_in = ops_is_logged_in;
 }

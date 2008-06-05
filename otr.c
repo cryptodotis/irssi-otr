@@ -71,6 +71,21 @@ static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item)
 }
 
 /*
+ * /otr finish
+ */
+static void cmd_finish(const char *data, void *server, WI_ITEM_REC *item)
+{
+	QUERY_REC *query = QUERY(item);
+	if (query&&query->server&&query->server->connrec) {
+		otr_finish(query->server,query->name);
+		statusbar_items_redraw("otr");
+	}
+	else
+		otr_notice(item->server,query ? query->name : NULL,
+			   TXT_CMD_QNOTFOUND);
+}
+
+/*
  * /otr trust
  */
 static void cmd_trust(const char *data, void *server, WI_ITEM_REC *item)
@@ -82,7 +97,7 @@ static void cmd_trust(const char *data, void *server, WI_ITEM_REC *item)
 	}
 	else
 		otr_notice(item->server,query ? query->name : NULL,
-			   TXT_CMD_TRUST);
+			   TXT_CMD_QNOTFOUND);
 }
 
 /*
@@ -91,7 +106,7 @@ static void cmd_trust(const char *data, void *server, WI_ITEM_REC *item)
 static void cmd_genkey(const char *data, void *server, WI_ITEM_REC *item)
 {
 	if (strcmp(data,"abort")==0)
-		keygen_abort();
+		keygen_abort(FALSE);
 	else if (strchr(data,'@'))
 		keygen_run(data);
 	else
@@ -182,7 +197,7 @@ void otr_init(void)
 {
 	regex_nickignore = g_regex_new(formats[TXT_NICKIGNORE].def,0,0,NULL);
 
-	module_register(MODULE_NAME,  "core");
+	module_register(MODULE_NAME, "core");
 
 	theme_register(formats);
 
@@ -195,6 +210,7 @@ void otr_init(void)
 	command_bind("otr", NULL, (SIGNAL_FUNC) cmd_otr);
 	command_bind("otr debug", NULL, (SIGNAL_FUNC) cmd_debug);
 	command_bind("otr trust", NULL, (SIGNAL_FUNC) cmd_trust);
+	command_bind("otr finish", NULL, (SIGNAL_FUNC) cmd_finish);
 	command_bind("otr genkey", NULL, (SIGNAL_FUNC) cmd_genkey);
 	command_bind("otr auth", NULL, (SIGNAL_FUNC) cmd_auth);
 	command_bind("otr authabort", NULL, (SIGNAL_FUNC) cmd_authabort);
@@ -220,6 +236,7 @@ void otr_deinit(void)
 	command_unbind("otr", (SIGNAL_FUNC) cmd_otr);
 	command_unbind("otr debug", (SIGNAL_FUNC) cmd_debug);
 	command_unbind("otr trust", (SIGNAL_FUNC) cmd_trust);
+	command_unbind("otr finish", (SIGNAL_FUNC) cmd_finish);
 	command_unbind("otr genkey", (SIGNAL_FUNC) cmd_genkey);
 	command_unbind("otr auth", (SIGNAL_FUNC) cmd_auth);
 	command_unbind("otr authabort", (SIGNAL_FUNC) cmd_authabort);
@@ -230,4 +247,5 @@ void otr_deinit(void)
 
 	otrlib_deinit();
 
+	theme_unregister();
 }

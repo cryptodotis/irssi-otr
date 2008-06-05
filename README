@@ -30,7 +30,11 @@ Commands:
 /otr authabort
 	Abort any ongoing authentication
 /otr trust
-	Trust the fingerprint of the user in the current window blindly.
-	Better use "/otr auth"
+	Trust the fingerprint of the user in the current window.
+	You should only do this after comparing fingerprints over a secure line
 /otr debug
 	Switch debug mode on/off
+/otr contexts
+	List all OTR contexts along with their fingerprints and status
+/otr finish
+	Finish an OTR conversation

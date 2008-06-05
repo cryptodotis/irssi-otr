@@ -79,7 +79,7 @@ void keygen_childwatch(GPid pid,gint status, gpointer data) {
 	} else if (ret==-1)
 		otr_noticest(TXT_KG_POLLERR,kg_st.accountname,strerror(errno));
 
-	keygen_abort();
+	keygen_abort(FALSE);
 }	
 
 /*
@@ -201,9 +201,9 @@ void keygen_run(const char *accname)
 /*
  * Abort ongoing key generation.
  */
-void keygen_abort()
+void keygen_abort(int ignoreidle)
 {
-	if (kg_st.status!=KEYGEN_RUNNING) {
+	if (!ignoreidle&&(kg_st.status!=KEYGEN_RUNNING)) {
 		otr_noticest(TXT_KG_NOABORT);
 		return;
 	}

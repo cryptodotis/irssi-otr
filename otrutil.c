@@ -59,7 +59,7 @@ void otrlib_deinit()
 		otr_state = NULL;
 	}
 
-	keygen_abort();
+	keygen_abort(TRUE);
 }
 
 
@@ -268,6 +268,28 @@ int otr_getstatus(char *mynick, char *nick, char *server)
 }
 
 /*
+ * Finish the conversation.
+ */
+void otr_finish(SERVER_REC *server, char *nick)
+{
+	ConnContext *co;
+	char accname[128];
+
+	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
+
+	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
+		otr_noticest(TXT_CTX_NOT_FOUND,
+			     accname,nick);
+		return;
+	}
+
+	otrl_message_disconnect(otr_state,&otr_ops,NULL,accname,
+				PROTOCOLID,nick);
+
+	otr_notice(server,nick,TXT_CMD_FINISH,nick);
+}
+
+/*
  * Trust our peer.
  */
 void otr_trust(SERVER_REC *server, char *nick)
@@ -390,7 +412,8 @@ void otr_auth(SERVER_REC *server, char *nick, const char *secret)
  */
 void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co, 
 		     struct co_info *coi, 
-		     SERVER_REC *server, const char *from) {
+		     SERVER_REC *server, const char *from) 
+{
 	int abort = FALSE;
 
 	OtrlTLV *tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP1);
@@ -468,6 +491,10 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
 	}
 	if (abort)
 		otr_abort_auth(co,server,from);
+
+	tlv = otrl_tlv_find(tlvs, OTRL_TLV_DISCONNECTED);
+	if (tlv)
+		otr_notice(server,from,TXT_PEER_FINISHED,from);
 
 	statusbar_items_redraw("otr");
 }
