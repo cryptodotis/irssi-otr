@@ -19,13 +19,40 @@
 
 PROJECT(IRSSIOTR)
 
-SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-extensions/)
+SET(CMAKE_MODULE_PATH 
+  ${PROJECT_SOURCE_DIR}/cmake-extensions/
+  ${PROJECT_BINARY_DIR})
+
 INCLUDE(cmake-extensions/cscope.cmake)
 INCLUDE(CheckFunctionExists)
 
+# wget
+
+FIND_PACKAGE(Wget REQUIRED)
+
+# PkgConfig. Only available since 2.4.7, fetch if unavailable so people with
+# older cmake can run this
+
+FIND_PACKAGE(PkgConfig QUIET)
+
+IF(NOT PKG_CONFIG_FOUND)
+  MESSAGE(STATUS "Couldn't find the pkg-config cmake module. Seems you're
+  running cmake < 2.4.7. Will try to fetch the module from 2.4.7...")
+  EXECUTE_PROCESS(COMMAND "bash" "-c"
+    "${WGET_EXECUTABLE} '-O' '-' \\
+    'http://www.cmake.org/files/v2.4/cmake-2.4.7.tar.gz' | \\
+    tar xz cmake-2.4.7/Modules/FindPkgConfig.cmake && \\
+    mv cmake-2.4.7/Modules/FindPkgConfig.cmake . && \\
+    rmdir -p cmake-2.4.7/Modules"
+    RESULT_VARIABLE PKGCONF_RET)
+  IF(NOT PKGCONF_RET EQUAL 0)
+    MESSAGE(FATAL_ERROR "Couldnt download cmake module for pkg-config")
+  ENDIF(NOT PKGCONF_RET EQUAL 0)
+  FIND_PACKAGE(PkgConfig REQUIRED)
+ENDIF(NOT PKG_CONFIG_FOUND)
+
 # GLIB
 
-FIND_PACKAGE(PkgConfig REQUIRED)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 
 # Python
@@ -53,8 +80,6 @@ IF(NOT IRSSI_INCLUDE_DIR)
 ENDIF(NOT IRSSI_INCLUDE_DIR)
 
 # Bad hack for irssi private headers
-
-FIND_PACKAGE(Wget REQUIRED)
 
 IF (NOT EXISTS "mainwindows.h")
   MESSAGE(STATUS "Need to fetch and patch irssi private headers "
@@ -119,4 +144,4 @@ INSTALL(TARGETS otr DESTINATION modules/)
 # cscope
 
 FILE(GLOB CSANDHS *.c *.h)
-ADD_CSCOPE_TARGET(${CSANDHS} ${IRSSIOTR_INCLUDE_DIRS})
+ADD_CSCOPE_TARGET("${CSANDHS}" "${IRSSIOTR_INCLUDE_DIRS}")
