@@ -100,6 +100,7 @@ ConnContext *otr_getcontext(const char *accname,const char *nick,int create,void
 void otr_trust(SERVER_REC *server, char *nick);
 void otr_auth(SERVER_REC *server, char *nick, const char *secret);
 void otr_authabort(SERVER_REC *server, char *nick);
+char *otr_contexts();
 
 
 /* key/fingerprint stuff */

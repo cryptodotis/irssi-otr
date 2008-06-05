@@ -148,6 +148,16 @@ static void cmd_help(const char *data, void *server, WI_ITEM_REC *item)
 }
 
 /*
+ * /otr contexts
+ */
+static void cmd_contexts(const char *data, void *server, WI_ITEM_REC *item)
+{
+	char *s = otr_contexts();
+	printtext(NULL,NULL,MSGLEVEL_CRAP,s);
+	free(s);
+}
+
+/*
  * otr statusbar
  */
 static void otr_statusbar(SBAR_ITEM_REC *item, int get_size_only)
@@ -189,6 +199,7 @@ void otr_init(void)
 	command_bind("otr auth", NULL, (SIGNAL_FUNC) cmd_auth);
 	command_bind("otr authabort", NULL, (SIGNAL_FUNC) cmd_authabort);
 	command_bind("otr help", NULL, (SIGNAL_FUNC) cmd_help);
+	command_bind("otr contexts", NULL, (SIGNAL_FUNC) cmd_contexts);
 
 	statusbar_item_register("otr", NULL, otr_statusbar);
 
@@ -213,6 +224,7 @@ void otr_deinit(void)
 	command_unbind("otr auth", (SIGNAL_FUNC) cmd_auth);
 	command_unbind("otr authabort", (SIGNAL_FUNC) cmd_authabort);
 	command_unbind("otr help", (SIGNAL_FUNC) cmd_help);
+	command_unbind("otr contexts", (SIGNAL_FUNC) cmd_contexts);
 
 	statusbar_item_unregister("otr");
 

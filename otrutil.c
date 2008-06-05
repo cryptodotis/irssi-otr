@@ -174,9 +174,55 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 	return NULL;
 }
 
+char *otr_contexts() {
+	ConnContext *context;
+	Fingerprint *fprint;
+	int strs = 1024,i;
+	char *str = malloc(sizeof(char)*strs), *s = str, *trust;
+	char *state;
+
+	for(context = otr_state->context_root; context; 
+	    context = context->next) {
+		switch (context->msgstate) {
+		case OTRL_MSGSTATE_PLAINTEXT: state =   "plaintext";break;
+		case OTRL_MSGSTATE_ENCRYPTED: state = "%gencrypted%n";break;
+		case OTRL_MSGSTATE_FINISHED: state =    "finished ";break;
+		}
+		s += sprintf(s,"%%9%20s%%9    %30s    %s\n",context->username,
+			     context->accountname,state);
+
+		for (fprint = context->fingerprint_root.next; fprint;
+		     fprint = fprint->next) {
+			trust = fprint->trust ? : "";
+			s += sprintf(s, "    ");
+			for(i=0;i<20;++i)
+				s += sprintf(s, "%02x",
+					     fprint->fingerprint[i]);
+			if (*trust=='\0')
+				s += sprintf(s, "    %%rnot "
+					     "authenticated%%n\n");
+			else if (strcmp(trust,"smp")==0)
+				s += sprintf(s, 
+					     "    %%gauthenticated%%n via "
+					     "shared secret (SMP)\n");
+			else 
+				s += sprintf(s,
+					     "    %%gauthenticated%%n"
+					     "manually\n");
+
+			if ((i=s-str)>strs/2) {
+				strs *= 2;
+				str = realloc(str,strs);
+				s = str+i;
+			}
+		}
+	}
+
+	return str;
+}
+
 /*
  * Get the OTR status of this conversation.
- * This wouldn't be half as long if the SMP state machine would work better.
  */
 int otr_getstatus(char *mynick, char *nick, char *server)
 {
@@ -243,7 +289,7 @@ void otr_trust(SERVER_REC *server, char *nick)
 	coi = co->app_data;
 	coi->smp_failed = FALSE;
 
-	otr_notice(server,nick,TXT_FP_TRUST,accname);
+	otr_notice(server,nick,TXT_FP_TRUST,nick);
 }
 
 /*

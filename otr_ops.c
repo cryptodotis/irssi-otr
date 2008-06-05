@@ -20,6 +20,7 @@
 #include "otr.h"
 
 OtrlMessageAppOps otr_ops;
+extern OtrlUserState otr_state;
 
 /*
  * Policy is currently fixed as OTR lib default (meaning opportunistic).
@@ -121,8 +122,27 @@ int ops_display_msg(void *opdata, const char *accountname,
 void ops_secure(void *opdata, ConnContext *context)
 {
 	struct co_info *coi = context->app_data;
+	char * trust = context->active_fingerprint->trust ? : "";
+	char ownfp[45],peerfp[45];
+
 	otr_notice(coi->server,
 		   context->username,TXT_OPS_SEC);
+	if (*trust!='\0')
+		return;
+
+	/* not authenticated. 
+	 * Let's print out the fingerprints for comparison */
+
+	otrl_privkey_hash_to_human(peerfp,
+				   context->active_fingerprint->fingerprint);
+
+	otr_notice(coi->server,context->username,TXT_OPS_FPCOMP,
+		   otrl_privkey_fingerprint(otr_state,
+					    ownfp,
+					    context->accountname,
+					    PROTOCOLID),
+		   context->username,
+		   peerfp);
 }
 
 /*

@@ -29,6 +29,7 @@ ops_notify	title: %s prim: %s sec: %s
 ops_display_bug	BUG() in ops_display
 ops_display	msg: %s
 ops_sec	gone %9secure%9
+ops_fpcomp	Your peer is not authenticated. To make sure you're talking to the right guy you can either agree on a secret and use the authentication described in %9/otr auth%9, or use the traditional way and compare fingerprints over a secure line (e.g. telephone) and subsequently enter %9/otr trust%9.  Your fingerprint is: %s. %s's fingerprint: %s
 ops_insec	gone %9insecure%9
 ops_still_reply	still %9secure%9 (is reply)
 ops_still_no_reply	still %9secure%9 (is not reply)
