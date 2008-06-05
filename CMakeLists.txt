@@ -21,6 +21,7 @@ PROJECT(IRSSIOTR)
 
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-extensions/)
 INCLUDE(cmake-extensions/cscope.cmake)
+INCLUDE(CheckFunctionExists)
 
 # GLIB
 
@@ -80,6 +81,14 @@ SET(IRSSIOTR_INCLUDE_DIRS
   ${IRSSI_INCLUDE_DIR}/irssi/src/core)
 
 include_directories(${IRSSIOTR_INCLUDE_DIRS})
+
+# check for strsignal
+
+CHECK_FUNCTION_EXISTS(strsignal HAVE_STRSIGNAL)
+IF(HAVE_STRSIGNAL)
+  SET_SOURCE_FILES_PROPERTIES(otr_key.c PROPERTIES COMPILE_FLAGS 
+    "-DHAVE_STRSIGNAL")
+ENDIF(HAVE_STRSIGNAL)
 
 # defs
 

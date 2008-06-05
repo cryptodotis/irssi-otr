@@ -88,8 +88,12 @@ static void cmd_trust(const char *data, void *server, WI_ITEM_REC *item)
  */
 static void cmd_genkey(const char *data, void *server, WI_ITEM_REC *item)
 {
-	//TODO check data
-	keygen_run(data);
+	if (strcmp(data,"abort")==0)
+		keygen_abort();
+	else if (strchr(data,'@'))
+		keygen_run(data);
+	else
+		otr_noticest(TXT_KG_NEEDACC);
 }
 
 /*

@@ -17,9 +17,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#define _GNU_SOURCE
+
 #include "otr.h"
 
 #include <libgen.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/poll.h>
+#include <signal.h>
 
 extern OtrlUserState otr_state;
 
@@ -31,8 +37,50 @@ struct {
 	char *protocol;
 	time_t started;
 	GIOChannel *ch[2];
-	guint eid;
+	guint cpid,cwid;
+	pid_t pid;
 } kg_st = {.status = KEYGEN_NO };
+
+void keygen_childwatch(GPid pid,gint status, gpointer data) {
+	struct pollfd pfd = { 
+		.fd = g_io_channel_unix_get_fd(kg_st.ch[0]),
+		.events = POLLIN };
+	int ret;
+
+	/* nothing to do if keygen_complete has already been called */
+	if (data) 
+		return;
+
+	kg_st.pid = 0;
+
+	ret = poll(&pfd,1,0);
+
+	/* data is there, let's wait for keygen_complete to be called */
+	if (ret == 1)
+		return;
+
+	/* no data, report error and reset kg_st */
+	if (ret==0) {
+		if (WIFSIGNALED(status)) {
+			char sigstr[16];
+
+			sprintf(sigstr,
+#ifndef HAVE_STRSIGNAL
+				"%d",WTERMSIG(status));
+#else
+				"%s",strsignal(WTERMSIG(status)));
+#endif
+			otr_noticest(TXT_KG_EXITSIG,
+				     kg_st.accountname,
+				     sigstr);
+		}
+		else
+			otr_noticest(TXT_KG_EXITED,kg_st.accountname);
+	} else if (ret==-1)
+		otr_noticest(TXT_KG_POLLERR,kg_st.accountname,strerror(errno));
+
+	keygen_abort();
+}	
 
 /*
  * Installed as g_io_watch and called when the key generation
@@ -63,6 +111,9 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 		//otrl_privkey_forget_all(otr_state); <-- done by lib
 		key_load();
 	}
+
+	g_source_remove(kg_st.cwid);
+	kg_st.cwid = g_child_watch_add(kg_st.pid,keygen_childwatch,(void*)1);
 
 	kg_st.status = KEYGEN_NO;
 	g_free(kg_st.accountname);
@@ -125,11 +176,15 @@ void keygen_run(const char *accname)
 		}
 
 		kg_st.status = KEYGEN_RUNNING;
+		kg_st.pid = ret;
+
 		otr_noticest(TXT_KG_INITIATED,
 			     accname);
 
-		kg_st.eid = g_io_add_watch(kg_st.ch[0], G_IO_IN, 
-					   (GIOFunc) keygen_complete, NULL);
+		kg_st.cpid = g_io_add_watch(kg_st.ch[0], G_IO_IN, 
+					    (GIOFunc) keygen_complete, NULL);
+		kg_st.cwid = g_child_watch_add(kg_st.pid,keygen_childwatch,NULL);
+
 		kg_st.started = time(NULL);
 		return;
 	}
@@ -148,8 +203,23 @@ void keygen_run(const char *accname)
  */
 void keygen_abort()
 {
-	if (kg_st.status==KEYGEN_RUNNING)
-		g_source_remove(kg_st.eid);
+	if (kg_st.status!=KEYGEN_RUNNING) {
+		otr_noticest(TXT_KG_NOABORT);
+		return;
+	}
+
+	otr_noticest(TXT_KG_ABORT,kg_st.accountname);
+
+	g_source_remove(kg_st.cpid);
+	g_source_remove(kg_st.cwid);
+	g_free(kg_st.accountname);
+
+	if (kg_st.pid!=0) {
+		kill(kg_st.pid,SIGTERM);
+		g_child_watch_add(kg_st.pid,keygen_childwatch,(void*)1);
+	}
+
+	kg_st.status = KEYGEN_NO;
 }
 
 /* 
