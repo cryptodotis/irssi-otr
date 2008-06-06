@@ -187,6 +187,7 @@ char *otr_contexts() {
 		case OTRL_MSGSTATE_PLAINTEXT: state =   "plaintext";break;
 		case OTRL_MSGSTATE_ENCRYPTED: state = "%gencrypted%n";break;
 		case OTRL_MSGSTATE_FINISHED: state =    "finished ";break;
+		default: state = "unknown state(BUG)";break;
 		}
 		s += sprintf(s,"%%9%20s%%9    %30s    %s\n",context->username,
 			     context->accountname,state);
