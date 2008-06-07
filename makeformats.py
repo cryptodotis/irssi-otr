@@ -35,6 +35,8 @@ hdr.write("TXT_OTR_MODULE_NAME")
 
 fills = 0
 
+section = None
+
 for line in lines:
 	src.write(",\n")
 
@@ -42,6 +44,7 @@ for line in lines:
 
 	if len(e)==1:
 		# Section name
+		section = e[0]
 		src.write("""{ NULL, "%s", 0 }\n""" % (e[0]))
 
 		hdr.write(",\nTXT_OTR_FILL_%d" % fills)
@@ -72,7 +75,7 @@ for line in lines:
 	#print "Handling line %s with elen %d" % (line,len(e))
 
 	premsg = ""
-	if e[1][0] != "{":
+	if e[1][0] != "{" and section!="Nickignore":
 		premsg = "%9OTR%9: "
 
 	src.write("""{ "%s", "%s%s", %s""" % (e[0],premsg,e[1],e[2]))

@@ -25,6 +25,7 @@ SET(CMAKE_MODULE_PATH
 
 INCLUDE(cmake-extensions/cscope.cmake)
 INCLUDE(CheckFunctionExists)
+INCLUDE(CheckIncludeFile)
 
 # wget
 
@@ -106,6 +107,16 @@ SET(IRSSIOTR_INCLUDE_DIRS
   ${IRSSI_INCLUDE_DIR}/irssi/src/core)
 
 include_directories(${IRSSIOTR_INCLUDE_DIRS})
+SET(CMAKE_REQUIRED_INCLUDES ${IRSSIOTR_INCLUDE_DIRS})
+
+# gregex.h 
+# available since 2.13 AFAIK
+# optional for html stripping and nick ignoring
+
+CHECK_INCLUDE_FILE(glib/gregex.h HAVE_GREGEX_H)
+IF(HAVE_GREGEX_H)
+  ADD_DEFINITIONS(-DHAVE_GREGEX_H)
+ENDIF(HAVE_GREGEX_H)
 
 # check for strsignal
 
@@ -117,7 +128,14 @@ ENDIF(HAVE_STRSIGNAL)
 
 # defs
 
-ADD_DEFINITIONS(-DHAVE_CONFIG_H -Wall -g)
+IF(NOT CMAKE_BUILD_TYPE)
+  SET(CMAKE_BUILD_TYPE debug)
+  SET(CMAKE_C_FLAGS_DEBUG -g)
+ENDIF(NOT CMAKE_BUILD_TYPE)
+
+MESSAGE(STATUS "This is a ${CMAKE_BUILD_TYPE} build")
+
+ADD_DEFINITIONS(-DHAVE_CONFIG_H -Wall)
 
 # generate otr-formats.{c,h}
 

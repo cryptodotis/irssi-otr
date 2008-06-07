@@ -83,6 +83,27 @@ void ops_notify(void *opdata, OtrlNotifyLevel level, const char *accountname,
 		   title,primary,secondary);
 }
 
+#ifdef HAVE_GREGEX_H
+
+/* This is kind of messy. */
+const char *convert_otr_msg(const char *msg) 
+{
+	GRegex *regex_bold  = g_regex_new("</?i([ /][^>]*)?>",0,0,NULL);
+	GRegex *regex_del   = g_regex_new("</?b([ /][^>]*)?>",0,0,NULL);
+	gchar *msgnohtml = 
+		g_regex_replace_literal(regex_del,msg,-1,0,"",0,NULL);
+
+	msg = g_regex_replace_literal(regex_bold,msgnohtml,-1,0,"*",0,NULL);
+
+	g_free(msgnohtml);
+	g_regex_unref(regex_del);
+	g_regex_unref(regex_bold);
+
+	return msg;
+}
+
+#endif
+
 /*
  * OTR message. E.g. "following has been transmitted in clear: ...".
  * We're trying to kill the ugly HTML.
@@ -94,12 +115,6 @@ int ops_display_msg(void *opdata, const char *accountname,
 	ConnContext *co = otr_getcontext(accountname,username,FALSE,NULL);
 	SERVER_REC *server = active_win->active_server;
 	struct co_info *coi;
-	/* This is kind of messy. */
-	GRegex *regex_bold  = g_regex_new("</?i([ /][^>]*)?>",0,0,NULL);
-	GRegex *regex_del   = g_regex_new("</?b([ /][^>]*)?>",0,0,NULL);
-	gchar *msgnohtml = 
-		g_regex_replace_literal(regex_del,msg,-1,0,"",0,NULL);
-	msg = g_regex_replace_literal(regex_bold,msgnohtml,-1,0,"*",0,NULL);
 
 	if (co) {
 		coi = co->app_data;
@@ -107,12 +122,14 @@ int ops_display_msg(void *opdata, const char *accountname,
 	} else 
 		otr_notice(server,username,TXT_OPS_DISPLAY_BUG);
 
+#ifdef HAVE_GREGEX_H
+	msg = convert_otr_msg(msg);
 	otr_notice(server,username,TXT_OPS_DISPLAY,msg);
-
-	g_free(msgnohtml);
 	g_free((char*)msg);
-	g_regex_unref(regex_del);
-	g_regex_unref(regex_bold);
+#else
+	otr_notice(server,username,TXT_OPS_DISPLAY,msg);
+#endif
+
 	return 0;
 }
 

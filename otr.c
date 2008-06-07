@@ -20,7 +20,10 @@
 #include "otr.h"
 
 int debug = FALSE;
+
+#ifdef HAVE_GREGEX_H
 GRegex *regex_nickignore;
+#endif
 
 /*
  * Pipes all outgoing private messages through OTR
@@ -29,7 +32,13 @@ static void sig_server_sendmsg(SERVER_REC *server, const char *target,
 			       const char *msg, void *target_type_p)
 {
 	if (GPOINTER_TO_INT(target_type_p)==SEND_TARGET_NICK) {
-		char *otrmsg = otr_send(server,msg,target);
+		char *otrmsg;
+
+#ifdef HAVE_GREGEX_H
+		if (g_regex_match(regex_nickignore,target,0,NULL))
+			return;
+#endif
+		otrmsg = otr_send(server,msg,target);
 		if (otrmsg&&(otrmsg!=msg)) {
 			signal_continue(4,server,target,otrmsg,target_type_p);
 			otrl_message_free(otrmsg);
@@ -46,8 +55,10 @@ static void sig_message_private(SERVER_REC *server, const char *msg,
 {
 	char *newmsg;
 
+#ifdef HAVE_GREGEX_H
 	if (g_regex_match(regex_nickignore,nick,0,NULL))
 		return;
+#endif
 
 	newmsg = otr_receive(server,msg,nick);
 
@@ -195,7 +206,9 @@ static void otr_statusbar(SBAR_ITEM_REC *item, int get_size_only)
  */
 void otr_init(void)
 {
+#ifdef HAVE_GREGEX_H
 	regex_nickignore = g_regex_new(formats[TXT_NICKIGNORE].def,0,0,NULL);
+#endif
 
 	module_register(MODULE_NAME, "core");
 
@@ -228,7 +241,9 @@ void otr_init(void)
  */
 void otr_deinit(void)
 {
+#ifdef HAVE_GREGEX_H
 	g_regex_unref(regex_nickignore);
+#endif
 
 	signal_remove("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
 	signal_remove("message private", (SIGNAL_FUNC) sig_message_private);

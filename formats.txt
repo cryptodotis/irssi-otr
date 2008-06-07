@@ -71,7 +71,7 @@ cmd_debug_off	Debug mode is off
 cmd_finish	Finished conversation with %s
 peer_finished	%s has finished the OTR conversation
 Nickignore
-nickignore	xmlconsole
+nickignore	xmlconsole[0-9]*
 Statusbar
 st_plaintext	{sb plaintext}
 st_untrusted	{sb %rOTR(not auth'ed)%n}
