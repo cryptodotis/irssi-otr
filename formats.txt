@@ -70,7 +70,7 @@ cmd_debug_on	Debug mode is on
 cmd_debug_off	Debug mode is off
 cmd_finish	Finished conversation with %s
 cmd_version	This is irssi-otr version %s
-peer_finished	%s has finished the OTR conversation
+peer_finished	%s has finished the OTR conversation. If you want to continue talking enter %9/otr finish%9 for plaintext or ?OTR? to restart OTR.
 Nickignore
 nickignore	xmlconsole[0-9]*
 Statusbar

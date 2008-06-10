@@ -70,6 +70,15 @@ static void sig_message_private(SERVER_REC *server, const char *msg,
 }
 
 /*
+ * Finish an OTR conversation when its query is closed.
+ */
+static void sig_query_destroyed(QUERY_REC *query) {
+	if (query&&query->server&&query->server->connrec) {
+		otr_finish(query->server,query->name,FALSE);
+	}
+}
+
+/*
  * /otr
  */
 static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item) 
@@ -88,7 +97,7 @@ static void cmd_finish(const char *data, void *server, WI_ITEM_REC *item)
 {
 	QUERY_REC *query = QUERY(item);
 	if (query&&query->server&&query->server->connrec) {
-		otr_finish(query->server,query->name);
+		otr_finish(query->server,query->name,TRUE);
 		statusbar_items_redraw("otr");
 	}
 	else
@@ -227,6 +236,7 @@ void otr_init(void)
 
 	signal_add_first("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
 	signal_add_first("message private", (SIGNAL_FUNC) sig_message_private);
+	signal_add("query destroyed", (SIGNAL_FUNC) sig_query_destroyed);
 
 	command_bind("otr", NULL, (SIGNAL_FUNC) cmd_otr);
 	command_bind("otr debug", NULL, (SIGNAL_FUNC) cmd_debug);
@@ -256,6 +266,7 @@ void otr_deinit(void)
 
 	signal_remove("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
 	signal_remove("message private", (SIGNAL_FUNC) sig_message_private);
+	signal_remove("query destroyed", (SIGNAL_FUNC) sig_query_destroyed);
 
 	command_unbind("otr", (SIGNAL_FUNC) cmd_otr);
 	command_unbind("otr debug", (SIGNAL_FUNC) cmd_debug);

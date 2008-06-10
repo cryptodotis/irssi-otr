@@ -271,7 +271,7 @@ int otr_getstatus(char *mynick, char *nick, char *server)
 /*
  * Finish the conversation.
  */
-void otr_finish(SERVER_REC *server, char *nick)
+void otr_finish(SERVER_REC *server, char *nick, int inquery)
 {
 	ConnContext *co;
 	char accname[128];
@@ -279,15 +279,18 @@ void otr_finish(SERVER_REC *server, char *nick)
 	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
 
 	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
-		otr_noticest(TXT_CTX_NOT_FOUND,
-			     accname,nick);
+		if (inquery)
+			otr_noticest(TXT_CTX_NOT_FOUND,
+				     accname,nick);
 		return;
 	}
 
 	otrl_message_disconnect(otr_state,&otr_ops,NULL,accname,
 				PROTOCOLID,nick);
 
-	otr_notice(server,nick,TXT_CMD_FINISH,nick);
+	otr_notice(inquery ? server : NULL,
+		   inquery ? nick : NULL,
+		   TXT_CMD_FINISH,nick);
 }
 
 /*
