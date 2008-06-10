@@ -38,3 +38,5 @@ Commands:
 	List all OTR contexts along with their fingerprints and status
 /otr finish
 	Finish an OTR conversation
+/otr version
+	Display irssi-otr version. Might be a git commit

@@ -51,6 +51,7 @@
 
 /* own */
 
+#include "io-config.h"
 #include "otr-formats.h"
 
 /* irssi module name */
@@ -123,15 +124,15 @@ void otr_writefps();
 	otr_log(NULL,NULL,level,format, ## __VA_ARGS__)
 
 #define otr_noticest(formatnum,...) \
-	printformat(NULL,NULL,MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__)
+	printformat(NULL,NULL,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__)
 
 #define otr_notice(server,nick,formatnum,...) \
-	printformat(server,nick,MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__)
+	printformat(server,nick,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__)
 
 #define otr_debug(server,nick,formatnum,...) { \
 	if (debug) \
 		printformat(server,nick, \
-			    MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__); \
+			    MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__); \
 }
 
 void otr_log(SERVER_REC *server, const char *to, 

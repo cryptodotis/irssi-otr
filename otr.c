@@ -174,6 +174,14 @@ static void cmd_help(const char *data, void *server, WI_ITEM_REC *item)
 }
 
 /*
+ * /otr version
+ */
+static void cmd_version(const char *data, void *server, WI_ITEM_REC *item)
+{
+	otr_noticest(TXT_CMD_VERSION,IRSSIOTR_VERSION);
+}
+
+/*
  * /otr contexts
  */
 static void cmd_contexts(const char *data, void *server, WI_ITEM_REC *item)
@@ -229,6 +237,7 @@ void otr_init(void)
 	command_bind("otr authabort", NULL, (SIGNAL_FUNC) cmd_authabort);
 	command_bind("otr help", NULL, (SIGNAL_FUNC) cmd_help);
 	command_bind("otr contexts", NULL, (SIGNAL_FUNC) cmd_contexts);
+	command_bind("otr version", NULL, (SIGNAL_FUNC) cmd_version);
 
 	statusbar_item_register("otr", NULL, otr_statusbar);
 
@@ -257,6 +266,7 @@ void otr_deinit(void)
 	command_unbind("otr authabort", (SIGNAL_FUNC) cmd_authabort);
 	command_unbind("otr help", (SIGNAL_FUNC) cmd_help);
 	command_unbind("otr contexts", (SIGNAL_FUNC) cmd_contexts);
+	command_unbind("otr version", (SIGNAL_FUNC) cmd_version);
 
 	statusbar_item_unregister("otr");
 

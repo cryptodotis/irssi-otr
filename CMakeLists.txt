@@ -17,15 +17,30 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
 #
 
-PROJECT(IRSSIOTR)
+PROJECT(irssi-otr)
+
+CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
 
 SET(CMAKE_MODULE_PATH 
   ${PROJECT_SOURCE_DIR}/cmake-extensions/
   ${PROJECT_BINARY_DIR})
 
 INCLUDE(cmake-extensions/cscope.cmake)
+INCLUDE(cmake-extensions/Git.cmake)
 INCLUDE(CheckFunctionExists)
 INCLUDE(CheckIncludeFile)
+
+# get version from git
+
+IF(NOT IRSSIOTR_VERSION)
+  FIND_GIT_TAGORCOMMIT(${PROJECT_SOURCE_DIR} IRSSIOTR_VERSION)
+  IF(NOT IRSSIOTR_VERSION)
+    MESSAGE(FATAL_ERROR 
+      "Couldn't determine version. Please run cmake -DIRSSIOTR_VERSION=...")
+  ENDIF(NOT IRSSIOTR_VERSION)
+ENDIF(NOT IRSSIOTR_VERSION)
+
+MESSAGE(STATUS "Building irssi-otr version ${IRSSIOTR_VERSION}")
 
 # wget
 
@@ -114,24 +129,21 @@ SET(CMAKE_REQUIRED_INCLUDES ${IRSSIOTR_INCLUDE_DIRS})
 # optional for html stripping and nick ignoring
 
 CHECK_INCLUDE_FILE(glib/gregex.h HAVE_GREGEX_H)
-IF(HAVE_GREGEX_H)
-  ADD_DEFINITIONS(-DHAVE_GREGEX_H)
-ENDIF(HAVE_GREGEX_H)
 
 # check for strsignal
 
 CHECK_FUNCTION_EXISTS(strsignal HAVE_STRSIGNAL)
-IF(HAVE_STRSIGNAL)
-  SET_SOURCE_FILES_PROPERTIES(otr_key.c PROPERTIES COMPILE_FLAGS 
-    "-DHAVE_STRSIGNAL")
-ENDIF(HAVE_STRSIGNAL)
+
+# generate io-config.h
+
+CONFIGURE_FILE(io-config.h.in io-config.h)
 
 # defs
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE debug)
-  SET(CMAKE_C_FLAGS_DEBUG -g)
 ENDIF(NOT CMAKE_BUILD_TYPE)
+SET(CMAKE_C_FLAGS_DEBUG -g)
 
 MESSAGE(STATUS "This is a ${CMAKE_BUILD_TYPE} build")
 
@@ -154,12 +166,19 @@ ADD_LIBRARY(otr SHARED otr.c otrutil.c otr_ops.c otr_key.c ui.c ${PROJECT_BINARY
 
 TARGET_LINK_LIBRARIES(otr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
 
-# Install
-
-INSTALL(SCRIPT cmake-extensions/InstallAsUser.cmake)
-INSTALL(TARGETS otr DESTINATION modules/)
-
 # cscope
 
 FILE(GLOB CSANDHS *.c *.h)
 ADD_CSCOPE_TARGET("${CSANDHS}" "${IRSSIOTR_INCLUDE_DIRS}")
+
+# Install / CPack
+
+IF(CMAKE_BUILD_TYPE MATCHES "package-.*")
+  SET(CMAKE_INSTALL_PREFIX "/usr/irssi/lib/")
+  INCLUDE(Packaging.cmake)
+  INSTALL(TARGETS otr DESTINATION irssi/lib/modules)
+  INSTALL(FILES README DESTINATION share/doc/${CMAKE_PROJECT_NAME}-${IRSSIOTR_VERSION})
+ELSE(CMAKE_BUILD_TYPE MATCHES "package-.*")
+  INSTALL(SCRIPT cmake-extensions/InstallAsUser.cmake)
+  INSTALL(TARGETS otr DESTINATION modules/)
+ENDIF(CMAKE_BUILD_TYPE MATCHES "package-.*")

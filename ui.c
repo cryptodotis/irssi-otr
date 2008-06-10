@@ -45,5 +45,5 @@ void otr_log(SERVER_REC *server, const char *nick,
 		sprintf( s, "internal error parsing error string (BUG)" );
 	va_end( params );
 
-	printtext(server, nick, MSGLEVEL_CRAP, msg);
+	printtext(server, nick, MSGLEVEL_MSGS, msg);
 }
