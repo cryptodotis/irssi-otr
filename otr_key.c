@@ -203,8 +203,9 @@ void keygen_run(const char *accname)
  */
 void keygen_abort(int ignoreidle)
 {
-	if (!ignoreidle&&(kg_st.status!=KEYGEN_RUNNING)) {
-		otr_noticest(TXT_KG_NOABORT);
+	if (kg_st.status!=KEYGEN_RUNNING) {
+		if (!ignoreidle)
+			otr_noticest(TXT_KG_NOABORT);
 		return;
 	}
 
