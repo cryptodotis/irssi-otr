@@ -275,6 +275,7 @@ void otr_finish(SERVER_REC *server, char *nick, int inquery)
 {
 	ConnContext *co;
 	char accname[128];
+	struct co_info *coi;
 
 	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
 
@@ -291,6 +292,12 @@ void otr_finish(SERVER_REC *server, char *nick, int inquery)
 	otr_notice(inquery ? server : NULL,
 		   inquery ? nick : NULL,
 		   TXT_CMD_FINISH,nick);
+
+	coi = co->app_data;
+
+	/* finish if /otr finish has been issued. Reset if
+	 * we're called cause the query window has been closed. */
+	coi->finished = inquery;
 }
 
 /*

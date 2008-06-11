@@ -20,6 +20,9 @@
 PROJECT(irssi-otr)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
+IF(COMMAND cmake_policy)
+  cmake_policy(SET CMP0003 NEW)
+ENDIF(COMMAND cmake_policy)
 
 SET(CMAKE_MODULE_PATH 
   ${PROJECT_SOURCE_DIR}/cmake-extensions/
@@ -33,6 +36,13 @@ INCLUDE(CheckIncludeFile)
 # get version from git
 
 IF(NOT IRSSIOTR_VERSION)
+  IF(NOT EXISTS "${PROJECT_SOURCE_DIR}/.git")
+    MESSAGE(FATAL_ERROR "Cannot determine the irssi-otr version since this is "
+    "not a git checkout. Please set IRSSIOTR_VERSION, e.g.
+    cmake -DIRSSIOTR_VERSION=mydistro-0.1
+    or
+    cmake -DIRSSIOTR_VERSION=mydistro-git-<git-commit>")
+  ENDIF(NOT EXISTS "${PROJECT_SOURCE_DIR}/.git")
   FIND_GIT_TAGORCOMMIT(${PROJECT_SOURCE_DIR} IRSSIOTR_VERSION)
   IF(NOT IRSSIOTR_VERSION)
     MESSAGE(FATAL_ERROR 
@@ -97,7 +107,8 @@ ENDIF(NOT IRSSI_INCLUDE_DIR)
 
 # Bad hack for irssi private headers
 
-IF (NOT EXISTS "mainwindows.h")
+IF (NOT EXISTS "mainwindows.h" AND 
+    NOT EXISTS "${PROJECT_SOURCE_DIR}/mainwindows.h")
   MESSAGE(STATUS "Need to fetch and patch irssi private headers "
     "mainwindows.h,statusbar.h,term.h from SVN (see irssi FS#535)")
   EXECUTE_PROCESS(COMMAND "bash" "-c"
@@ -110,7 +121,8 @@ IF (NOT EXISTS "mainwindows.h")
   IF(NOT IIPRIV_RET EQUAL 0)
     MESSAGE(FATAL_ERROR "Couldn't check out irssi private headers from SVN")
   ENDIF(NOT IIPRIV_RET EQUAL 0)
-ENDIF (NOT EXISTS "mainwindows.h")
+ENDIF (NOT EXISTS "mainwindows.h" AND 
+    NOT EXISTS "${PROJECT_SOURCE_DIR}/mainwindows.h")
 
 # includes
 
@@ -173,10 +185,11 @@ ADD_CSCOPE_TARGET("${CSANDHS}" "${IRSSIOTR_INCLUDE_DIRS}")
 
 # Install / CPack
 
-IF(CMAKE_BUILD_TYPE MATCHES "package-.*")
+IF(CMAKE_INSTALL_TYPE MATCHES "package-.*")
   INCLUDE(Packaging.cmake)
-ELSE(CMAKE_BUILD_TYPE MATCHES "package-.*")
-  INSTALL(SCRIPT cmake-extensions/InstallAsUser.cmake)
-  INSTALL(TARGETS otr DESTINATION modules/)
+ELSEIF(CMAKE_INSTALL_TYPE MATCHES "home")
+  INSTALL(TARGETS otr DESTINATION "$ENV{HOME}/.irssi/modules")
+ELSE(CMAKE_INSTALL_TYPE MATCHES "package-.*")
+  INSTALL(TARGETS otr DESTINATION lib/irssi/modules)
   INSTALL(FILES README LICENSE DESTINATION share/doc/${CMAKE_PROJECT_NAME}-${IRSSIOTR_VERSION})
-ENDIF(CMAKE_BUILD_TYPE MATCHES "package-.*")
+ENDIF(CMAKE_INSTALL_TYPE MATCHES "package-.*")

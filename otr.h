@@ -79,6 +79,7 @@ struct co_info {
 	char better_msg_two[256];	/* what the second line of the "better"
 					   default query msg should like. Eat it
 					   up when it comes in */
+	int finished;			/* true after you've /otr finished */
 };
 
 extern int debug;

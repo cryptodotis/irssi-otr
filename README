@@ -14,12 +14,19 @@ currently only the responder will be  able to authenticate this way. You'll have
 to switch roles and do this twice - sry.
 
 I also strongly  recommend to do "/statusbar window add  otr" so you're informed
-about  what's going  on.  Status  of "manual"  means  manual authentication  was
-performed,  "smp"  means  the  above  protocol  was  used  (the  thing's  called
-"socialist millionaire protocol").
+about  what's going  on.
 
 In  "~/.irssi/otr/otr.{key,fp}" you'll  find the  fingerprints and  your private
 keys(should you at any point be interested).
+
+The standard  OTR policy  is opportunistic, meaning  we'll send  some whitespace
+after messages and we'll also look for it from our peer. Should we see the magic
+whitespace from  our peer  we'll start a  handshake. If at  any point  you enter
+"/otr finish" then the  policy is changed so as not  to send whitespace anymore.
+Therefore, if your peer  has the same behaviour, OTR will  not start again. This
+is however  reset once you  close the  query window. When  you open a  new query
+window OTR  will start sending whitespace  again which might cause  your peer to
+start an OTR session.
 
 Commands:
 

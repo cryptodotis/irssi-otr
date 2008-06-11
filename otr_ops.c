@@ -27,7 +27,11 @@ extern OtrlUserState otr_state;
  */
 OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 {
-	return OTRL_POLICY_DEFAULT;
+	struct co_info *coi = context->app_data;
+
+	return coi && coi->finished ?
+		OTRL_POLICY_MANUAL|OTRL_POLICY_WHITESPACE_START_AKE : 
+		OTRL_POLICY_DEFAULT;
 }
 
 /*

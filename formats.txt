@@ -42,7 +42,7 @@ send_converted	OTR converted sent message to %s
 receive_ignore_query	ignoring rest of OTR default query msg
 receive_dequeued	dequeued msg of length %d
 receive_queued	queued msg of length %d
-receive_ignore	ignoring protocol message of length %s, acc=%s, from=%s
+receive_ignore	ignoring protocol message of length %d, acc=%s, from=%s
 receive_converted	OTR converted received message
 otr_better_two	<b>%s</b> has requested an <a href=\"http://otr.cypherpunks.ca/\">Off-the-Record private conversation</a>.  However, you do not have a plugin to support that.
 otr_better_three	See <a href=\"http://otr.cypherpunks.ca/\">http://otr.cypherpunks.ca/</a> for more information.

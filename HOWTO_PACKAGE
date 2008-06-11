@@ -2,7 +2,7 @@ Thanks for helping me with packaging.
 
 You'll need cmake >= 2.6. In theory, all you should have to do is:
 
-	$ cmake -DCMAKE_BUILD_TYPE=package-deb /path/to/src
+	$ cmake -DCMAKE_INSTALL_TYPE=package-deb /path/to/src
 	$ sudo make package
 
 For an RPM it should be package-rpm and for TGZ...you can imagine.
