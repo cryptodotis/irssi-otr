@@ -174,52 +174,56 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 	return NULL;
 }
 
-char *otr_contexts() {
+struct ctxlist_ *otr_contexts() {
 	ConnContext *context;
 	Fingerprint *fprint;
-	int strs = 1024,i;
-	char *str = malloc(sizeof(char)*strs), *s = str, *trust;
-	char *state;
+	struct ctxlist_ *ctxlist = NULL, *ctxhead = NULL;
+	struct fplist_ *fplist,*fphead;
+	char fp[41];
+	char *trust;
+	int i;
 
 	for(context = otr_state->context_root; context; 
 	    context = context->next) {
+		if (!ctxlist)
+			ctxhead = ctxlist = g_malloc0(sizeof(struct ctxlist_));
+		else
+			ctxlist = ctxlist->next = g_malloc0(sizeof(struct
+								  ctxlist_));
 		switch (context->msgstate) {
-		case OTRL_MSGSTATE_PLAINTEXT: state =   "plaintext";break;
-		case OTRL_MSGSTATE_ENCRYPTED: state = "%gencrypted%n";break;
-		case OTRL_MSGSTATE_FINISHED: state =    "finished ";break;
-		default: state = "unknown state(BUG)";break;
+		case OTRL_MSGSTATE_PLAINTEXT: ctxlist->state = STUNENCRYPTED;break;
+		case OTRL_MSGSTATE_ENCRYPTED: ctxlist->state = STENCRYPTED;break;
+		case OTRL_MSGSTATE_FINISHED: ctxlist->state = STFINISHED;break;
+		default: ctxlist->state = STUNKNOWN;break;
 		}
-		s += sprintf(s,"%%9%20s%%9    %30s    %s\n",context->username,
-			     context->accountname,state);
+		ctxlist->username = context->username;
+		ctxlist->accountname = context->accountname;
 
+		fplist = fphead = NULL;
 		for (fprint = context->fingerprint_root.next; fprint;
 		     fprint = fprint->next) {
+			if (!fplist)
+				fphead = fplist = g_malloc0(sizeof(struct
+								   fplist_));
+			else
+				fplist = fplist->next = g_malloc0(sizeof(struct
+									 fplist_));
 			trust = fprint->trust ? : "";
-			s += sprintf(s, "    ");
 			for(i=0;i<20;++i)
-				s += sprintf(s, "%02x",
+				sprintf(fp+i*2, "%02x",
 					     fprint->fingerprint[i]);
+			fplist->fp = g_strdup(fp);
 			if (*trust=='\0')
-				s += sprintf(s, "    %%rnot "
-					     "authenticated%%n\n");
+				fplist->authby = NOAUTH;
 			else if (strcmp(trust,"smp")==0)
-				s += sprintf(s, 
-					     "    %%gauthenticated%%n via "
-					     "shared secret (SMP)\n");
+				fplist->authby = AUTHSMP;
 			else 
-				s += sprintf(s,
-					     "    %%gauthenticated%%n"
-					     "manually\n");
-
-			if ((i=s-str)>strs/2) {
-				strs *= 2;
-				str = realloc(str,strs);
-				s = str+i;
-			}
+				fplist->authby = AUTHMAN;
 		}
-	}
 
-	return str;
+		ctxlist->fplist = fphead;
+	}
+	return ctxhead;
 }
 
 /*
@@ -389,8 +393,13 @@ void otr_auth(SERVER_REC *server, char *nick, const char *secret)
 	coi->smp_failed = FALSE;
 
 	/* reset trust level */
-	otrl_context_set_trust(co->active_fingerprint, "");
-	otr_writefps();
+	if (co->active_fingerprint) {
+		char *trust = co->active_fingerprint->trust;
+		if (trust&&(*trust!='\0')) {
+			otrl_context_set_trust(co->active_fingerprint, "");
+			otr_writefps();
+		}
+	}
 
 	if (!coi->received_smp_init)
 		otrl_message_initiate_smp(

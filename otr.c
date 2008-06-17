@@ -195,9 +195,37 @@ static void cmd_version(const char *data, void *server, WI_ITEM_REC *item)
  */
 static void cmd_contexts(const char *data, void *server, WI_ITEM_REC *item)
 {
-	char *s = otr_contexts();
-	printtext(NULL,NULL,MSGLEVEL_CRAP,s);
-	free(s);
+	struct ctxlist_ *ctxlist = otr_contexts(),*ctxnext = ctxlist;
+	struct fplist_ *fplist,*fpnext;
+
+	if (!ctxlist)
+		printformat(NULL,NULL,MSGLEVEL_CRAP,TXT_CTX_NOCTXS);
+
+	while (ctxlist) {
+		printformat(NULL,NULL,MSGLEVEL_CRAP,
+			    TXT_CTX_CTX_UNENCRYPTED+ctxlist->state,
+			    ctxlist->username,
+			    ctxlist->accountname);
+
+		fplist = ctxlist->fplist;
+		while (fplist) {
+			printformat(NULL,NULL,MSGLEVEL_CRAP,
+				    TXT_CTX_FPS_NO+fplist->authby,
+				    fplist->fp);
+			fplist = fplist->next;
+		}
+		ctxlist = ctxlist->next;
+	}
+	while ((ctxlist = ctxnext)) {
+		ctxnext = ctxlist->next;
+		fpnext = ctxlist->fplist;
+		while ((fplist = fpnext)) {
+			fpnext = fplist->next;
+			g_free(fplist->fp);
+			g_free(fplist);
+		}
+		g_free(ctxlist);
+	}
 }
 
 /*

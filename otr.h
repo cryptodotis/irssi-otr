@@ -82,6 +82,23 @@ struct co_info {
 	int finished;			/* true after you've /otr finished */
 };
 
+/* these are returned by /otr contexts */
+
+struct fplist_ {
+	char *fp;
+	enum { NOAUTH,AUTHSMP,AUTHMAN } authby;
+	struct fplist_ *next;
+};
+
+struct ctxlist_ {
+	char *username;
+	char *accountname;
+	enum { STUNENCRYPTED,STENCRYPTED,STFINISHED,STUNKNOWN } state;
+	struct fplist_ *fplist;
+	struct ctxlist_ *next;
+};
+
+/* used by the logging functions below */
 extern int debug;
 
 /* init stuff */
@@ -103,7 +120,7 @@ void otr_trust(SERVER_REC *server, char *nick);
 void otr_finish(SERVER_REC *server, char *nick,int inquery);
 void otr_auth(SERVER_REC *server, char *nick, const char *secret);
 void otr_authabort(SERVER_REC *server, char *nick);
-char *otr_contexts();
+struct ctxlist_ *otr_contexts();
 
 
 /* key/fingerprint stuff */

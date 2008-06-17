@@ -15,13 +15,14 @@ src = open("otr-formats.c","w")
 src.write('#include "otr.h"\n');
 
 src.write("""char *otr_help = "%s";\n""" % "\\n".join(
-	["{hilight - OTR help -}"]+
+	["%9- OTR help -%9"]+
 	[re.sub('^(/otr.*)$','%_\\1%_',
 		re.sub('"(.*)"','\\"%_\\1%_\\"',
 			x.replace('\n','').replace("\t","        ") 
 			))
-		for x in open(sys.argv[2],"r").readlines()]+
-	["{hilight - End of OTR help -}"]))
+		for x in open(sys.argv[2],"r").readlines()]
+	+["%9hilight - End of OTR help -%9"]
+	))
 
 src.write('FORMAT_REC formats[] = {\n')
 
@@ -58,16 +59,18 @@ for line in lines:
 	new = ""
 	last=0
 	i=0
-	for m in re.finditer("(^|[^%])%[ds]",fo):
+	for m in re.finditer("(^|[^%])%([0-9]*)[ds]",fo):
 		if m.group()[-1]=='d':
 			params += ['1']
 		else:
 			params += ['0']
-		new += fo[last:m.start()+len(m.group(1))]+"$%d" % i
+		new += fo[last:m.start()+len(m.group(1))].replace('%%','%')+"$"
+		if m.group(2): new+= "[%s]" % m.group(2)
+		new += "%d" % i
 		last = m.end()
 		i += 1
 
-	new += fo[last:]
+	new += fo[last:].replace('%%','%')
 
 	e[1] = new
 	e += [len(params)] + params
@@ -75,7 +78,7 @@ for line in lines:
 	#print "Handling line %s with elen %d" % (line,len(e))
 
 	premsg = ""
-	if e[1][0] != "{" and section!="Nickignore":
+	if e[1][0] != "{" and section!="Nickignore" and section!="Contexts":
 		premsg = "%9OTR%9: "
 
 	src.write("""{ "%s", "%s%s", %s""" % (e[0],premsg,e[1],e[2]))

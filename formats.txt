@@ -28,11 +28,11 @@ ops_notify_bug	BUG() in ops_notify
 ops_notify	title: %s prim: %s sec: %s
 ops_display_bug	BUG() in ops_display
 ops_display	msg: %s
-ops_sec	gone %9secure%9
+ops_sec	gone %%9secure%%9
 ops_fpcomp	Your peer is not authenticated. To make sure you're talking to the right guy you can either agree on a secret and use the authentication described in %9/otr auth%9, or use the traditional way and compare fingerprints over a secure line (e.g. telephone) and subsequently enter %9/otr trust%9.  Your fingerprint is: %s. %s's fingerprint: %s
 ops_insec	gone %9insecure%9
-ops_still_reply	still %9secure%9 (is reply)
-ops_still_no_reply	still %9secure%9 (is not reply)
+ops_still_reply	still %%9secure%9 (is reply)
+ops_still_no_reply	still %%9secure%9 (is not reply)
 ops_log	log msg: %s
 SendingReceiving
 send_failed	send failed: msg=%s
@@ -71,6 +71,15 @@ cmd_debug_off	Debug mode is off
 cmd_finish	Finished conversation with %s
 cmd_version	This is irssi-otr version %s
 peer_finished	%s has finished the OTR conversation. If you want to continue talking enter %9/otr finish%9 for plaintext or ?OTR? to restart OTR.
+Contexts
+ctx_ctx_unencrypted	%%9%20s%%9    %30s    plaintext
+ctx_ctx_encrypted	%%9%20s%%9    %30s    %gencrypted%n
+ctx_ctx_finished	%%9%20s%%9    %30s    finished
+ctx_ctx_unknown	%%9%20s%%9    %30s    unknown state(BUG?)
+ctx_fps_no	%s %rnot authenticated%n
+ctx_fps_smp	%s %gauthenticated%n via shared secret (SMP)
+ctx_fps_man	%s %gauthenticated%n manually
+ctx_noctxs	No active OTR contexts found
 Nickignore
 nickignore	xmlconsole[0-9]*
 Statusbar
