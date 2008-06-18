@@ -21,7 +21,7 @@ src.write("""char *otr_help = "%s";\n""" % "\\n".join(
 			x.replace('\n','').replace("\t","        ") 
 			))
 		for x in open(sys.argv[2],"r").readlines()]
-	+["%9hilight - End of OTR help -%9"]
+	+["%9- End of OTR help -%9"]
 	))
 
 src.write('FORMAT_REC formats[] = {\n')
