@@ -32,6 +32,8 @@ INCLUDE(cmake-extensions/cscope.cmake)
 INCLUDE(cmake-extensions/Git.cmake)
 INCLUDE(CheckFunctionExists)
 INCLUDE(CheckIncludeFile)
+INCLUDE(CheckIncludeFiles)
+INCLUDE(tarballdefs.cmake OPTIONAL)
 
 # get version from git
 
@@ -105,29 +107,14 @@ IF(NOT IRSSI_INCLUDE_DIR)
     "usually installed in /usr/include/irssi")
 ENDIF(NOT IRSSI_INCLUDE_DIR)
 
-# Bad hack for irssi private headers
-
-IF (NOT EXISTS "mainwindows.h" AND 
-    NOT EXISTS "${PROJECT_SOURCE_DIR}/mainwindows.h")
-  MESSAGE(STATUS "Need to fetch and patch irssi private headers "
-    "mainwindows.h,statusbar.h,term.h from SVN (see irssi FS#535)")
-  EXECUTE_PROCESS(COMMAND "bash" "-c"
-    "${WGET_EXECUTABLE} '--post-data=revision=4806&root=irssi' \\
-    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/mainwindows.h' \\
-    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/term.h' \\
-    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/statusbar.h' || exit 1
-    patch -p0 mainwindows.h < \"$0/privheaders.patch\" || exit 1" 
-    ${PROJECT_SOURCE_DIR} RESULT_VARIABLE IIPRIV_RET)
-  IF(NOT IIPRIV_RET EQUAL 0)
-    MESSAGE(FATAL_ERROR "Couldn't check out irssi private headers from SVN")
-  ENDIF(NOT IIPRIV_RET EQUAL 0)
-ENDIF (NOT EXISTS "mainwindows.h" AND 
-    NOT EXISTS "${PROJECT_SOURCE_DIR}/mainwindows.h")
-
 # includes
 
 SET(IRSSIOTR_INCLUDE_DIRS
-  ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR} ${GLIB_INCLUDE_DIRS} 
+  ${PROJECT_SOURCE_DIR} 
+  ${PROJECT_SOURCE_DIR}/irssi-private-headers
+  ${PROJECT_BINARY_DIR} 
+  ${PROJECT_BINARY_DIR}/irssi-private-headers
+  ${GLIB_INCLUDE_DIRS} 
   ${LIBOTR_INCLUDE_DIRS} 
   ${IRSSI_INCLUDE_DIR}/irssi
   ${IRSSI_INCLUDE_DIR}/irssi/src
@@ -135,12 +122,36 @@ SET(IRSSIOTR_INCLUDE_DIRS
 
 include_directories(${IRSSIOTR_INCLUDE_DIRS})
 SET(CMAKE_REQUIRED_INCLUDES ${IRSSIOTR_INCLUDE_DIRS})
+SET(CMAKE_REQUIRED_DEFINITIONS -DHAVE_CONFIG_H)
 
 # gregex.h 
 # available since 2.13 AFAIK
 # optional for html stripping and nick ignoring
 
 CHECK_INCLUDE_FILE(glib/gregex.h HAVE_GREGEX_H)
+
+# irssi private headers
+
+CHECK_INCLUDE_FILES("glib.h;common.h;statusbar.h" HAVE_IRSSIPRIV_H)
+
+# Bad hack
+
+IF (NOT HAVE_IRSSIPRIV_H)
+  MESSAGE(STATUS "Need to fetch and patch irssi private headers "
+    "mainwindows.h,statusbar.h,term.h from SVN (see irssi FS#535)")
+  EXECUTE_PROCESS(COMMAND "mkdir" irssi-private-headers)
+  EXECUTE_PROCESS(COMMAND "bash" "-c"
+    "${WGET_EXECUTABLE} '--post-data=revision=4806&root=irssi' \\
+    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/mainwindows.h' \\
+    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/term.h' \\
+    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/statusbar.h' || exit 1
+    patch -p0 mainwindows.h < \"$0/privheaders.patch\" || exit 1" 
+    ${PROJECT_SOURCE_DIR} WORKING_DIRECTORY irssi-private-headers
+    RESULT_VARIABLE IIPRIV_RET)
+  IF(NOT IIPRIV_RET EQUAL 0)
+    MESSAGE(FATAL_ERROR "Couldn't check out irssi private headers from SVN")
+  ENDIF(NOT IIPRIV_RET EQUAL 0)
+ENDIF (NOT HAVE_IRSSIPRIV_H)
 
 # check for strsignal
 

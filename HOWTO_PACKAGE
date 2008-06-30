@@ -1,4 +1,5 @@
-Thanks for helping me with packaging.
+You can let cmake generate a package for you. But don't expect it to be in
+full conformance with your distribution.
 
 You'll need cmake >= 2.6. In theory, all you should have to do is:
 
