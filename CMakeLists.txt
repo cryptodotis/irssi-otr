@@ -151,6 +151,7 @@ IF (NOT HAVE_IRSSIPRIV_H)
   IF(NOT IIPRIV_RET EQUAL 0)
     MESSAGE(FATAL_ERROR "Couldn't check out irssi private headers from SVN")
   ENDIF(NOT IIPRIV_RET EQUAL 0)
+  SET(HAVE_IRSSIPRIV_H 1 CACHE INTERNAL "Having irssi priv headers" FORCE)
 ENDIF (NOT HAVE_IRSSIPRIV_H)
 
 # check for strsignal
