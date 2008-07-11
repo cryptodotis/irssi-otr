@@ -133,7 +133,7 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 	err = otrl_message_sending(
 		otr_state, 
 		&otr_ops, 
-		NULL, 
+		server, 
 		accname,
 		PROTOCOLID, 
 		to, 
@@ -160,7 +160,7 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 
 	err = otrl_message_fragment_and_send(
 		&otr_ops, 
-		NULL, 
+		server, 
 		co,
 		newmessage, 
 		OTRL_FRAGMENT_SEND_ALL, 
@@ -290,7 +290,7 @@ void otr_finish(SERVER_REC *server, char *nick, int inquery)
 		return;
 	}
 
-	otrl_message_disconnect(otr_state,&otr_ops,NULL,accname,
+	otrl_message_disconnect(otr_state,&otr_ops,server,accname,
 				PROTOCOLID,nick);
 
 	otr_notice(inquery ? server : NULL,
@@ -345,7 +345,7 @@ void otr_abort_auth(ConnContext *co, SERVER_REC *server, const char *nick)
 		   TXT_AUTH_ABORTED_ONGOING :
 		   TXT_AUTH_ABORTED);
 
-	otrl_message_abort_smp(otr_state,&otr_ops,NULL,co);
+	otrl_message_abort_smp(otr_state,&otr_ops,server,co);
 }
 
 /*
@@ -405,7 +405,7 @@ void otr_auth(SERVER_REC *server, char *nick, const char *secret)
 		otrl_message_initiate_smp(
 			otr_state, 
 			&otr_ops,
-			NULL,
+			server,
 			co,
 			(unsigned char*)secret,
 			strlen(secret));
@@ -413,7 +413,7 @@ void otr_auth(SERVER_REC *server, char *nick, const char *secret)
 		otrl_message_respond_smp(
 			otr_state,
 			&otr_ops,
-			NULL,
+			server,
 			co,
 			(unsigned char*)secret,
 			strlen(secret));
@@ -564,7 +564,9 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 		strcpy(coi->msgqueue+strlen(coi->msgqueue),msg);
 
 		/* wait for more? */
-		if ((strlen(msg)>OTR_MAX_MSG_SIZE)&&msg[strlen(msg)-1]!='.')
+		if ((strlen(msg)>OTR_MAX_MSG_SIZE)&&
+		    (msg[strlen(msg)-1]!='.')&&
+		    (msg[strlen(msg)-1]!=','))
 			return NULL;
 
 		otr_debug(server,from,TXT_RECEIVE_DEQUEUED,
@@ -579,7 +581,8 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 
 	} else if (strstr(msg,"?OTR:")&&
 		   (strlen(msg)>OTR_MAX_MSG_SIZE)&&
-		   msg[strlen(msg)-1]!='.') {
+		   (msg[strlen(msg)-1]!='.')&&
+		   (msg[strlen(msg)-1]!=',')) {
 		coi->msgqueue = malloc(4096*sizeof(char));
 		strcpy(coi->msgqueue,msg);
 		otr_debug(server,from,TXT_RECEIVE_QUEUED,strlen(msg));
@@ -589,7 +592,7 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 	ignore_message = otrl_message_receiving(
 		otr_state,
 		&otr_ops,
-		NULL,
+		server,
 		accname, 
 		PROTOCOLID, 
 		from, 
@@ -604,7 +607,7 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 	
 	if (ignore_message) {
 		otr_debug(server,from,
-			  TXT_RECEIVE_IGNORE, strlen(msg),accname,from);
+			  TXT_RECEIVE_IGNORE, strlen(msg),accname,from,msg);
 		return NULL;
 	}
 

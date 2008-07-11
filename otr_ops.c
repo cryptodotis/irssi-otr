@@ -60,9 +60,13 @@ void ops_inject_msg(void *opdata, const char *accountname,
 	/* OTR sometimes gives us multiple lines 
 	 * (e.g. the default query (a.k.a. "better") message) */
 	g_strdelimit (msgcopy,"\n",' ');
-	a_serv = active_win->active_server; 
-	a_serv->send_message(a_serv, recipient, msgcopy,
-			     GPOINTER_TO_INT(SEND_TARGET_NICK));
+	a_serv = opdata;
+	if (!a_serv)
+		otr_notice(a_serv,recipient,TXT_OPS_INJECT,
+			   accountname,recipient,message);
+	else
+		a_serv->send_message(a_serv, recipient, msgcopy,
+				     GPOINTER_TO_INT(SEND_TARGET_NICK));
 	g_free(msgcopy);
 }
 
@@ -75,7 +79,7 @@ void ops_notify(void *opdata, OtrlNotifyLevel level, const char *accountname,
 		const char *secondary)
 {
 	ConnContext *co = otr_getcontext(accountname,username,FALSE,NULL);
-	SERVER_REC *server = active_win->active_server;
+	SERVER_REC *server = opdata;
 	struct co_info *coi;
 	if (co) {
 		coi = co->app_data;
@@ -117,7 +121,7 @@ int ops_display_msg(void *opdata, const char *accountname,
 		    const char *msg)
 {
 	ConnContext *co = otr_getcontext(accountname,username,FALSE,NULL);
-	SERVER_REC *server = active_win->active_server;
+	SERVER_REC *server = opdata;
 	struct co_info *coi;
 
 	if (co) {
