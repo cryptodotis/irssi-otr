@@ -54,10 +54,6 @@ ENDIF(NOT IRSSIOTR_VERSION)
 
 MESSAGE(STATUS "Building irssi-otr version ${IRSSIOTR_VERSION}")
 
-# wget
-
-FIND_PACKAGE(Wget REQUIRED)
-
 # PkgConfig. Only available since 2.4.7, fetch if unavailable so people with
 # older cmake can run this
 
@@ -66,6 +62,7 @@ FIND_PACKAGE(PkgConfig QUIET)
 IF(NOT PKG_CONFIG_FOUND)
   MESSAGE(STATUS "Couldn't find the pkg-config cmake module. Seems you're
   running cmake < 2.4.7. Will try to fetch the module from 2.4.7...")
+  FIND_PACKAGE(Wget REQUIRED)
   EXECUTE_PROCESS(COMMAND "bash" "-c"
     "${WGET_EXECUTABLE} '-O' '-' \\
     'http://www.cmake.org/files/v2.4/cmake-2.4.7.tar.gz' | \\
@@ -111,14 +108,14 @@ ENDIF(NOT IRSSI_INCLUDE_DIR)
 
 SET(IRSSIOTR_INCLUDE_DIRS
   ${PROJECT_SOURCE_DIR} 
-  ${PROJECT_SOURCE_DIR}/irssi-private-headers
   ${PROJECT_BINARY_DIR} 
-  ${PROJECT_BINARY_DIR}/irssi-private-headers
   ${GLIB_INCLUDE_DIRS} 
   ${LIBOTR_INCLUDE_DIRS} 
   ${IRSSI_INCLUDE_DIR}/irssi
   ${IRSSI_INCLUDE_DIR}/irssi/src
-  ${IRSSI_INCLUDE_DIR}/irssi/src/core)
+  ${IRSSI_INCLUDE_DIR}/irssi/src/core
+  ${PROJECT_BINARY_DIR}/irssi-private-headers
+  ${PROJECT_SOURCE_DIR}/irssi-private-headers)
 
 include_directories(${IRSSIOTR_INCLUDE_DIRS})
 SET(CMAKE_REQUIRED_INCLUDES ${IRSSIOTR_INCLUDE_DIRS})
@@ -139,6 +136,9 @@ CHECK_INCLUDE_FILES("glib.h;common.h;statusbar.h" HAVE_IRSSIPRIV_H)
 IF (NOT HAVE_IRSSIPRIV_H)
   MESSAGE(STATUS "Need to fetch and patch irssi private headers "
     "mainwindows.h,statusbar.h,term.h from SVN (see irssi FS#535)")
+  IF (NOT WGET_EXECUTABLE)
+    FIND_PACKAGE(Wget REQUIRED)
+  ENDIF (NOT WGET_EXECUTABLE)
   EXECUTE_PROCESS(COMMAND "mkdir" irssi-private-headers)
   EXECUTE_PROCESS(COMMAND "bash" "-c"
     "${WGET_EXECUTABLE} '--post-data=revision=4806&root=irssi' \\
@@ -202,5 +202,5 @@ ELSEIF(CMAKE_INSTALL_TYPE MATCHES "home")
   INSTALL(TARGETS otr DESTINATION "$ENV{HOME}/.irssi/modules")
 ELSE(CMAKE_INSTALL_TYPE MATCHES "package-.*")
   INSTALL(TARGETS otr DESTINATION lib/irssi/modules)
-  INSTALL(FILES README LICENSE DESTINATION share/doc/${CMAKE_PROJECT_NAME}-${IRSSIOTR_VERSION})
+  INSTALL(FILES README LICENSE DESTINATION share/doc/${CMAKE_PROJECT_NAME})
 ENDIF(CMAKE_INSTALL_TYPE MATCHES "package-.*")
