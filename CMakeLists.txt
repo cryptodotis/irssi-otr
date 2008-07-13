@@ -129,7 +129,7 @@ CHECK_INCLUDE_FILE(glib/gregex.h HAVE_GREGEX_H)
 
 # irssi private headers
 
-CHECK_INCLUDE_FILES("glib.h;common.h;statusbar.h" HAVE_IRSSIPRIV_H)
+CHECK_INCLUDE_FILES("glib.h;common.h;fe-text/statusbar.h" HAVE_IRSSIPRIV_H)
 
 # Bad hack
 
@@ -139,14 +139,14 @@ IF (NOT HAVE_IRSSIPRIV_H)
   IF (NOT WGET_EXECUTABLE)
     FIND_PACKAGE(Wget REQUIRED)
   ENDIF (NOT WGET_EXECUTABLE)
-  EXECUTE_PROCESS(COMMAND "mkdir" irssi-private-headers)
+  EXECUTE_PROCESS(COMMAND "mkdir" -p irssi-private-headers/fe-text)
   EXECUTE_PROCESS(COMMAND "bash" "-c"
     "${WGET_EXECUTABLE} '--post-data=revision=4806&root=irssi' \\
     'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/mainwindows.h' \\
     'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/term.h' \\
     'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/statusbar.h' || exit 1
     patch -p0 mainwindows.h < \"$0/privheaders.patch\" || exit 1" 
-    ${PROJECT_SOURCE_DIR} WORKING_DIRECTORY irssi-private-headers
+    ${PROJECT_SOURCE_DIR} WORKING_DIRECTORY irssi-private-headers/fe-text
     RESULT_VARIABLE IIPRIV_RET)
   IF(NOT IIPRIV_RET EQUAL 0)
     MESSAGE(FATAL_ERROR "Couldn't check out irssi private headers from SVN")

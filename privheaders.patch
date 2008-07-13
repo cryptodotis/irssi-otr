@@ -7,6 +7,6 @@
 -#include "fe-windows.h"
 -#include "term.h"
 +#include <fe-common/core/fe-windows.h>
-+#include <term.h>
++#include <fe-text/term.h>
 
  #define WINDOW_MIN_SIZE 2
