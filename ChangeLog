@@ -1,0 +1,4 @@
+Version 0.2
+
+	* fixed multiple server problem.
+	* fixed fragmentation problem (seen with pidgin over IRC).
