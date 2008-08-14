@@ -5,7 +5,7 @@
 #
 MACRO(FIND_GIT_TAGORCOMMIT GITDIR CMAKEVAR)
   EXECUTE_PROCESS(COMMAND bash -c 
-    "GITCOMMIT=`git-log | head -n1 | cut -d' ' -f2`;\\
+    "GITCOMMIT=`git log | head -n1 | cut -d' ' -f2`;\\
      if [ -z \"$GITCOMMIT\" ]; then exit 1;fi; \\
      GITTAG=`cd .git/refs/tags && grep $GITCOMMIT * | cut -d: -f1` ;\\
      if [ -n \"$GITTAG\" ]; then \\

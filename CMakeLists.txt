@@ -196,6 +196,12 @@ ADD_LIBRARY(otr SHARED otr.c otrutil.c otr_ops.c otr_key.c ui.c ${PROJECT_BINARY
 
 TARGET_LINK_LIBRARIES(otr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
 
+# Now that took some time to figure out...
+
+IF(APPLE)
+  SET_TARGET_PROPERTIES(otr PROPERTIES LINK_FLAGS "-single_module -undefined dynamic_lookup")
+ENDIF(APPLE)
+
 # cscope
 
 FILE(GLOB CSANDHS *.c *.h)
