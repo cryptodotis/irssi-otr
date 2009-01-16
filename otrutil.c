@@ -272,21 +272,52 @@ int otr_getstatus(char *mynick, char *nick, char *server)
 	}
 }
 
+SERVER_REC *server_find_address(char *address)
+{
+        GSList *tmp;
+
+        g_return_val_if_fail(address != NULL, NULL);
+        if (*address == '\0') return NULL;
+
+        for (tmp = servers; tmp != NULL; tmp = tmp->next) {
+                SERVER_REC *server = tmp->data;
+
+                if (g_strcasecmp(server->connrec->address, address) == 0)
+                        return server;
+        }
+
+        return NULL;
+}
+
 /*
  * Finish the conversation.
  */
-void otr_finish(SERVER_REC *server, char *nick, int inquery)
+void otr_finish(SERVER_REC *server, char *nick, const char *peername, int inquery)
 {
 	ConnContext *co;
 	char accname[128];
 	struct co_info *coi;
+	char *pserver = NULL;
 
-	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
+	if (peername) {
+		pserver = strchr(peername,'@');
+		if (!pserver)
+			return;
+		server = server_find_address(pserver+1);
+		if (!server)
+			return;
+		*pserver = '\0';
+		nick = (char*)peername;
+	}
+
+	sprintf((char*)accname, "%s@%s", server->nick, server->connrec->address);
 
 	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
 		if (inquery)
 			otr_noticest(TXT_CTX_NOT_FOUND,
 				     accname,nick);
+		if (peername)
+			*pserver = '@';
 		return;
 	}
 
@@ -301,23 +332,41 @@ void otr_finish(SERVER_REC *server, char *nick, int inquery)
 
 	/* finish if /otr finish has been issued. Reset if
 	 * we're called cause the query window has been closed. */
-	coi->finished = inquery;
+	if (coi) 
+		coi->finished = inquery;
+
+	if (peername)
+		*pserver = '@';
 }
 
 /*
  * Trust our peer.
  */
-void otr_trust(SERVER_REC *server, char *nick)
+void otr_trust(SERVER_REC *server, char *nick, const char *peername)
 {
 	ConnContext *co;
 	char accname[128];
 	struct co_info *coi;
+	char *pserver = NULL;
 
-	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
+	if (peername) {
+		pserver = strchr(peername,'@');
+		if (!pserver)
+			return;
+		server = server_find_address(pserver+1);
+		if (!server)
+			return;
+		*pserver = '\0';
+		nick = (char*)peername;
+	}
+
+	sprintf((char*)accname, "%s@%s", server->nick, server->connrec->address);
 
 	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
 		otr_noticest(TXT_CTX_NOT_FOUND,
 			     accname,nick);
+		if (peername)
+			*pserver = '@';
 		return;
 	}
 
@@ -327,6 +376,9 @@ void otr_trust(SERVER_REC *server, char *nick)
 	coi->smp_failed = FALSE;
 
 	otr_notice(server,nick,TXT_FP_TRUST,nick);
+
+	if (peername)
+		*pserver = '@';
 }
 
 /*
@@ -351,36 +403,67 @@ void otr_abort_auth(ConnContext *co, SERVER_REC *server, const char *nick)
 /*
  * implements /otr authabort
  */
-void otr_authabort(SERVER_REC *server, char *nick)
+void otr_authabort(SERVER_REC *server, char *nick, const char *peername)
 {
 	ConnContext *co;
 	char accname[128];
+	char *pserver = NULL;
 
-	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
+	if (peername) {
+		pserver = strchr(peername,'@');
+		if (!pserver)
+			return;
+		server = server_find_address(pserver+1);
+		if (!server)
+			return;
+		*pserver = '\0';
+		nick = (char*)peername;
+	}
+
+	sprintf((char*)accname, "%s@%s", server->nick, server->connrec->address);
 
 	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
 		otr_noticest(TXT_CTX_NOT_FOUND,
 			     accname,nick);
+		if (peername)
+			*pserver = '@';
 		return;
 	}
 
 	otr_abort_auth(co,server,nick);
+
+	if (peername)
+		*pserver = '@';
 }
 
 /*
  * Initiate or respond to SMP authentication.
  */
-void otr_auth(SERVER_REC *server, char *nick, const char *secret)
+void otr_auth(SERVER_REC *server, char *nick, const char *peername, const char *secret)
 {
 	ConnContext *co;
 	char accname[128];
 	struct co_info *coi;
+	char *pserver = NULL;
 
-	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
+	if (peername) {
+		pserver = strchr(peername,'@');
+		if (!pserver)
+			return;
+		server = server_find_address(pserver+1);
+		if (!server)
+			return;
+		*pserver = '\0';
+		nick = (char*)peername;
+	}
+
+	sprintf((char*)accname, "%s@%s", server->nick, server->connrec->address);
 
 	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
 		otr_noticest(TXT_CTX_NOT_FOUND,
 			     accname,nick);
+		if (peername)
+			*pserver = '@';
 		return;
 	}
 
@@ -424,6 +507,9 @@ void otr_auth(SERVER_REC *server, char *nick, const char *secret)
 		   TXT_AUTH_INITIATED);
 
 	statusbar_items_redraw("otr");
+
+	if (peername)
+		*pserver = '@';
 }
 
 /* 

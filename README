@@ -37,18 +37,18 @@ Commands:
 
 /otr genkey nick@irc.server.com 
 	Manually generate a key for the given account(also done on demand)
-/otr auth <secret>
+/otr auth [<nick>@<server>] <secret>
 	Initiate or respond to an authentication challenge
-/otr authabort
+/otr authabort [<nick>@<server>] 
 	Abort any ongoing authentication
-/otr trust
+/otr trust [<nick>@<server>]
 	Trust the fingerprint of the user in the current window.
 	You should only do this after comparing fingerprints over a secure line
 /otr debug
 	Switch debug mode on/off
 /otr contexts
 	List all OTR contexts along with their fingerprints and status
-/otr finish
+/otr finish [<nick>@<server>]
 	Finish an OTR conversation
 /otr version
 	Display irssi-otr version. Might be a git commit

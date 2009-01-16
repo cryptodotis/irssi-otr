@@ -74,7 +74,7 @@ static void sig_message_private(SERVER_REC *server, const char *msg,
  */
 static void sig_query_destroyed(QUERY_REC *query) {
 	if (query&&query->server&&query->server->connrec) {
-		otr_finish(query->server,query->name,FALSE);
+		otr_finish(query->server,query->name,NULL,FALSE);
 	}
 }
 
@@ -91,31 +91,35 @@ static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item)
 }
 
 /*
- * /otr finish
+ * /otr finish [peername]
  */
 static void cmd_finish(const char *data, void *server, WI_ITEM_REC *item)
 {
 	QUERY_REC *query = QUERY(item);
-	if (query&&query->server&&query->server->connrec) {
-		otr_finish(query->server,query->name,TRUE);
+	if (*data != '\0') {
+		otr_finish(NULL,NULL,data,TRUE);
 		statusbar_items_redraw("otr");
-	}
-	else
-		otr_notice(item->server,query ? query->name : NULL,
+	} else if (query&&query->server&&query->server->connrec) {
+		otr_finish(query->server,query->name,NULL,TRUE);
+		statusbar_items_redraw("otr");
+	} else
+		otr_notice(item ? item->server : NULL,query ? query->name : NULL,
 			   TXT_CMD_QNOTFOUND);
 }
 
 /*
- * /otr trust
+ * /otr trust [peername]
  */
 static void cmd_trust(const char *data, void *server, WI_ITEM_REC *item)
 {
 	QUERY_REC *query = QUERY(item);
-	if (query&&query->server&&query->server->connrec) {
-		otr_trust(query->server,query->name);
+	if (*data != '\0') {
+		otr_trust(NULL,NULL,data);
 		statusbar_items_redraw("otr");
-	}
-	else
+	} else if (query&&query->server&&query->server->connrec) {
+		otr_trust(query->server,query->name,NULL);
+		statusbar_items_redraw("otr");
+	} else
 		otr_notice(item->server,query ? query->name : NULL,
 			   TXT_CMD_QNOTFOUND);
 }
@@ -134,33 +138,51 @@ static void cmd_genkey(const char *data, void *server, WI_ITEM_REC *item)
 }
 
 /*
- * /otr auth <secret>
+ * /otr auth [peername] <secret>
  */
 static void cmd_auth(const char *data, void *server, WI_ITEM_REC *item)
 {
 	WI_ITEM_REC *wi = active_win->active;
 	QUERY_REC *query = QUERY(wi);
+	char *secret;
 
-	if (query&&query->server&&query->server->connrec) {
+	if ((secret = strchr(data,' '))) {
+		*secret = '\0';
+		if (!strchr(data,'@')) {
+			/* it's not an account name after all */
+			*secret = ' ';
+			secret = NULL;
+		} else
+			secret++;
+	}
+
+	if (secret) {
+		otr_auth(NULL,NULL,data,secret);
+		*(secret-1) = ' ';
+	} else if (query&&query->server&&query->server->connrec) {
 		if (!data||(*data=='\0')) {
 			otr_notice(server,query->name,
 				   TXT_CMD_AUTH);
 			return;
 		}
-		otr_auth(query->server,query->name,data);
+		otr_auth(query->server,query->name,NULL,data);
 	}
+
 }
 
 /*
- * /otr authabort
+ * /otr authabort [peername]
  */
 static void cmd_authabort(const char *data, void *server, WI_ITEM_REC *item)
 {
 	WI_ITEM_REC *wi = active_win->active;
 	QUERY_REC *query = QUERY(wi);
 
-	if (query&&query->server&&query->server->connrec) {
-		otr_authabort(query->server,query->name);
+	if (*data != '\0') {
+		otr_authabort(NULL,NULL,data);
+		statusbar_items_redraw("otr");
+	} else if (query&&query->server&&query->server->connrec) {
+		otr_authabort(query->server,query->name,NULL);
 		statusbar_items_redraw("otr");
 	}
 }

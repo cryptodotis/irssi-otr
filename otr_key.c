@@ -90,6 +90,9 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 			 gpointer data)
 {
 	gcry_error_t err;
+	const char *irssidir = get_irssi_dir();
+	char *filename    = g_strconcat(irssidir,KEYFILE,NULL);
+	char *tmpfilename = g_strconcat(irssidir,TMPKEYFILE,NULL);
 
 	read(g_io_channel_unix_get_fd(kg_st.ch[0]),&err,sizeof(err));
 
@@ -108,6 +111,7 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 		otr_noticest(TXT_KG_COMPLETED,
 			     kg_st.accountname,
 			     time(NULL)-kg_st.started);
+		rename(tmpfilename,filename);
 		//otrl_privkey_forget_all(otr_state); <-- done by lib
 		key_load();
 	}
@@ -117,6 +121,9 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 
 	kg_st.status = KEYGEN_NO;
 	g_free(kg_st.accountname);
+
+	g_free(filename);
+	g_free(tmpfilename);
 
 	return FALSE;
 }
@@ -131,7 +138,7 @@ void keygen_run(const char *accname)
 	gcry_error_t err;
 	int ret;
 	int fds[2];
-	char *filename = g_strconcat(get_irssi_dir(),KEYFILE,NULL);
+	char *filename = g_strconcat(get_irssi_dir(),TMPKEYFILE,NULL);
 	char *dir = dirname(g_strdup(filename));
 
 	if (kg_st.status!=KEYGEN_NO) {

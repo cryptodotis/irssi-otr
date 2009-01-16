@@ -66,8 +66,9 @@
 /* otr protocol id */
 #define PROTOCOLID "IRC"
 
-#define KEYFILE "/otr/otr.key"
-#define FPSFILE "/otr/otr.fp"
+#define KEYFILE    "/otr/otr.key"
+#define TMPKEYFILE "/otr/otr.key.tmp"
+#define FPSFILE    "/otr/otr.fp"
 
 /* one for each OTR context (=communication pair) */
 struct co_info {
@@ -116,10 +117,10 @@ ConnContext *otr_getcontext(const char *accname,const char *nick,int create,void
 
 /* user interaction */
 
-void otr_trust(SERVER_REC *server, char *nick);
-void otr_finish(SERVER_REC *server, char *nick,int inquery);
-void otr_auth(SERVER_REC *server, char *nick, const char *secret);
-void otr_authabort(SERVER_REC *server, char *nick);
+void otr_trust(SERVER_REC *server, char *nick, const char *peername);
+void otr_finish(SERVER_REC *server, char *nick, const char *peername, int inquery);
+void otr_auth(SERVER_REC *server, char *nick, const char *peername, const char *secret);
+void otr_authabort(SERVER_REC *server, char *nick, const char *peername);
 struct ctxlist_ *otr_contexts();
 
 
