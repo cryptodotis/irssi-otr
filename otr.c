@@ -253,7 +253,7 @@ static void cmd_contexts(const char *data, void *server, WI_ITEM_REC *item)
 /*
  * otr statusbar
  */
-static void otr_statusbar(SBAR_ITEM_REC *item, int get_size_only)
+static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 {
 	WI_ITEM_REC *wi = active_win->active;
 	QUERY_REC *query = QUERY(wi);

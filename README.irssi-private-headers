@@ -1,3 +1,0 @@
-mainwindows.h, statusbar.h, and term.h are irssi private headers;
-hence they are licensed under the same license as irssi (GPLv2).
-If you want to know why they are here, check out irssi FS#535.

@@ -118,8 +118,8 @@ SET(IRSSIOTR_INCLUDE_DIRS
   ${IRSSI_INCLUDE_DIR}/irssi
   ${IRSSI_INCLUDE_DIR}/irssi/src
   ${IRSSI_INCLUDE_DIR}/irssi/src/core
-  ${PROJECT_BINARY_DIR}/irssi-private-headers
-  ${PROJECT_SOURCE_DIR}/irssi-private-headers)
+  ${PROJECT_BINARY_DIR}/irssi-headers
+  ${PROJECT_SOURCE_DIR}/irssi-headers)
 
 include_directories(${IRSSIOTR_INCLUDE_DIRS})
 SET(CMAKE_REQUIRED_INCLUDES ${IRSSIOTR_INCLUDE_DIRS})
@@ -131,32 +131,28 @@ SET(CMAKE_REQUIRED_DEFINITIONS -DHAVE_CONFIG_H ${LIBGCRYPT_CFLAGS})
 
 CHECK_INCLUDE_FILE(glib/gregex.h HAVE_GREGEX_H)
 
-# irssi private headers
+# irssi headers
 
-CHECK_INCLUDE_FILES("glib.h;common.h;fe-text/statusbar.h" HAVE_IRSSIPRIV_H)
+CHECK_INCLUDE_FILES("glib.h;common.h;fe-text/statusbar-item.h" HAVE_IRSSISBAR_H)
 
 # Bad hack
 
-IF (NOT HAVE_IRSSIPRIV_H)
-  MESSAGE(STATUS "Need to fetch and patch irssi private headers "
-    "mainwindows.h,statusbar.h,term.h from SVN (see irssi FS#535)")
+IF (NOT HAVE_IRSSISBAR_H)
+  MESSAGE(STATUS "Need to fetch irssi header statusbar-item.h (you don't have it yet)")
   IF (NOT WGET_EXECUTABLE)
     FIND_PACKAGE(Wget REQUIRED)
   ENDIF (NOT WGET_EXECUTABLE)
-  EXECUTE_PROCESS(COMMAND "mkdir" -p irssi-private-headers/fe-text)
+  EXECUTE_PROCESS(COMMAND "mkdir" -p irssi-headers/fe-text)
   EXECUTE_PROCESS(COMMAND "bash" "-c"
-    "${WGET_EXECUTABLE} '--post-data=revision=4806&root=irssi' \\
-    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/mainwindows.h' \\
-    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/term.h' \\
-    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/statusbar.h' || exit 1
-    patch -p0 mainwindows.h < \"$0/privheaders.patch\" || exit 1" 
-    ${PROJECT_SOURCE_DIR} WORKING_DIRECTORY irssi-private-headers/fe-text
-    RESULT_VARIABLE IIPRIV_RET)
-  IF(NOT IIPRIV_RET EQUAL 0)
-    MESSAGE(FATAL_ERROR "Couldn't check out irssi private headers from SVN")
-  ENDIF(NOT IIPRIV_RET EQUAL 0)
-  SET(HAVE_IRSSIPRIV_H 1 CACHE INTERNAL "Having irssi priv headers" FORCE)
-ENDIF (NOT HAVE_IRSSIPRIV_H)
+    "${WGET_EXECUTABLE} '--post-data=revision=4936&root=irssi' \\
+    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/statusbar-item.h' || exit 1"
+    ${PROJECT_SOURCE_DIR} WORKING_DIRECTORY irssi-headers/fe-text
+    RESULT_VARIABLE IISBAR_RET)
+  IF(NOT IISBAR_RET EQUAL 0)
+    MESSAGE(FATAL_ERROR "Couldn't check out irssi headers from SVN")
+  ENDIF(NOT IISBAR_RET EQUAL 0)
+  SET(HAVE_IRSSISBAR_H 1 CACHE INTERNAL "Having irssi headers" FORCE)
+ENDIF (NOT HAVE_IRSSISBAR_H)
 
 # check for strsignal
 

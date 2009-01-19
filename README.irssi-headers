@@ -1,0 +1,3 @@
+statusbar-item.h is an irssi header;
+hence it is licensed under the same license as irssi (GPLv2).
+If you want to know why it is here, check out irssi FS#535.

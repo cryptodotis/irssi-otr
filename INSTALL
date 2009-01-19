@@ -19,8 +19,8 @@ instead.
 	nothing smaller will work.
 
 *	glib. Will work with < 2.13 but since there are no regexes available
-	HTML stripping (OTR spits out HTML sometimes) and nick ignoring won't
-	work.
+	HTML stripping (OTR spits out HTML sometimes) and nick ignoring and
+	setting otr_policy won't work.
 
 *	irssi. Obviously ;)
 

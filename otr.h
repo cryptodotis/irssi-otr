@@ -41,8 +41,7 @@
 #include <core/modules.h>
 #include <core/settings.h>
 
-/* copied over, see FS#535 */
-#include <fe-text/statusbar.h>
+#include <fe-text/statusbar-item.h>
 
 /* glib */
 

@@ -6,9 +6,9 @@ PKG=irssi-otr-$VER.tar
 HDIR=irssi-otr-$VER
 mkdir "$HDIR" &&\
 (cd "$SDIR" && git archive --format=tar --prefix=irssi-otr-$VER/ HEAD )>$PKG &&\
-(cd "$HDIR" && ln -s ../irssi-private-headers &&\
+(cd "$HDIR" && ln -s ../irssi-headers &&\
 	echo "SET(IRSSIOTR_VERSION $VER)" >tarballdefs.cmake) &&\
 tar rhf $PKG "$HDIR" &&\
-rm $HDIR/{irssi-private-headers,tarballdefs.cmake} &&\
+rm $HDIR/{irssi-headers,tarballdefs.cmake} &&\
 rmdir $HDIR &&\
 gzip $PKG

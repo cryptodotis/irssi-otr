@@ -5,6 +5,7 @@ Version 0.3
 	* commands now take an optional nick@server argument
 	  (for single message window users)
 	* changed loglevel of otr_log (heartbeats) and otr_finish
+	* moved to the new public statusbar-item.h header
 
 Version 0.2
 
