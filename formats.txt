@@ -81,8 +81,6 @@ ctx_fps_no	%s %rnot authenticated%n
 ctx_fps_smp	%s %gauthenticated%n via shared secret (SMP)
 ctx_fps_man	%s %gauthenticated%n manually
 ctx_noctxs	No active OTR contexts found
-Nickignore
-nickignore	xmlconsole[0-9]*
 Statusbar
 st_plaintext	{sb plaintext}
 st_untrusted	{sb %rOTR(not auth'ed)%n}

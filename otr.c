@@ -22,7 +22,7 @@
 int debug = FALSE;
 
 #ifdef HAVE_GREGEX_H
-GRegex *regex_nickignore;
+GRegex *regex_nickignore = NULL;
 #endif
 
 /*
@@ -268,15 +268,22 @@ static void otr_statusbar(SBAR_ITEM_REC *item, int get_size_only)
 		formatnum ? formats[formatnum].def : ""," ",FALSE);
 }
 
+static void read_settings(void)
+{
+	otr_setpolicies(settings_get_str("otr_policy"));
+#ifdef HAVE_GREGEX_H
+	if (regex_nickignore)
+		g_regex_unref(regex_nickignore);
+	regex_nickignore = g_regex_new(settings_get_str("otr_ignore"),0,0,NULL);
+#endif
+
+}
+
 /*
  * irssi init()
  */
 void otr_init(void)
 {
-#ifdef HAVE_GREGEX_H
-	regex_nickignore = g_regex_new(formats[TXT_NICKIGNORE].def,0,0,NULL);
-#endif
-
 	module_register(MODULE_NAME, "core");
 
 	theme_register(formats);
@@ -298,6 +305,11 @@ void otr_init(void)
 	command_bind("otr help", NULL, (SIGNAL_FUNC) cmd_help);
 	command_bind("otr contexts", NULL, (SIGNAL_FUNC) cmd_contexts);
 	command_bind("otr version", NULL, (SIGNAL_FUNC) cmd_version);
+
+	settings_add_str("otr", "otr_policy","*@localhost opportunistic,*@im.bitlbee.org opportunistic");
+	settings_add_str("otr", "otr_ignore","xmlconsole[0-9]*");
+	read_settings();
+	signal_add("setup changed", (SIGNAL_FUNC) read_settings);
 
 	statusbar_item_register("otr", NULL, otr_statusbar);
 
@@ -328,6 +340,8 @@ void otr_deinit(void)
 	command_unbind("otr help", (SIGNAL_FUNC) cmd_help);
 	command_unbind("otr contexts", (SIGNAL_FUNC) cmd_contexts);
 	command_unbind("otr version", (SIGNAL_FUNC) cmd_version);
+
+	signal_remove("setup changed", (SIGNAL_FUNC) read_settings);
 
 	statusbar_item_unregister("otr");
 

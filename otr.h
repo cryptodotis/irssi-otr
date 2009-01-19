@@ -39,6 +39,7 @@
 #include <fe-common/core/fe-windows.h>
 #include <fe-common/core/module-formats.h>
 #include <core/modules.h>
+#include <core/settings.h>
 
 /* copied over, see FS#535 */
 #include <fe-text/statusbar.h>
@@ -99,6 +100,14 @@ struct ctxlist_ {
 	struct ctxlist_ *next;
 };
 
+/* policy list generated from /set otr_policy */
+
+struct plistentry {
+	char *user;
+	char *server;
+	OtrlPolicy policy;
+};
+
 /* used by the logging functions below */
 extern int debug;
 
@@ -107,6 +116,7 @@ extern int debug;
 int otrlib_init();
 void otrlib_deinit();
 void otr_initops();
+void otr_setpolicies(const char *policies);
 
 /* basic send/receive/status stuff */
 
@@ -147,6 +157,12 @@ void otr_writefps();
 
 #define otr_notice(server,nick,formatnum,...) \
 	printformat(server,nick,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__)
+
+#define otr_infost(formatnum,...) \
+	printformat(NULL,NULL,MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__)
+
+#define otr_info(server,nick,formatnum,...) \
+	printformat(server,nick,MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__)
 
 #define otr_debug(server,nick,formatnum,...) { \
 	if (debug) \

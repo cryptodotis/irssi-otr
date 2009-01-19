@@ -24,6 +24,11 @@
 OtrlUserState otr_state = NULL;
 extern OtrlMessageAppOps otr_ops;
 static int otrinited = FALSE;
+GSList *plist = NULL;
+
+#ifdef HAVE_GREGEX_H
+GRegex *regex_policies;
+#endif
 
 /*
  * init otr lib.
@@ -45,6 +50,12 @@ int otrlib_init()
 
 	otr_initops();
 
+#ifdef HAVE_GREGEX_H
+	regex_policies = 
+		g_regex_new("([^ @]*@[^ @]*) (never|manual|handlews|opportunistic|always)"
+			    "(,|$)",0,0,NULL);
+#endif
+
 	return otr_state==NULL;
 }
 
@@ -60,6 +71,13 @@ void otrlib_deinit()
 	}
 
 	keygen_abort(TRUE);
+
+	otr_setpolicies("");
+
+#ifdef HAVE_GREGEX_H
+	g_regex_unref(regex_policies);
+#endif
+
 }
 
 
@@ -324,7 +342,7 @@ void otr_finish(SERVER_REC *server, char *nick, const char *peername, int inquer
 	otrl_message_disconnect(otr_state,&otr_ops,server,accname,
 				PROTOCOLID,nick);
 
-	otr_notice(inquery ? server : NULL,
+	otr_info(inquery ? server : NULL,
 		   inquery ? nick : NULL,
 		   TXT_CMD_FINISH,nick);
 
@@ -701,4 +719,63 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 		otr_debug(server,from,TXT_RECEIVE_CONVERTED);
 
 	return newmessage ? : (char*)msg;
+}
+
+void otr_setpolicies(const char *policies)
+{
+#ifdef HAVE_GREGEX_H
+	GMatchInfo *match_info;
+
+	if (plist) {
+		GSList *p = plist;
+		do {
+			struct plistentry *ple = p->data;
+			g_free(ple->user);
+			g_free(p->data);
+		} while ((p = g_slist_next(p)));
+
+		g_slist_free(plist);
+		plist = NULL;
+	}
+
+	g_regex_match(regex_policies,policies,0,&match_info);
+
+	while(g_match_info_matches(match_info)) {
+		struct plistentry *ple = (struct plistentry *)g_malloc0(sizeof(struct plistentry));
+		char *name = g_match_info_fetch(match_info, 1);
+		char *pol = g_match_info_fetch(match_info, 2);
+		char *server = strchr(name,'@');
+
+		*server++ = '\0';
+
+		ple->user = name;
+		ple->server = server;
+		
+		switch (*pol) {
+		case 'n':
+			ple->policy = OTRL_POLICY_NEVER;
+			break;
+		case 'm':
+			ple->policy = OTRL_POLICY_MANUAL;
+			break;
+		case 'h':
+			ple->policy = OTRL_POLICY_MANUAL|OTRL_POLICY_WHITESPACE_START_AKE;
+			break;
+		case 'o':
+			ple->policy = OTRL_POLICY_OPPORTUNISTIC;
+			break;
+		case 'a':
+			ple->policy = OTRL_POLICY_ALWAYS;
+			break;
+		}
+
+		plist = g_slist_append(plist,ple);
+
+		g_free(pol);
+
+		g_match_info_next(match_info, NULL);
+	}
+
+	g_match_info_free(match_info);
+#endif
 }

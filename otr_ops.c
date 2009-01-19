@@ -21,17 +21,43 @@
 
 OtrlMessageAppOps otr_ops;
 extern OtrlUserState otr_state;
+extern GSList *plist;
+
+OtrlPolicy IO_DEFAULT_POLICY =
+	OTRL_POLICY_MANUAL|OTRL_POLICY_WHITESPACE_START_AKE;
 
 /*
- * Policy is currently fixed as OTR lib default (meaning opportunistic).
+ * Return policy for given context based on the otr_policy /setting
  */
 OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 {
 	struct co_info *coi = context->app_data;
+	char *server = strchr(context->accountname,'@')+1;
+	OtrlPolicy op = IO_DEFAULT_POLICY;
+	GSList *pl = plist;
 
-	return coi && coi->finished ?
-		OTRL_POLICY_MANUAL|OTRL_POLICY_WHITESPACE_START_AKE : 
-		OTRL_POLICY_DEFAULT;
+	if (!plist)
+		return op;
+
+	do {
+		struct plistentry *ple = pl->data;
+
+		if (!(*ple->user=='*')&&
+		    (strcmp(ple->user,context->username)!=0))
+			continue;
+		if (!(*ple->server=='*')&&
+		    (strcmp(ple->server,server)!=0))
+			continue;
+
+		op = ple->policy;
+
+	} while ((pl = g_slist_next(pl)));
+
+	if (coi && coi->finished &&
+	    (op == OTRL_POLICY_OPPORTUNISTIC ||
+	     op == OTRL_POLICY_ALWAYS))
+		op = OTRL_POLICY_MANUAL|OTRL_POLICY_WHITESPACE_START_AKE;
+	return op;
 }
 
 /*
@@ -120,7 +146,7 @@ int ops_display_msg(void *opdata, const char *accountname,
 		    const char *protocol, const char *username, 
 		    const char *msg)
 {
-	ConnContext *co = otr_getcontext(accountname,username,FALSE,NULL);
+	ConnContext *co = otr_getcontext(accountname,username,FALSE,opdata);
 	SERVER_REC *server = opdata;
 	struct co_info *coi;
 
@@ -197,7 +223,7 @@ void ops_still_secure(void *opdata, ConnContext *context, int is_reply)
  */
 void ops_log(void *opdata, const char *message)
 {
-	otr_noticest(TXT_OPS_LOG,message);
+	otr_infost(TXT_OPS_LOG,message);
 }
 
 /*
