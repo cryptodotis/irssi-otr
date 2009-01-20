@@ -270,7 +270,8 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 
 static void read_settings(void)
 {
-	otr_setpolicies(settings_get_str("otr_policy"));
+	otr_setpolicies(settings_get_str("otr_policy"),FALSE);
+	otr_setpolicies(settings_get_str("otr_policy_known"),TRUE);
 #ifdef HAVE_GREGEX_H
 	if (regex_nickignore)
 		g_regex_unref(regex_nickignore);
@@ -306,7 +307,8 @@ void otr_init(void)
 	command_bind("otr contexts", NULL, (SIGNAL_FUNC) cmd_contexts);
 	command_bind("otr version", NULL, (SIGNAL_FUNC) cmd_version);
 
-	settings_add_str("otr", "otr_policy","*@localhost opportunistic,*@im.bitlbee.org opportunistic");
+	settings_add_str("otr", "otr_policy","*@localhost opportunistic,*bitlbee* opportunistic,*@im.* opportunistic");
+	settings_add_str("otr", "otr_policy_known","* always");
 	settings_add_str("otr", "otr_ignore","xmlconsole[0-9]*");
 	read_settings();
 	signal_add("setup changed", (SIGNAL_FUNC) read_settings);

@@ -24,7 +24,8 @@
 OtrlUserState otr_state = NULL;
 extern OtrlMessageAppOps otr_ops;
 static int otrinited = FALSE;
-GSList *plist = NULL;
+GSList *plistunknown = NULL;
+GSList *plistknown = NULL;
 
 #ifdef HAVE_GREGEX_H
 GRegex *regex_policies;
@@ -52,7 +53,7 @@ int otrlib_init()
 
 #ifdef HAVE_GREGEX_H
 	regex_policies = 
-		g_regex_new("([^ @]*@[^ @]*) (never|manual|handlews|opportunistic|always)"
+		g_regex_new("([^,]+) (never|manual|handlews|opportunistic|always)"
 			    "(,|$)",0,0,NULL);
 #endif
 
@@ -72,7 +73,8 @@ void otrlib_deinit()
 
 	keygen_abort(TRUE);
 
-	otr_setpolicies("");
+	otr_setpolicies("",FALSE);
+	otr_setpolicies("",TRUE);
 
 #ifdef HAVE_GREGEX_H
 	g_regex_unref(regex_policies);
@@ -721,16 +723,17 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 	return newmessage ? : (char*)msg;
 }
 
-void otr_setpolicies(const char *policies)
+void otr_setpolicies(const char *policies, int known)
 {
 #ifdef HAVE_GREGEX_H
 	GMatchInfo *match_info;
+	GSList *plist = known ? plistknown : plistunknown;
 
 	if (plist) {
 		GSList *p = plist;
 		do {
 			struct plistentry *ple = p->data;
-			g_free(ple->user);
+			g_pattern_spec_free(ple->namepat);
 			g_free(p->data);
 		} while ((p = g_slist_next(p)));
 
@@ -742,14 +745,9 @@ void otr_setpolicies(const char *policies)
 
 	while(g_match_info_matches(match_info)) {
 		struct plistentry *ple = (struct plistentry *)g_malloc0(sizeof(struct plistentry));
-		char *name = g_match_info_fetch(match_info, 1);
 		char *pol = g_match_info_fetch(match_info, 2);
-		char *server = strchr(name,'@');
 
-		*server++ = '\0';
-
-		ple->user = name;
-		ple->server = server;
+		ple->namepat = g_pattern_spec_new(g_match_info_fetch(match_info, 1));
 		
 		switch (*pol) {
 		case 'n':
@@ -777,5 +775,10 @@ void otr_setpolicies(const char *policies)
 	}
 
 	g_match_info_free(match_info);
+
+	if (known)
+		plistknown = plist;
+	else
+		plistunknown = plist;
 #endif
 }

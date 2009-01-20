@@ -102,8 +102,7 @@ struct ctxlist_ {
 /* policy list generated from /set otr_policy */
 
 struct plistentry {
-	char *user;
-	char *server;
+	GPatternSpec *namepat;
 	OtrlPolicy policy;
 };
 
@@ -115,7 +114,7 @@ extern int debug;
 int otrlib_init();
 void otrlib_deinit();
 void otr_initops();
-void otr_setpolicies(const char *policies);
+void otr_setpolicies(const char *policies, int known);
 
 /* basic send/receive/status stuff */
 

@@ -21,7 +21,7 @@
 
 OtrlMessageAppOps otr_ops;
 extern OtrlUserState otr_state;
-extern GSList *plist;
+extern GSList *plistunknown,*plistknown;
 
 OtrlPolicy IO_DEFAULT_POLICY =
 	OTRL_POLICY_MANUAL|OTRL_POLICY_WHITESPACE_START_AKE;
@@ -34,24 +34,37 @@ OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 	struct co_info *coi = context->app_data;
 	char *server = strchr(context->accountname,'@')+1;
 	OtrlPolicy op = IO_DEFAULT_POLICY;
-	GSList *pl = plist;
+	GSList *pl;
+	char fullname[1024];
 
-	if (!plist)
-		return op;
+	sprintf(fullname, "%s@%s", context->username, server);
 
-	do {
-		struct plistentry *ple = pl->data;
+	/* loop through otr_policy */
 
-		if (!(*ple->user=='*')&&
-		    (strcmp(ple->user,context->username)!=0))
-			continue;
-		if (!(*ple->server=='*')&&
-		    (strcmp(ple->server,server)!=0))
-			continue;
+	if (plistunknown) {
+		pl = plistunknown;
+		do {
+			struct plistentry *ple = pl->data;
 
-		op = ple->policy;
+			if (g_pattern_match_string(ple->namepat,fullname))
+				op = ple->policy;
 
-	} while ((pl = g_slist_next(pl)));
+		} while ((pl = g_slist_next(pl)));
+	}
+
+	if (plistknown&&context->fingerprint_root.next) {
+		pl = plistknown;
+
+		/* loop through otr_policy_known */
+
+		do {
+			struct plistentry *ple = pl->data;
+
+			if (g_pattern_match_string(ple->namepat,fullname))
+				op = ple->policy;
+
+		} while ((pl = g_slist_next(pl)));
+	}
 
 	if (coi && coi->finished &&
 	    (op == OTRL_POLICY_OPPORTUNISTIC ||

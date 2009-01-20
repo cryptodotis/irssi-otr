@@ -1,7 +1,8 @@
 Version 0.3
-	* added settings otr_policy and otr_ignore
+	* added settings otr_policy, otr_policy_known and otr_ignore
 	* fixed two segfault sources
 	* key generation now operates on a temp file
+	* the .irssi/otr dir now gets created with mode 700
 	* commands now take an optional nick@server argument
 	  (for single message window users)
 	* changed loglevel of otr_log (heartbeats) and otr_finish

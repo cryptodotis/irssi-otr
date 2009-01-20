@@ -17,7 +17,7 @@ src.write('#include "otr.h"\n');
 src.write("""char *otr_help = "%s";\n""" % "\\n".join(
 	["%9- OTR help -%9"]+
 	[re.sub('^(/otr.*)$','%_\\1%_',
-		re.sub('"(.*)"','\\"%_\\1%_\\"',
+		re.sub('"([^"]*)"','\\"%_\\1%_\\"',
 			x.replace('\n','').replace("\t","        ") 
 			))
 		for x in open(sys.argv[2],"r").readlines()]
