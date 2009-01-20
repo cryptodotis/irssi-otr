@@ -149,7 +149,7 @@ void keygen_run(const char *accname)
 	}
 
 	if (!g_file_test(dir, G_FILE_TEST_EXISTS)) {
-		if (g_mkdir(dir,S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)) {
+		if (g_mkdir(dir,S_IRWXU)) {
 			otr_noticest(TXT_KG_ABORTED_DIR,
 				     accname,dir,strerror(errno));
 			g_free(dir);
