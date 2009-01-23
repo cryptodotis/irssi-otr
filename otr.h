@@ -18,6 +18,8 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
 
 /* OTR */
 
@@ -26,28 +28,30 @@
 #include <libotr/message.h>
 #include <libotr/privkey.h>
 
-/* irssi */
-
-#include <common.h>
-#include <core/commands.h>
-#include <core/modules.h>
-#include <core/servers.h>
-#include <core/signals.h>
-#include <core/levels.h>
-#include <core/queries.h>
-#include <fe-common/core/printtext.h>
-#include <fe-common/core/fe-windows.h>
-#include <fe-common/core/module-formats.h>
-#include <core/modules.h>
-#include <core/settings.h>
-
-#include <fe-text/statusbar-item.h>
-
 /* glib */
 
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <glib/gstdio.h>
+
+/* irssi */
+
+#ifdef TARGET_IRSSI
+#include <irssi_otr.h>
+#endif
+
+/* log stuff */
+
+#define LOGMAX 1024
+
+#define LVL_NOTICE  0
+#define LVL_DEBUG   1
+
+#define otr_logst(level,format,...) \
+	otr_log(NULL,NULL,level,format, ## __VA_ARGS__)
+
+void otr_log(IRC_CTX *server, const char *to, 
+	     int level, const char *format, ...);
 
 /* own */
 
@@ -70,11 +74,16 @@
 #define TMPKEYFILE "/otr/otr.key.tmp"
 #define FPSFILE    "/otr/otr.fp"
 
+/* some defaults */
+#define IO_DEFAULT_POLICY "*@localhost opportunistic,*bitlbee* opportunistic,*@im.* opportunistic, *serv@irc.* never"
+#define IO_DEFAULT_POLICY_KNOWN "* always"
+#define IO_DEFAULT_IGNORE "xmlconsole[0-9]*"
+
 /* one for each OTR context (=communication pair) */
 struct co_info {
 	char *msgqueue;			/* holds partially reconstructed base64
 					   messages */
-	SERVER_REC *server;		/* irssi server object for this peer */
+	IRC_CTX *ircctx;		/* irssi server object for this peer */
 	int received_smp_init;		/* received SMP init msg */
 	int smp_failed;			/* last SMP failed */
 	char better_msg_two[256];	/* what the second line of the "better"
@@ -109,6 +118,9 @@ struct plistentry {
 /* used by the logging functions below */
 extern int debug;
 
+void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg);
+IRC_CTX *server_find_address(char *address);
+
 /* init stuff */
 
 int otrlib_init();
@@ -118,17 +130,17 @@ void otr_setpolicies(const char *policies, int known);
 
 /* basic send/receive/status stuff */
 
-char *otr_send(SERVER_REC *server,const char *msg,const char *to);
-char *otr_receive(SERVER_REC *server,const char *msg,const char *from);
+char *otr_send(IRC_CTX *server,const char *msg,const char *to);
+char *otr_receive(IRC_CTX *server,const char *msg,const char *from);
 int otr_getstatus(char *mynick, char *nick, char *server);
 ConnContext *otr_getcontext(const char *accname,const char *nick,int create,void *data);
 
 /* user interaction */
 
-void otr_trust(SERVER_REC *server, char *nick, const char *peername);
-void otr_finish(SERVER_REC *server, char *nick, const char *peername, int inquery);
-void otr_auth(SERVER_REC *server, char *nick, const char *peername, const char *secret);
-void otr_authabort(SERVER_REC *server, char *nick, const char *peername);
+void otr_trust(IRC_CTX *server, char *nick, const char *peername);
+void otr_finish(IRC_CTX *server, char *nick, const char *peername, int inquery);
+void otr_auth(IRC_CTX *server, char *nick, const char *peername, const char *secret);
+void otr_authabort(IRC_CTX *server, char *nick, const char *peername);
 struct ctxlist_ *otr_contexts();
 
 
@@ -140,33 +152,3 @@ void key_load();
 void fps_load();
 void otr_writefps();
 
-/* log stuff */
-
-#define LOGMAX 1024
-
-#define LVL_NOTICE  0
-#define LVL_DEBUG   1
-
-#define otr_logst(level,format,...) \
-	otr_log(NULL,NULL,level,format, ## __VA_ARGS__)
-
-#define otr_noticest(formatnum,...) \
-	printformat(NULL,NULL,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__)
-
-#define otr_notice(server,nick,formatnum,...) \
-	printformat(server,nick,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__)
-
-#define otr_infost(formatnum,...) \
-	printformat(NULL,NULL,MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__)
-
-#define otr_info(server,nick,formatnum,...) \
-	printformat(server,nick,MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__)
-
-#define otr_debug(server,nick,formatnum,...) { \
-	if (debug) \
-		printformat(server,nick, \
-			    MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__); \
-}
-
-void otr_log(SERVER_REC *server, const char *to, 
-	     int level, const char *format, ...);

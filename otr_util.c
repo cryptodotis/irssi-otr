@@ -92,6 +92,8 @@ void context_free_app_info(void *data)
 	if (coi->msgqueue) {
 		g_free(coi->msgqueue);
 	}
+	if (coi->ircctx)
+		g_free(coi->ircctx);
 }
 
 /*
@@ -100,14 +102,14 @@ void context_free_app_info(void *data)
  */
 void context_add_app_info(void *data,ConnContext *co)
 {
-	SERVER_REC *server = data;
+	IRC_CTX *ircctx = IRCCTX_DUP(data);
 	struct co_info *coi = g_malloc(sizeof(struct co_info));
 
 	memset(coi,0,sizeof(struct co_info));
 	co->app_data = coi;
 	co->app_data_free = context_free_app_info;
 
-	coi->server = server;
+	coi->ircctx = ircctx;
 	sprintf(coi->better_msg_two,formats[TXT_OTR_BETTER_TWO].def,co->accountname);
 }
 
@@ -139,10 +141,10 @@ ConnContext *otr_getcontext(const char *accname,const char *nick,
  * Returns NULL if OTR handled the message and 
  * the original message otherwise.
  */
-char *otr_send(SERVER_REC *server, const char *msg,const char *to)
+char *otr_send(IRC_CTX *ircctx, const char *msg,const char *to)
 {
-	const char *nick = server->nick;
-	const char *address = server->connrec->address;
+	const char *nick = IRCCTX_NICK(ircctx);
+	const char *address = IRCCTX_ADDR(ircctx);
 	gcry_error_t err;
 	char *newmessage = NULL;
 	ConnContext *co;
@@ -153,7 +155,7 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 	err = otrl_message_sending(
 		otr_state, 
 		&otr_ops, 
-		server, 
+		ircctx, 
 		accname,
 		PROTOCOLID, 
 		to, 
@@ -161,10 +163,10 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 		NULL, 
 		&newmessage, 
 		context_add_app_info, 
-		server);
+		ircctx);
 
 	if (err != 0) {
-		otr_notice(server,to,TXT_SEND_FAILED,msg);
+		otr_notice(ircctx,to,TXT_SEND_FAILED,msg);
 		return NULL;
 	}
 
@@ -173,23 +175,23 @@ char *otr_send(SERVER_REC *server, const char *msg,const char *to)
 
 	/* OTR message. Need to do fragmentation */
 
-	if (!(co = otr_getcontext(accname,to,FALSE,server))) {
-		otr_notice(server,to,TXT_SEND_CHANGE);
+	if (!(co = otr_getcontext(accname,to,FALSE,ircctx))) {
+		otr_notice(ircctx,to,TXT_SEND_CHANGE);
 		return NULL;
 	}
 
 	err = otrl_message_fragment_and_send(
 		&otr_ops, 
-		server, 
+		ircctx, 
 		co,
 		newmessage, 
 		OTRL_FRAGMENT_SEND_ALL, 
 		NULL);
 
 	if (err != 0) {
-		otr_notice(server,to,TXT_SEND_FRAGMENT,msg);
+		otr_notice(ircctx,to,TXT_SEND_FRAGMENT,msg);
 	} else
-		otr_debug(server,to,TXT_SEND_CONVERTED,newmessage);
+		otr_debug(ircctx,to,TXT_SEND_CONVERTED,newmessage);
 
 	return NULL;
 }
@@ -292,27 +294,10 @@ int otr_getstatus(char *mynick, char *nick, char *server)
 	}
 }
 
-SERVER_REC *server_find_address(char *address)
-{
-        GSList *tmp;
-
-        g_return_val_if_fail(address != NULL, NULL);
-        if (*address == '\0') return NULL;
-
-        for (tmp = servers; tmp != NULL; tmp = tmp->next) {
-                SERVER_REC *server = tmp->data;
-
-                if (g_strcasecmp(server->connrec->address, address) == 0)
-                        return server;
-        }
-
-        return NULL;
-}
-
 /*
  * Finish the conversation.
  */
-void otr_finish(SERVER_REC *server, char *nick, const char *peername, int inquery)
+void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 {
 	ConnContext *co;
 	char accname[128];
@@ -323,14 +308,14 @@ void otr_finish(SERVER_REC *server, char *nick, const char *peername, int inquer
 		pserver = strchr(peername,'@');
 		if (!pserver)
 			return;
-		server = server_find_address(pserver+1);
-		if (!server)
+		ircctx = server_find_address(pserver+1);
+		if (!ircctx)
 			return;
 		*pserver = '\0';
 		nick = (char*)peername;
 	}
 
-	sprintf((char*)accname, "%s@%s", server->nick, server->connrec->address);
+	sprintf((char*)accname, "%s@%s", IRCCTX_NICK(ircctx), IRCCTX_ADDR(ircctx));
 
 	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
 		if (inquery)
@@ -341,10 +326,10 @@ void otr_finish(SERVER_REC *server, char *nick, const char *peername, int inquer
 		return;
 	}
 
-	otrl_message_disconnect(otr_state,&otr_ops,server,accname,
+	otrl_message_disconnect(otr_state,&otr_ops,ircctx,accname,
 				PROTOCOLID,nick);
 
-	otr_info(inquery ? server : NULL,
+	otr_info(inquery ? ircctx : NULL,
 		   inquery ? nick : NULL,
 		   TXT_CMD_FINISH,nick);
 
@@ -362,7 +347,7 @@ void otr_finish(SERVER_REC *server, char *nick, const char *peername, int inquer
 /*
  * Trust our peer.
  */
-void otr_trust(SERVER_REC *server, char *nick, const char *peername)
+void otr_trust(IRC_CTX *ircctx, char *nick, const char *peername)
 {
 	ConnContext *co;
 	char accname[128];
@@ -373,14 +358,14 @@ void otr_trust(SERVER_REC *server, char *nick, const char *peername)
 		pserver = strchr(peername,'@');
 		if (!pserver)
 			return;
-		server = server_find_address(pserver+1);
-		if (!server)
+		ircctx = server_find_address(pserver+1);
+		if (!ircctx)
 			return;
 		*pserver = '\0';
 		nick = (char*)peername;
 	}
 
-	sprintf((char*)accname, "%s@%s", server->nick, server->connrec->address);
+	sprintf((char*)accname, "%s@%s", IRCCTX_NICK(ircctx), IRCCTX_ADDR(ircctx));
 
 	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
 		otr_noticest(TXT_CTX_NOT_FOUND,
@@ -395,7 +380,7 @@ void otr_trust(SERVER_REC *server, char *nick, const char *peername)
 	coi = co->app_data;
 	coi->smp_failed = FALSE;
 
-	otr_notice(server,nick,TXT_FP_TRUST,nick);
+	otr_notice(ircctx,nick,TXT_FP_TRUST,nick);
 
 	if (peername)
 		*pserver = '@';
@@ -404,7 +389,7 @@ void otr_trust(SERVER_REC *server, char *nick, const char *peername)
 /*
  * Abort any ongoing SMP authentication.
  */
-void otr_abort_auth(ConnContext *co, SERVER_REC *server, const char *nick)
+void otr_abort_auth(ConnContext *co, IRC_CTX *ircctx, const char *nick)
 {
 	struct co_info *coi;
 
@@ -412,18 +397,18 @@ void otr_abort_auth(ConnContext *co, SERVER_REC *server, const char *nick)
 
 	coi->received_smp_init = FALSE;
 
-	otr_notice(server,nick,
+	otr_notice(ircctx,nick,
 		   co->smstate->nextExpected!=OTRL_SMP_EXPECT1 ? 
 		   TXT_AUTH_ABORTED_ONGOING :
 		   TXT_AUTH_ABORTED);
 
-	otrl_message_abort_smp(otr_state,&otr_ops,server,co);
+	otrl_message_abort_smp(otr_state,&otr_ops,ircctx,co);
 }
 
 /*
  * implements /otr authabort
  */
-void otr_authabort(SERVER_REC *server, char *nick, const char *peername)
+void otr_authabort(IRC_CTX *ircctx, char *nick, const char *peername)
 {
 	ConnContext *co;
 	char accname[128];
@@ -433,14 +418,14 @@ void otr_authabort(SERVER_REC *server, char *nick, const char *peername)
 		pserver = strchr(peername,'@');
 		if (!pserver)
 			return;
-		server = server_find_address(pserver+1);
-		if (!server)
+		ircctx = server_find_address(pserver+1);
+		if (!ircctx)
 			return;
 		*pserver = '\0';
 		nick = (char*)peername;
 	}
 
-	sprintf((char*)accname, "%s@%s", server->nick, server->connrec->address);
+	sprintf((char*)accname, "%s@%s", IRCCTX_NICK(ircctx), IRCCTX_ADDR(ircctx));
 
 	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
 		otr_noticest(TXT_CTX_NOT_FOUND,
@@ -450,7 +435,7 @@ void otr_authabort(SERVER_REC *server, char *nick, const char *peername)
 		return;
 	}
 
-	otr_abort_auth(co,server,nick);
+	otr_abort_auth(co,ircctx,nick);
 
 	if (peername)
 		*pserver = '@';
@@ -459,7 +444,7 @@ void otr_authabort(SERVER_REC *server, char *nick, const char *peername)
 /*
  * Initiate or respond to SMP authentication.
  */
-void otr_auth(SERVER_REC *server, char *nick, const char *peername, const char *secret)
+void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *secret)
 {
 	ConnContext *co;
 	char accname[128];
@@ -470,14 +455,14 @@ void otr_auth(SERVER_REC *server, char *nick, const char *peername, const char *
 		pserver = strchr(peername,'@');
 		if (!pserver)
 			return;
-		server = server_find_address(pserver+1);
-		if (!server)
+		ircctx = server_find_address(pserver+1);
+		if (!ircctx)
 			return;
 		*pserver = '\0';
 		nick = (char*)peername;
 	}
 
-	sprintf((char*)accname, "%s@%s", server->nick, server->connrec->address);
+	sprintf((char*)accname, "%s@%s", IRCCTX_NICK(ircctx), IRCCTX_ADDR(ircctx));
 
 	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
 		otr_noticest(TXT_CTX_NOT_FOUND,
@@ -491,7 +476,7 @@ void otr_auth(SERVER_REC *server, char *nick, const char *peername, const char *
 
 	/* Aborting an ongoing auth */
 	if (co->smstate->nextExpected!=OTRL_SMP_EXPECT1)
-		otr_abort_auth(co,server,nick);
+		otr_abort_auth(co,ircctx,nick);
 
 	coi->smp_failed = FALSE;
 
@@ -508,7 +493,7 @@ void otr_auth(SERVER_REC *server, char *nick, const char *peername, const char *
 		otrl_message_initiate_smp(
 			otr_state, 
 			&otr_ops,
-			server,
+			ircctx,
 			co,
 			(unsigned char*)secret,
 			strlen(secret));
@@ -516,12 +501,12 @@ void otr_auth(SERVER_REC *server, char *nick, const char *peername, const char *
 		otrl_message_respond_smp(
 			otr_state,
 			&otr_ops,
-			server,
+			ircctx,
 			co,
 			(unsigned char*)secret,
 			strlen(secret));
 
-	otr_notice(server,nick,
+	otr_notice(ircctx,nick,
 		   coi->received_smp_init ?
 		   TXT_AUTH_RESPONDING :
 		   TXT_AUTH_INITIATED);
@@ -538,18 +523,18 @@ void otr_auth(SERVER_REC *server, char *nick, const char *peername, const char *
  */
 void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co, 
 		     struct co_info *coi, 
-		     SERVER_REC *server, const char *from) 
+		     IRC_CTX *ircctx, const char *from) 
 {
 	int abort = FALSE;
 
 	OtrlTLV *tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP1);
 	if (tlv) {
 		if (co->smstate->nextExpected != OTRL_SMP_EXPECT1) {
-			otr_notice(server,from,TXT_AUTH_HAVE_OLD,
+			otr_notice(ircctx,from,TXT_AUTH_HAVE_OLD,
 				   from);
 			abort = TRUE;
 		} else {
-			otr_notice(server,from,TXT_AUTH_PEER,
+			otr_notice(ircctx,from,TXT_AUTH_PEER,
 				   from);
 			coi->received_smp_init = TRUE;
 		}
@@ -558,12 +543,12 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
 	tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP2);
 	if (tlv) {
 		if (co->smstate->nextExpected != OTRL_SMP_EXPECT2) {
-			otr_notice(server,from,
+			otr_notice(ircctx,from,
 				   TXT_AUTH_PEER_REPLY_WRONG,
 				   from);
 			abort = TRUE;
 		} else {
-			otr_notice(server,from,
+			otr_notice(ircctx,from,
 				   TXT_AUTH_PEER_REPLIED,
 				   from);
 			co->smstate->nextExpected = OTRL_SMP_EXPECT4;
@@ -573,17 +558,17 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
 	tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP3);
 	if (tlv) {
 		if (co->smstate->nextExpected != OTRL_SMP_EXPECT3) {
-			otr_notice(server,from,
+			otr_notice(ircctx,from,
 				   TXT_AUTH_PEER_WRONG_SMP3,
 				   from);
 			abort = TRUE;
 		} else {
 			char *trust = co->active_fingerprint->trust;
-			if (trust&&(*trust!='\0'))
-				otr_notice(server,from,
+			if (trust&&(*trust!='\0')) {
+				otr_notice(ircctx,from,
 					   TXT_AUTH_SUCCESSFUL);
-			else {
-				otr_notice(server,from,
+			} else {
+				otr_notice(ircctx,from,
 					   TXT_AUTH_FAILED);
 				coi->smp_failed = TRUE;
 			}
@@ -595,19 +580,19 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
 	tlv = otrl_tlv_find(tlvs, OTRL_TLV_SMP4);
 	if (tlv) {
 		if (co->smstate->nextExpected != OTRL_SMP_EXPECT4) {
-			otr_notice(server,from,
+			otr_notice(ircctx,from,
 				   TXT_AUTH_PEER_WRONG_SMP4,
 				   from);
 			abort = TRUE;
 		} else {
 			char *trust = co->active_fingerprint->trust;
-			if (trust&&(*trust!='\0'))
-				otr_notice(server,from,
+			if (trust&&(*trust!='\0')) {
+				otr_notice(ircctx,from,
 					   TXT_AUTH_SUCCESSFUL);
-			else {
+			} else {
 				/* unreachable since 4 is never sent out on
 				 * error */
-				otr_notice(server,from,
+				otr_notice(ircctx,from,
 					   TXT_AUTH_FAILED);
 				coi->smp_failed = TRUE;
 			}
@@ -616,11 +601,11 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
 		}
 	}
 	if (abort)
-		otr_abort_auth(co,server,from);
+		otr_abort_auth(co,ircctx,from);
 
 	tlv = otrl_tlv_find(tlvs, OTRL_TLV_DISCONNECTED);
 	if (tlv)
-		otr_notice(server,from,TXT_PEER_FINISHED,from);
+		otr_notice(ircctx,from,TXT_PEER_FINISHED,from);
 
 	statusbar_items_redraw("otr");
 }
@@ -630,7 +615,7 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
  * Returns NULL if its an OTR protocol message and 
  * the (possibly) decrypted message otherwise.
  */
-char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
+char *otr_receive(IRC_CTX *ircctx, const char *msg,const char *from)
 {
 	int ignore_message;
 	char *newmessage = NULL;
@@ -640,9 +625,9 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 	struct co_info *coi;
 	OtrlTLV *tlvs;
 
-	sprintf(accname, "%s@%s", server->nick, server->connrec->address);
+	sprintf(accname, "%s@%s", IRCCTX_NICK(ircctx), IRCCTX_ADDR(ircctx));
 
-	if (!(co = otr_getcontext(accname,from,TRUE,server))) {
+	if (!(co = otr_getcontext(accname,from,TRUE,ircctx))) {
 		otr_noticest(TXT_CTX_NOT_CREATE,
 			     accname,from);
 		return NULL;
@@ -655,7 +640,7 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 	 */
 	if ((strcmp(msg,coi->better_msg_two)==0)||
 	    (strcmp(msg,formats[TXT_OTR_BETTER_THREE].def)==0)) {
-		otr_debug(server,from,TXT_RECEIVE_IGNORE_QUERY);
+		otr_debug(ircctx,from,TXT_RECEIVE_IGNORE_QUERY);
 		return NULL;
 	}
 
@@ -675,7 +660,7 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 		    (msg[strlen(msg)-1]!=','))
 			return NULL;
 
-		otr_debug(server,from,TXT_RECEIVE_DEQUEUED,
+		otr_debug(ircctx,from,TXT_RECEIVE_DEQUEUED,
 			  strlen(coi->msgqueue));
 
 		msg = coi->msgqueue;
@@ -691,14 +676,14 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 		   (msg[strlen(msg)-1]!=',')) {
 		coi->msgqueue = malloc(4096*sizeof(char));
 		strcpy(coi->msgqueue,msg);
-		otr_debug(server,from,TXT_RECEIVE_QUEUED,strlen(msg));
+		otr_debug(ircctx,from,TXT_RECEIVE_QUEUED,strlen(msg));
 		return NULL;
 	}
 
 	ignore_message = otrl_message_receiving(
 		otr_state,
 		&otr_ops,
-		server,
+		ircctx,
 		accname, 
 		PROTOCOLID, 
 		from, 
@@ -709,16 +694,16 @@ char *otr_receive(SERVER_REC *server, const char *msg,const char *from)
 		NULL);
 
 	if (tlvs) 
-		otr_handle_tlvs(tlvs,co,coi,server,from);
+		otr_handle_tlvs(tlvs,co,coi,ircctx,from);
 	
 	if (ignore_message) {
-		otr_debug(server,from,
+		otr_debug(ircctx,from,
 			  TXT_RECEIVE_IGNORE, strlen(msg),accname,from,msg);
 		return NULL;
 	}
 
 	if (newmessage)
-		otr_debug(server,from,TXT_RECEIVE_CONVERTED);
+		otr_debug(ircctx,from,TXT_RECEIVE_CONVERTED);
 
 	return newmessage ? : (char*)msg;
 }

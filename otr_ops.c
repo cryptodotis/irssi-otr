@@ -23,7 +23,7 @@ OtrlMessageAppOps otr_ops;
 extern OtrlUserState otr_state;
 extern GSList *plistunknown,*plistknown;
 
-OtrlPolicy IO_DEFAULT_POLICY =
+OtrlPolicy IO_DEFAULT_OTR_POLICY =
 	OTRL_POLICY_MANUAL|OTRL_POLICY_WHITESPACE_START_AKE;
 
 /*
@@ -33,7 +33,7 @@ OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 {
 	struct co_info *coi = context->app_data;
 	char *server = strchr(context->accountname,'@')+1;
-	OtrlPolicy op = IO_DEFAULT_POLICY;
+	OtrlPolicy op = IO_DEFAULT_OTR_POLICY;
 	GSList *pl;
 	char fullname[1024];
 
@@ -93,19 +93,19 @@ void ops_create_privkey(void *opdata, const char *accountname,
 void ops_inject_msg(void *opdata, const char *accountname,
 		    const char *protocol, const char *recipient, const char *message)
 {
-	SERVER_REC *a_serv;
+	IRC_CTX *a_serv;
 	char *msgcopy = g_strdup(message);
 
 	/* OTR sometimes gives us multiple lines 
 	 * (e.g. the default query (a.k.a. "better") message) */
 	g_strdelimit (msgcopy,"\n",' ');
 	a_serv = opdata;
-	if (!a_serv)
+	if (!a_serv) {
 		otr_notice(a_serv,recipient,TXT_OPS_INJECT,
 			   accountname,recipient,message);
-	else
-		a_serv->send_message(a_serv, recipient, msgcopy,
-				     GPOINTER_TO_INT(SEND_TARGET_NICK));
+	} else {
+		irc_send_message(a_serv, recipient, msgcopy);
+	}
 	g_free(msgcopy);
 }
 
@@ -118,11 +118,11 @@ void ops_notify(void *opdata, OtrlNotifyLevel level, const char *accountname,
 		const char *secondary)
 {
 	ConnContext *co = otr_getcontext(accountname,username,FALSE,NULL);
-	SERVER_REC *server = opdata;
+	IRC_CTX *server = opdata;
 	struct co_info *coi;
 	if (co) {
 		coi = co->app_data;
-		server = coi->server;
+		server = coi->ircctx;
 	} else 
 		otr_notice(server,username,TXT_OPS_NOTIFY_BUG);
 
@@ -160,12 +160,12 @@ int ops_display_msg(void *opdata, const char *accountname,
 		    const char *msg)
 {
 	ConnContext *co = otr_getcontext(accountname,username,FALSE,opdata);
-	SERVER_REC *server = opdata;
+	IRC_CTX *server = opdata;
 	struct co_info *coi;
 
 	if (co) {
 		coi = co->app_data;
-		server = coi->server;
+		server = coi->ircctx;
 	} else 
 		otr_notice(server,username,TXT_OPS_DISPLAY_BUG);
 
@@ -189,7 +189,7 @@ void ops_secure(void *opdata, ConnContext *context)
 	char * trust = context->active_fingerprint->trust ? : "";
 	char ownfp[45],peerfp[45];
 
-	otr_notice(coi->server,
+	otr_notice(coi->ircctx,
 		   context->username,TXT_OPS_SEC);
 	if (*trust!='\0')
 		return;
@@ -200,7 +200,7 @@ void ops_secure(void *opdata, ConnContext *context)
 	otrl_privkey_hash_to_human(peerfp,
 				   context->active_fingerprint->fingerprint);
 
-	otr_notice(coi->server,context->username,TXT_OPS_FPCOMP,
+	otr_notice(coi->ircctx,context->username,TXT_OPS_FPCOMP,
 		   otrl_privkey_fingerprint(otr_state,
 					    ownfp,
 					    context->accountname,
@@ -215,7 +215,7 @@ void ops_secure(void *opdata, ConnContext *context)
 void ops_insecure(void *opdata, ConnContext *context)
 {
 	struct co_info *coi = context->app_data;
-	otr_notice(coi->server,
+	otr_notice(coi->ircctx,
 		   context->username,TXT_OPS_INSEC);
 }
 
@@ -225,7 +225,7 @@ void ops_insecure(void *opdata, ConnContext *context)
 void ops_still_secure(void *opdata, ConnContext *context, int is_reply)
 {
 	struct co_info *coi = context->app_data;
-	otr_notice(coi->server,
+	otr_notice(coi->ircctx,
 		   context->username,is_reply ?
 		   TXT_OPS_STILL_REPLY :
 		   TXT_OPS_STILL_NO_REPLY);

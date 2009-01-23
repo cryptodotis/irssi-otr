@@ -25,6 +25,11 @@ int debug = FALSE;
 GRegex *regex_nickignore = NULL;
 #endif
 
+void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
+	ircctx->send_message(
+		ircctx,recipient,msg,GPOINTER_TO_INT(SEND_TARGET_NICK));
+}
+
 /*
  * Pipes all outgoing private messages through OTR
  */
@@ -90,21 +95,67 @@ static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item)
 	}
 }
 
+/* used to handle a bunch of commands */
+static void cmd_generic(const char *cmd, const char *args, WI_ITEM_REC *item)
+{
+	QUERY_REC *query = QUERY(item);
+
+	if (*args == '\0')
+		args = NULL;
+
+	if (!(query&&query->server&&query->server->connrec))
+		query = NULL;
+
+	if (strcmp(cmd,"finish")==0) {
+		if (args) {
+			otr_finish(NULL,NULL,args,TRUE);
+			statusbar_items_redraw("otr");
+		} else if (query) {
+			otr_finish(query->server,query->name,NULL,TRUE);
+			statusbar_items_redraw("otr");
+		} else
+			otr_noticest(TXT_CMD_QNOTFOUND);
+	} else if (strcmp(cmd,"trust")==0) {
+		if (args) {
+			otr_trust(NULL,NULL,args);
+			statusbar_items_redraw("otr");
+		} else if (query) {
+			otr_trust(query->server,query->name,NULL);
+			statusbar_items_redraw("otr");
+		} else
+			otr_noticest(TXT_CMD_QNOTFOUND);
+	} else if (strcmp(cmd,"authabort")==0) {
+		if (args) {
+			otr_authabort(NULL,NULL,args);
+			statusbar_items_redraw("otr");
+		} else if (query) {
+			otr_authabort(query->server,query->name,NULL);
+			statusbar_items_redraw("otr");
+		} else
+			otr_noticest(TXT_CMD_QNOTFOUND);
+	} else if (strcmp(cmd,"auth")==0) {
+		if (!args) {
+			otr_notice(query->server,query->name,
+				   TXT_CMD_AUTH);
+		} else {
+			char *second = strchr(args,' ');
+			char *add = strchr(args,'@');
+			if (add&&second&&(add<second)) {
+				*(second+1) = '\0';
+				otr_auth(NULL,NULL,args,second);
+				*second = ' ';
+			} else
+				otr_auth(query->server,query->name,NULL,args);
+		}
+	}
+}
+
 /*
  * /otr finish [peername]
  */
 static void cmd_finish(const char *data, void *server, WI_ITEM_REC *item)
 {
-	QUERY_REC *query = QUERY(item);
-	if (*data != '\0') {
-		otr_finish(NULL,NULL,data,TRUE);
-		statusbar_items_redraw("otr");
-	} else if (query&&query->server&&query->server->connrec) {
-		otr_finish(query->server,query->name,NULL,TRUE);
-		statusbar_items_redraw("otr");
-	} else
-		otr_notice(item ? item->server : NULL,query ? query->name : NULL,
-			   TXT_CMD_QNOTFOUND);
+	cmd_generic("finish",data,item);
 }
 
 /*
@@ -112,16 +163,7 @@ static void cmd_finish(const char *data, void *server, WI_ITEM_REC *item)
  */
 static void cmd_trust(const char *data, void *server, WI_ITEM_REC *item)
 {
-	QUERY_REC *query = QUERY(item);
-	if (*data != '\0') {
-		otr_trust(NULL,NULL,data);
-		statusbar_items_redraw("otr");
-	} else if (query&&query->server&&query->server->connrec) {
-		otr_trust(query->server,query->name,NULL);
-		statusbar_items_redraw("otr");
-	} else
-		otr_notice(item->server,query ? query->name : NULL,
-			   TXT_CMD_QNOTFOUND);
+	cmd_generic("trust",data,item);
 }
 
 /*
@@ -142,32 +184,7 @@ static void cmd_genkey(const char *data, void *server, WI_ITEM_REC *item)
  */
 static void cmd_auth(const char *data, void *server, WI_ITEM_REC *item)
 {
-	WI_ITEM_REC *wi = active_win->active;
-	QUERY_REC *query = QUERY(wi);
-	char *secret;
-
-	if ((secret = strchr(data,' '))) {
-		*secret = '\0';
-		if (!strchr(data,'@')) {
-			/* it's not an account name after all */
-			*secret = ' ';
-			secret = NULL;
-		} else
-			secret++;
-	}
-
-	if (secret) {
-		otr_auth(NULL,NULL,data,secret);
-		*(secret-1) = ' ';
-	} else if (query&&query->server&&query->server->connrec) {
-		if (!data||(*data=='\0')) {
-			otr_notice(server,query->name,
-				   TXT_CMD_AUTH);
-			return;
-		}
-		otr_auth(query->server,query->name,NULL,data);
-	}
-
+	cmd_generic("auth",data,item);
 }
 
 /*
@@ -175,16 +192,7 @@ static void cmd_auth(const char *data, void *server, WI_ITEM_REC *item)
  */
 static void cmd_authabort(const char *data, void *server, WI_ITEM_REC *item)
 {
-	WI_ITEM_REC *wi = active_win->active;
-	QUERY_REC *query = QUERY(wi);
-
-	if (*data != '\0') {
-		otr_authabort(NULL,NULL,data);
-		statusbar_items_redraw("otr");
-	} else if (query&&query->server&&query->server->connrec) {
-		otr_authabort(query->server,query->name,NULL);
-		statusbar_items_redraw("otr");
-	}
+	cmd_generic("authabort",data,item);
 }
 
 /*
@@ -307,9 +315,9 @@ void otr_init(void)
 	command_bind("otr contexts", NULL, (SIGNAL_FUNC) cmd_contexts);
 	command_bind("otr version", NULL, (SIGNAL_FUNC) cmd_version);
 
-	settings_add_str("otr", "otr_policy","*@localhost opportunistic,*bitlbee* opportunistic,*@im.* opportunistic");
-	settings_add_str("otr", "otr_policy_known","* always");
-	settings_add_str("otr", "otr_ignore","xmlconsole[0-9]*");
+	settings_add_str("otr", "otr_policy",IO_DEFAULT_POLICY);
+	settings_add_str("otr", "otr_policy_known",IO_DEFAULT_POLICY_KNOWN);
+	settings_add_str("otr", "otr_ignore",IO_DEFAULT_IGNORE);
 	read_settings();
 	signal_add("setup changed", (SIGNAL_FUNC) read_settings);
 
@@ -350,4 +358,50 @@ void otr_deinit(void)
 	otrlib_deinit();
 
 	theme_unregister();
+}
+
+IRC_CTX *server_find_address(char *address)
+{
+        GSList *tmp;
+
+        g_return_val_if_fail(address != NULL, NULL);
+        if (*address == '\0') return NULL;
+
+        for (tmp = servers; tmp != NULL; tmp = tmp->next) {
+                SERVER_REC *server = tmp->data;
+
+                if (g_strcasecmp(server->connrec->address, address) == 0)
+                        return server;
+        }
+
+        return NULL;
+}
+
+char *lvlstring[] = { 
+	"NOTICE",
+	"DEBUG"
+};
+
+
+void otr_log(IRC_CTX *server, const char *nick, 
+	     int level, const char *format, ...) {
+	va_list params;
+	va_start( params, format );
+	char msg[LOGMAX], *s = msg;
+
+	if ((level==LVL_DEBUG)&&!debug)
+		return;
+
+	s += sprintf(s,"%s","%9OTR%9");
+
+	if (level!=LVL_NOTICE)	
+		s += sprintf(s,"(%s)",lvlstring[level]);
+
+	s += sprintf(s,": ");
+
+	if( vsnprintf( s, LOGMAX, format, params ) < 0 )
+		sprintf( s, "internal error parsing error string (BUG)" );
+	va_end( params );
+
+	printtext(server, nick, MSGLEVEL_MSGS, msg);
 }

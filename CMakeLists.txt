@@ -98,6 +98,14 @@ ENDIF (LIBOTR_VERSION LESS "3.1.0")
 
 FIND_PACKAGE(LibGcrypt REQUIRED)
 
+# includes
+
+SET(IRSSIOTR_INCLUDE_DIRS
+  ${PROJECT_SOURCE_DIR} 
+  ${PROJECT_BINARY_DIR} 
+  ${GLIB_INCLUDE_DIRS} 
+  ${LIBOTR_INCLUDE_DIRS})
+
 # irssi public headers
 
 FIND_PATH(IRSSI_INCLUDE_DIR NAMES irssi/src/core/module.h)
@@ -106,20 +114,40 @@ MARK_AS_ADVANCED(IRSSI_INCLUDE_DIR)
 IF(NOT IRSSI_INCLUDE_DIR)
   MESSAGE(FATAL_ERROR "Couldn't find irssi headers, "
     "usually installed in /usr/include/irssi")
+ELSE(NOT IRSSI_INCLUDE_DIR)
+  SET(HAVE_IRSSI 1)
+  SET(IRSSIOTR_INCLUDE_DIRS
+    ${IRSSIOTR_INCLUDE_DIRS}
+    ${IRSSI_INCLUDE_DIR}/irssi
+    ${IRSSI_INCLUDE_DIR}/irssi/src
+    ${IRSSI_INCLUDE_DIR}/irssi/src/core
+    ${PROJECT_BINARY_DIR}/irssi-headers
+    ${PROJECT_SOURCE_DIR}/irssi-headers)
+
+  # irssi statusbar header
+
+  CHECK_INCLUDE_FILES("glib.h;common.h;fe-text/statusbar-item.h" HAVE_IRSSISBAR_H)
+
+  # Bad hack
+
+  IF (NOT HAVE_IRSSISBAR_H)
+    MESSAGE(STATUS "Need to fetch irssi header statusbar-item.h (you don't have it yet)")
+    IF (NOT WGET_EXECUTABLE)
+      FIND_PACKAGE(Wget REQUIRED)
+    ENDIF (NOT WGET_EXECUTABLE)
+    EXECUTE_PROCESS(COMMAND "mkdir" -p irssi-headers/fe-text)
+    EXECUTE_PROCESS(COMMAND "bash" "-c"
+      "${WGET_EXECUTABLE} '--post-data=revision=4936&root=irssi' \\
+      'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/statusbar-item.h' || exit 1"
+      ${PROJECT_SOURCE_DIR} WORKING_DIRECTORY irssi-headers/fe-text
+      RESULT_VARIABLE IISBAR_RET)
+    IF(NOT IISBAR_RET EQUAL 0)
+      MESSAGE(FATAL_ERROR "Couldn't check out irssi headers from SVN")
+    ENDIF(NOT IISBAR_RET EQUAL 0)
+    SET(HAVE_IRSSISBAR_H 1 CACHE INTERNAL "Having irssi headers" FORCE)
+  ENDIF (NOT HAVE_IRSSISBAR_H)
+
 ENDIF(NOT IRSSI_INCLUDE_DIR)
-
-# includes
-
-SET(IRSSIOTR_INCLUDE_DIRS
-  ${PROJECT_SOURCE_DIR} 
-  ${PROJECT_BINARY_DIR} 
-  ${GLIB_INCLUDE_DIRS} 
-  ${LIBOTR_INCLUDE_DIRS} 
-  ${IRSSI_INCLUDE_DIR}/irssi
-  ${IRSSI_INCLUDE_DIR}/irssi/src
-  ${IRSSI_INCLUDE_DIR}/irssi/src/core
-  ${PROJECT_BINARY_DIR}/irssi-headers
-  ${PROJECT_SOURCE_DIR}/irssi-headers)
 
 include_directories(${IRSSIOTR_INCLUDE_DIRS})
 SET(CMAKE_REQUIRED_INCLUDES ${IRSSIOTR_INCLUDE_DIRS})
@@ -130,29 +158,6 @@ SET(CMAKE_REQUIRED_DEFINITIONS -DHAVE_CONFIG_H ${LIBGCRYPT_CFLAGS})
 # optional for html stripping and nick ignoring
 
 CHECK_INCLUDE_FILE(glib/gregex.h HAVE_GREGEX_H)
-
-# irssi headers
-
-CHECK_INCLUDE_FILES("glib.h;common.h;fe-text/statusbar-item.h" HAVE_IRSSISBAR_H)
-
-# Bad hack
-
-IF (NOT HAVE_IRSSISBAR_H)
-  MESSAGE(STATUS "Need to fetch irssi header statusbar-item.h (you don't have it yet)")
-  IF (NOT WGET_EXECUTABLE)
-    FIND_PACKAGE(Wget REQUIRED)
-  ENDIF (NOT WGET_EXECUTABLE)
-  EXECUTE_PROCESS(COMMAND "mkdir" -p irssi-headers/fe-text)
-  EXECUTE_PROCESS(COMMAND "bash" "-c"
-    "${WGET_EXECUTABLE} '--post-data=revision=4936&root=irssi' \\
-    'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/statusbar-item.h' || exit 1"
-    ${PROJECT_SOURCE_DIR} WORKING_DIRECTORY irssi-headers/fe-text
-    RESULT_VARIABLE IISBAR_RET)
-  IF(NOT IISBAR_RET EQUAL 0)
-    MESSAGE(FATAL_ERROR "Couldn't check out irssi headers from SVN")
-  ENDIF(NOT IISBAR_RET EQUAL 0)
-  SET(HAVE_IRSSISBAR_H 1 CACHE INTERNAL "Having irssi headers" FORCE)
-ENDIF (NOT HAVE_IRSSISBAR_H)
 
 # check for strsignal
 
@@ -192,23 +197,27 @@ ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/otr-formats.c
 
 # lib
 
-ADD_LIBRARY(otr SHARED otr.c otrutil.c otr_ops.c otr_key.c ui.c ${PROJECT_BINARY_DIR}/otr-formats.c)
-
-TARGET_LINK_LIBRARIES(otr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
-
 # Now that took some time to figure out...
 
 IF(APPLE)
   SET(APPLE_LDFLAGS "-single_module -undefined dynamic_lookup")
-  SET_TARGET_PROPERTIES(otr PROPERTIES SUFFIX ".so")
 ENDIF(APPLE)
 
 FOREACH(X ${LIBGCRYPT_LDFLAGS} ${GLIB_LDFLAGS} ${APPLE_LDFLAGS})
   SET(MAIN_LDFLAGS "${MAIN_LDFLAGS} ${X}")
 ENDFOREACH(X ${LIBGCRYPT_LDFLAGS} ${GLIB_LDFLAGS} ${APPLE_LDFLAGS})
 
-SET_TARGET_PROPERTIES(otr PROPERTIES 
-  LINK_FLAGS "${MAIN_LDFLAGS}")
+IF(HAVE_IRSSI)
+  ADD_LIBRARY(irssiotr SHARED irssi_otr.c otr_util.c otr_ops.c otr_key.c ${PROJECT_BINARY_DIR}/otr-formats.c)
+  TARGET_LINK_LIBRARIES(irssiotr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
+  SET_TARGET_PROPERTIES(irssiotr PROPERTIES 
+    COMPILE_FLAGS -DTARGET_IRSSI
+    OUTPUT_NAME "otr"
+    LINK_FLAGS "${MAIN_LDFLAGS}")
+  IF(APPLE)
+    SET_TARGET_PROPERTIES(irssiotr PROPERTIES SUFFIX ".so")
+  ENDIF(APPLE)
+ENDIF(HAVE_IRSSI)
 
 # cscope
 
@@ -220,13 +229,13 @@ ADD_CSCOPE_TARGET("${CSANDHS}" "${IRSSIOTR_INCLUDE_DIRS}")
 IF(CMAKE_INSTALL_TYPE MATCHES "package-.*")
   INCLUDE(Packaging.cmake)
 ELSEIF(CMAKE_INSTALL_TYPE MATCHES "home")
-  INSTALL(TARGETS otr DESTINATION "$ENV{HOME}/.irssi/modules")
+  INSTALL(TARGETS irssiotr DESTINATION "$ENV{HOME}/.irssi/modules")
 ELSE(CMAKE_INSTALL_TYPE MATCHES "package-.*")
-  INSTALL(TARGETS otr DESTINATION lib${LIB_SUFFIX}/irssi/modules)
+  INSTALL(TARGETS irssiotr DESTINATION lib${LIB_SUFFIX}/irssi/modules)
   INSTALL(FILES README LICENSE DESTINATION ${DOCDIR})
 ENDIF(CMAKE_INSTALL_TYPE MATCHES "package-.*")
 
 # Source tarball
 ADD_CUSTOM_TARGET(src-tarball 
-  ${PROJECT_SOURCE_DIR}/mksrcpackage.sh ${PROJECT_SOURCE_DIR} ${IRSSIOTR_VERSION}
-  DEPENDS otr)
+  ${PROJECT_SOURCE_DIR}/mksrcpackage.sh ${PROJECT_SOURCE_DIR} 
+  ${IRSSIOTR_VERSION})
