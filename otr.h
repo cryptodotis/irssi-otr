@@ -40,6 +40,12 @@
 #include <irssi_otr.h>
 #endif
 
+/* xchat */
+
+#ifdef TARGET_XCHAT
+#include <xchat_otr.h>
+#endif
+
 /* log stuff */
 
 #define LOGMAX 1024
@@ -56,10 +62,11 @@ void otr_log(IRC_CTX *server, const char *to,
 /* own */
 
 #include "io-config.h"
-#include "otr-formats.h"
 
 /* irssi module name */
 #define MODULE_NAME "otr"
+
+#include "otr-formats.h"
 
 /* 
  * maybe this should be configurable?

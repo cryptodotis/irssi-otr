@@ -93,7 +93,7 @@ void context_free_app_info(void *data)
 		g_free(coi->msgqueue);
 	}
 	if (coi->ircctx)
-		g_free(coi->ircctx);
+		IRCCTX_FREE(coi->ircctx);
 }
 
 /*

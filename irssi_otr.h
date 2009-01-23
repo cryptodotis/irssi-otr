@@ -19,6 +19,7 @@
 #define IRCCTX_DUP(ircctx) ircctx
 #define IRCCTX_ADDR(ircctx) ircctx->connrec->address
 #define IRCCTX_NICK(ircctx) ircctx->nick
+#define IRCCTX_FREE(ircctx) ;
 
 #define otr_noticest(formatnum,...) \
 	printformat(NULL,NULL,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__)
