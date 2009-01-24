@@ -63,6 +63,7 @@ auth_peer_wrong_smp3	%s sent a wrong authentication message (SMP3).
 auth_peer_wrong_smp4	%s sent a wrong authentication message (SMP4).
 auth_successful	Authentication successful!
 auth_failed	Authentication failed!
+auth_needenc	You need to establish an OTR session before you can authenticate.
 Commands
 cmd_otr	We're alive
 cmd_qnotfound	Failed: Can't get nick and server of current query window. (Or maybe you're doing this in the status window?)

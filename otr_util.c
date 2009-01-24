@@ -472,6 +472,11 @@ void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *sec
 		return;
 	}
 
+	if (co->msgstate!=OTRL_MSGSTATE_ENCRYPTED) {
+		otr_notice(ircctx,nick,TXT_AUTH_NEEDENC);
+		return;
+	}
+
 	coi = co->app_data;
 
 	/* Aborting an ongoing auth */

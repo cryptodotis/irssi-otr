@@ -134,18 +134,23 @@ static void cmd_generic(const char *cmd, const char *args, WI_ITEM_REC *item)
 		} else
 			otr_noticest(TXT_CMD_QNOTFOUND);
 	} else if (strcmp(cmd,"auth")==0) {
-		if (!args) {
-			otr_notice(query->server,query->name,
-				   TXT_CMD_AUTH);
-		} else {
+		if (args) {
 			char *second = strchr(args,' ');
 			char *add = strchr(args,'@');
-			if (add&&second&&(add<second)) {
-				*(second+1) = '\0';
-				otr_auth(NULL,NULL,args,second);
+			if (add&&second&&(add<second)&&(*(second+1))) {
+				*second = '\0';
+				otr_auth(NULL,NULL,args,second+1);
 				*second = ' ';
-			} else
+			} else if (query) {
 				otr_auth(query->server,query->name,NULL,args);
+			} else {
+				otr_noticest(TXT_CMD_QNOTFOUND);
+			}
+		} else if (query) {
+			otr_notice(query->server,query->name, 
+				   TXT_CMD_AUTH);
+		} else {
+			otr_noticest(TXT_CMD_AUTH);
 		}
 	}
 }
