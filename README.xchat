@@ -1,0 +1,9 @@
+The README  file is written  for irssi but what's  said there mostly  applies to
+xchat  as  well. The  only  difference  is  that  xchat doesn't  support  adding
+/settings, so in order to see and change the current settings you'll have to use
+the "/otr set" command. Without arguments  it will show the current settings and
+if supplied with  a setting name and  a value it will change  the given setting.
+There is no  persistence, i.e. each time you start  xchat the hardcoded defaults
+will be active. Please use standard xchat scripting magic to change the defaults
+to your liking on startup. It seems overkill to have a config parser/writer just
+for this plugin and it is fortunately not neccessary.
