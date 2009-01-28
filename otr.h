@@ -149,6 +149,7 @@ void otr_finish(IRC_CTX *server, char *nick, const char *peername, int inquery);
 void otr_auth(IRC_CTX *server, char *nick, const char *peername, const char *secret);
 void otr_authabort(IRC_CTX *server, char *nick, const char *peername);
 struct ctxlist_ *otr_contexts();
+void otr_finishall();
 
 
 /* key/fingerprint stuff */

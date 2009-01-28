@@ -11,6 +11,7 @@ xchat_plugin *ph;
 static char set_policy[512] = IO_DEFAULT_POLICY;
 static char set_policy_known[512] = IO_DEFAULT_POLICY_KNOWN;
 static char set_ignore[512] = IO_DEFAULT_IGNORE;
+static int set_finishonunload = TRUE;
 
 int extract_nick(char *nick, char *line)
 {
@@ -97,10 +98,14 @@ int cmd_otr(char *word[], char *word_eol[], void *userdata)
 			regex_nickignore = g_regex_new(word_eol[4],0,0,NULL);
 			strcpy(set_ignore,word_eol[4]);
 #endif
+		} else if (strcmp(word[3],"finishonunload")==0) {
+			set_finishonunload = (strcasecmp(word[4],"true")==0);
 		} else {
 			xchat_printf(ph, "policy: %s\n"
-				     "policy_known: %s\nignore: %s\n",
-				     set_policy,set_policy_known,set_ignore);
+				     "policy_known: %s\nignore: %s\n"
+				     "finishonunload: %s\n",
+				     set_policy,set_policy_known,set_ignore,
+				     set_finishonunload ? "true" : "false");
 		}
 		
 	}
@@ -215,6 +220,20 @@ int xchat_plugin_init(xchat_plugin *plugin_handle,
 #endif
 
 	xchat_print(ph, "xchat-otr loaded successfully!\n");
+
+	return 1;
+}
+
+int xchat_plugin_deinit()
+{
+#ifdef HAVE_GREGEX_H
+	g_regex_unref(regex_nickignore);
+#endif
+
+	if (set_finishonunload)
+		otr_finishall();
+
+	otrlib_deinit();
 
 	return 1;
 }

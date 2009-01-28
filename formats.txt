@@ -70,7 +70,8 @@ cmd_qnotfound	Failed: Can't get nick and server of current query window. (Or may
 cmd_auth	Please agree on a secret with your peer and then initiate the authentication with /otr auth <secret> or let him initiate. Should you initiate your peer will after a little while be instructed to enter the secret as well. Once he has done so the authentication will finish up. Should you have both typed in the same secret the authentication should be successful.
 cmd_debug_on	Debug mode is on
 cmd_debug_off	Debug mode is off
-cmd_finish	Finished conversation with %s
+cmd_finish	Finished conversation with %s@%s.
+cmd_finishall_none	No conversations to finish.
 cmd_version	This is irssi-otr version %s
 peer_finished	%s has finished the OTR conversation. If you want to continue talking enter %9/otr finish%9 for plaintext or ?OTR? to restart OTR.
 Contexts

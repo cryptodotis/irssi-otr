@@ -331,7 +331,7 @@ void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 
 	otr_info(inquery ? ircctx : NULL,
 		   inquery ? nick : NULL,
-		   TXT_CMD_FINISH,nick);
+		   TXT_CMD_FINISH,nick,IRCCTX_ADDR(ircctx));
 
 	coi = co->app_data;
 
@@ -342,6 +342,32 @@ void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 
 	if (peername)
 		*pserver = '@';
+}
+
+void otr_finishall()
+{
+	ConnContext *context;
+	int finished=0;
+
+	for(context = otr_state->context_root; context; 
+	    context = context->next) {
+		struct co_info *coi = context->app_data;
+
+		if (context->msgstate!=OTRL_MSGSTATE_ENCRYPTED)
+			continue;
+
+		otrl_message_disconnect(otr_state,&otr_ops,coi->ircctx,
+					context->accountname,
+					PROTOCOLID,
+					context->username);
+
+		otr_infost(TXT_CMD_FINISH,context->username,
+			   IRCCTX_ADDR(coi->ircctx));
+		finished++;
+	}
+
+	if (!finished)
+		otr_infost(TXT_CMD_FINISHALL_NONE);
 }
 
 /*

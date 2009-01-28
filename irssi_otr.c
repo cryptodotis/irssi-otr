@@ -323,6 +323,7 @@ void otr_init(void)
 	settings_add_str("otr", "otr_policy",IO_DEFAULT_POLICY);
 	settings_add_str("otr", "otr_policy_known",IO_DEFAULT_POLICY_KNOWN);
 	settings_add_str("otr", "otr_ignore",IO_DEFAULT_IGNORE);
+	settings_add_bool("otr", "otr_finishonunload",TRUE);
 	read_settings();
 	signal_add("setup changed", (SIGNAL_FUNC) read_settings);
 
@@ -359,6 +360,9 @@ void otr_deinit(void)
 	signal_remove("setup changed", (SIGNAL_FUNC) read_settings);
 
 	statusbar_item_unregister("otr");
+
+	if (settings_get_bool("otr_finishonunload"))
+		otr_finishall();
 
 	otrlib_deinit();
 
