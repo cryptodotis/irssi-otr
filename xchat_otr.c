@@ -249,12 +249,20 @@ void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...)
 	if (ircctx)
 		server = ircctx->address;
 
-	find_query_ctx = xchat_find_context(ph, server, nick);
-
-	if(find_query_ctx==NULL)
-	{	// no query window yet, lets open one
-		xchat_commandf(ph, "query %s", nick);
+	if (server&&nick) {
 		find_query_ctx = xchat_find_context(ph, server, nick);
+		if(find_query_ctx==NULL) {
+			// no query window yet, let's open one
+			xchat_commandf(ph, "query %s", nick);
+			find_query_ctx = xchat_find_context(ph, server, nick);
+		}
+	} else {
+		find_query_ctx = xchat_find_context(ph,
+						    NULL,
+						    xchat_get_info(ph,
+								   "network") ?
+						    :
+						    xchat_get_info(ph,"server"));
 	}
 
 	xchat_set_context(ph, find_query_ctx);
