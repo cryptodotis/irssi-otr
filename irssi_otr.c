@@ -291,6 +291,14 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 		formatnum ? formats[formatnum].def : ""," ",FALSE);
 }
 
+void otr_query_create(SERVER_REC *server, const char *nick)
+{
+	if (!settings_get_bool("otr_createqueries")||query_find(server, nick))
+		return;
+
+	irc_query_create(server->tag, nick, TRUE);
+}
+
 static void read_settings(void)
 {
 	otr_setpolicies(settings_get_str("otr_policy"),FALSE);
@@ -336,6 +344,7 @@ void otr_init(void)
 	settings_add_str("otr", "otr_policy_known",IO_DEFAULT_POLICY_KNOWN);
 	settings_add_str("otr", "otr_ignore",IO_DEFAULT_IGNORE);
 	settings_add_bool("otr", "otr_finishonunload",TRUE);
+	settings_add_bool("otr", "otr_createqueries",TRUE);
 	read_settings();
 	signal_add("setup changed", (SIGNAL_FUNC) read_settings);
 
