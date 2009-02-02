@@ -264,6 +264,16 @@ static void cmd_contexts(const char *data, void *server, WI_ITEM_REC *item)
 }
 
 /*
+ * Optionally finish conversations on /quit. We're already doing this on unload
+ * but the quit handler terminates irc connections before unloading.
+ */
+static void cmd_quit(const char *data, void *server, WI_ITEM_REC *item)
+{
+	if (settings_get_bool("otr_finishonunload"))
+		otr_finishall();
+}
+
+/*
  * otr statusbar
  */
 static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
@@ -320,6 +330,8 @@ void otr_init(void)
 	command_bind("otr contexts", NULL, (SIGNAL_FUNC) cmd_contexts);
 	command_bind("otr version", NULL, (SIGNAL_FUNC) cmd_version);
 
+	command_bind_first("quit", NULL, (SIGNAL_FUNC) cmd_quit);
+
 	settings_add_str("otr", "otr_policy",IO_DEFAULT_POLICY);
 	settings_add_str("otr", "otr_policy_known",IO_DEFAULT_POLICY_KNOWN);
 	settings_add_str("otr", "otr_ignore",IO_DEFAULT_IGNORE);
@@ -356,6 +368,8 @@ void otr_deinit(void)
 	command_unbind("otr help", (SIGNAL_FUNC) cmd_help);
 	command_unbind("otr contexts", (SIGNAL_FUNC) cmd_contexts);
 	command_unbind("otr version", (SIGNAL_FUNC) cmd_version);
+
+	command_unbind("quit", (SIGNAL_FUNC) cmd_quit);
 
 	signal_remove("setup changed", (SIGNAL_FUNC) read_settings);
 
