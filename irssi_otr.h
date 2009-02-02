@@ -15,11 +15,23 @@
 
 #define IRC_CTX SERVER_REC
 
-/* no need for duplication */
-#define IRCCTX_DUP(ircctx) ircctx
+static IRC_CTX *IRCCTX_DUP(IRC_CTX *ircctx) __attribute__ ((unused));
+
+static IRC_CTX *IRCCTX_DUP(IRC_CTX *ircctx) {
+	server_ref(ircctx);
+	return ircctx;
+}
+
+static IRC_CTX *IRCCTX_FREE(IRC_CTX *ircctx) __attribute__ ((unused));
+
+static IRC_CTX *IRCCTX_FREE(IRC_CTX *ircctx)
+{
+	server_unref(ircctx);
+	return ircctx;
+}
+
 #define IRCCTX_ADDR(ircctx) ircctx->connrec->address
 #define IRCCTX_NICK(ircctx) ircctx->nick
-#define IRCCTX_FREE(ircctx) ;
 
 #define otr_noticest(formatnum,...) \
 	printformat(NULL,NULL,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__)
