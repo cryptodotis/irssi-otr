@@ -1,4 +1,5 @@
 Version 0.3
+	* create queries for OTR messages if otr_createqueries is set
 	* finish conversations on unload unless otr_finishonunload is off
 	* added settings otr_policy, otr_policy_known and otr_ignore
 	* fixed two segfault sources
