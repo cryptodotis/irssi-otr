@@ -293,7 +293,9 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 
 void otr_query_create(SERVER_REC *server, const char *nick)
 {
-	if (!settings_get_bool("otr_createqueries")||query_find(server, nick))
+	if (!server||!nick||
+	    !settings_get_bool("otr_createqueries")||
+	    query_find(server, nick))
 		return;
 
 	irc_query_create(server->tag, nick, TRUE);

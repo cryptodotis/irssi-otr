@@ -329,9 +329,11 @@ void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 	otrl_message_disconnect(otr_state,&otr_ops,ircctx,accname,
 				PROTOCOLID,nick);
 
-	otr_info(inquery ? ircctx : NULL,
-		   inquery ? nick : NULL,
-		   TXT_CMD_FINISH,nick,IRCCTX_ADDR(ircctx));
+	if (inquery) {
+		otr_info(ircctx,nick,TXT_CMD_FINISH,nick,IRCCTX_ADDR(ircctx));
+	} else {
+		otr_infost(TXT_CMD_FINISH,nick,IRCCTX_ADDR(ircctx));
+	}
 
 	coi = co->app_data;
 
