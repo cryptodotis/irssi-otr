@@ -158,6 +158,7 @@ int hook_privmsg(char *word[], char *word_eol[], void *userdata)
 	IRC_CTX ircctx = { 
 		.nick = (char*)own_nick,
 		.address = (char*)server };
+	xchat_context *query_ctx;
 
 	if (!extract_nick(nick,word[1]))
 		return XCHAT_EAT_NONE;
@@ -176,6 +177,11 @@ int hook_privmsg(char *word[], char *word_eol[], void *userdata)
 	if (newmsg==word_eol[2]) {
 		return XCHAT_EAT_NONE;
 	}
+
+	query_ctx = xchat_find_context(ph, server, nick);
+
+	if (query_ctx)
+		xchat_set_context(ph, query_ctx);
 
 	xchat_emit_print(ph, "Private Message", nick, newmsg, NULL, NULL);
 
