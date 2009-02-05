@@ -65,3 +65,20 @@ Commands:
 	Finish an OTR conversation
 /otr version
 	Display irssi-otr version. Might be a git commit
+
+Settings:
+
+otr_policy
+	Comma-separated list of "<nick>@<server> <policy>" pairs. See comments
+	above.
+otr_policy_known
+	Same syntax as otr_policy. Only applied where a fingerprint is
+	available.
+otr_ignore
+	Conversations with nicks that match this regular expression completely
+	bypass libotr. It is very unlikely that you need to touch this setting,
+	just use the OTR policy never to prevent OTR sessions with some nicks.
+otr_finishonunload
+	If true running OTR sessions are finished on /unload and /quit.
+otr_createqueries
+	If true queries are automatically created for OTR log messages.
