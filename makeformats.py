@@ -27,6 +27,14 @@ src.write("""char *otr_help = "%s";\n""" % "\\n".join(
 	+["%9- End of OTR help -%9"]
 	))
 
+srcx.write("""char *otr_help = "%s";\n""" % "\\n".join(
+	["- OTR help -"]+
+	[re.sub('"([^"]*)"','\\"\\1\\"',
+		x.replace('\n','').replace("\t","        ") )
+		for x in open(sys.argv[2],"r").readlines()]
+	+["- End of OTR help -"]
+	))
+
 src.write('FORMAT_REC formats[] = {\n')
 srcx.write('FORMAT_REC formats[] = {\n')
 

@@ -46,6 +46,12 @@
 #include <xchat_otr.h>
 #endif
 
+/* weechat */
+
+#ifdef TARGET_WEECHAT
+#include <weechat_otr.h>
+#endif
+
 /* log stuff */
 
 #define LOGMAX 1024
