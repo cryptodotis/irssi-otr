@@ -85,20 +85,11 @@ void wc_printf(IRC_CTX *ircctx, const char *nick, char *format, ...)
 }
 
 void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
-	char s[256];
 	char nmsg[512];
-	struct t_gui_buffer *buffer;
 	
-	sprintf(s,"%s.%s",ircctx->address,recipient);
-	buffer = weechat_buffer_search("irc",s);
-	if (buffer) {
-		wc_debug(ircctx,recipient,"OTR injection %s.%s: %s",ircctx->address,recipient,msg);
-		sprintf(nmsg,"/quote PRIVMSG %s :%s",recipient,msg);
-		weechat_command(buffer,nmsg);
-	} else {
-		wc_debug(ircctx,recipient,"OTR: injection error, no buffer found");
-		//TODO: create query window on demand
-	}
+	wc_debug(ircctx,recipient,"OTR injection %s.%s: %s",ircctx->address,recipient,msg);
+	sprintf(nmsg,"/quote -server %s PRIVMSG %s :%s",ircctx->address,recipient,msg);
+	weechat_command(NULL,nmsg);
 }
 
 IRC_CTX *server_find_address(char *address)
@@ -131,7 +122,6 @@ char *wc_modifier_privmsg_in(void *data, const char *modifier,
 {
 	int argc;
 	char **argv, **argv_eol;
-	char *server = strdup(modifier_data);
 	char nick[256];
 	char *newmsg,*msg;
 	IRC_CTX ircctx;
@@ -153,7 +143,7 @@ char *wc_modifier_privmsg_in(void *data, const char *modifier,
 		goto done;
 #endif
 
-	ircctx.address = server;
+	ircctx.address = (char*)modifier_data;
 	ircctx.nick = argv[2];
 
 	msg = argv_eol[3]+1;
@@ -176,7 +166,6 @@ char *wc_modifier_privmsg_in(void *data, const char *modifier,
 
 	string = strdup(cmsg);
 done:
-	free(server);
 	weechat_string_free_exploded(argv);
 	weechat_string_free_exploded(argv_eol);
 
@@ -191,7 +180,6 @@ char *wc_modifier_privmsg_out(void *data, const char *modifier,
 	IRC_CTX ircctx;
 	char newmsg[512];
 	char *otrmsg;
-	struct t_gui_buffer *buffer;
 	char s[256];
 	char *msg;
 
@@ -212,17 +200,12 @@ char *wc_modifier_privmsg_out(void *data, const char *modifier,
 
 	/* we're unfortunately fed back stuff from irc_send_message above */
 	if (strncmp(msg,"?OTR",4)==0)
-		return strdup(string);
+		goto done;
 
 	ircctx.address = (char*)modifier_data;
 	sprintf(s,"%s.%s",ircctx.address,argv[1]);
-	buffer = weechat_buffer_search("irc",s);
-	if (!buffer) {
-		weechat_printf(NULL,"OTR send: no buffer found for %s",s);
-		//TODO: create query window on demand
-		goto done;
-	}
-	ircctx.nick = (char*)weechat_buffer_get_string(buffer,"localvar_nick");
+
+	ircctx.nick = (char*)weechat_info_get("irc_nick",ircctx.address);
 
 	wc_debug(&ircctx,argv[1],"otr send own %s, server %s, nick %s, msg %s",
 		       ircctx.nick,ircctx.address,argv[1],msg);
