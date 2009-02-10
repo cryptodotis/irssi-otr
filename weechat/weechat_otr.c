@@ -19,7 +19,7 @@
 
 #include "otr.h"
 
-WEECHAT_PLUGIN_NAME("weechat-otr");
+WEECHAT_PLUGIN_NAME("irc-otr");
 WEECHAT_PLUGIN_DESCRIPTION("Off-The-Record Messaging for WeeChat");
 WEECHAT_PLUGIN_AUTHOR("Uli Meis <a.sporto+bee@gmail.com>");
 WEECHAT_PLUGIN_VERSION(IRCOTR_VERSION);
@@ -39,36 +39,8 @@ static char set_policy_known[512] = IO_DEFAULT_POLICY_KNOWN;
 static char set_ignore[512] = IO_DEFAULT_IGNORE;
 static int set_finishonunload = TRUE;
 
-void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
-	char s[256];
-	char nmsg[512];
-	struct t_gui_buffer *buffer;
-	
-	sprintf(s,"%s.%s",ircctx->address,recipient);
-	buffer = weechat_buffer_search("irc",s);
-	if (buffer) {
-		weechat_printf(NULL,"OTR injection %s.%s: %s",ircctx->address,recipient,msg);
-		sprintf(nmsg,"/quote PRIVMSG %s :%s",recipient,msg);
-		weechat_command(buffer,nmsg);
-	} else {
-		weechat_printf(NULL,"OTR: injection error, no buffer found");
-		//TODO: create query window on demand
-	}
-}
-
-IRC_CTX *server_find_address(char *address)
+void printformatva(IRC_CTX *ircctx, const char *nick, char *format, va_list params)
 {
-	static IRC_CTX ircctx;
-
-	ircctx.address = address;
-
-        return &ircctx;
-}
-
-void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...)
-{
-	va_list params;
-	va_start( params, fnum );
 	char msg[LOGMAX], *s = msg;
 	char *server = NULL;
 	struct t_gui_buffer *buffer = NULL;
@@ -83,11 +55,59 @@ void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...)
 		//TODO: create query window on demand
 	}
 
-	if( vsnprintf( s, LOGMAX, formats[fnum].def, params ) < 0 )
+	if( vsnprintf( s, LOGMAX, format, params ) < 0 )
 		sprintf( s, "internal error parsing error string (BUG)" );
 	va_end( params );
 
 	weechat_printf(buffer,"OTR: %s",s);
+}
+
+void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...)
+{
+	va_list params;
+	va_start( params, fnum );
+
+	printformatva(ircctx,nick,formats[fnum].def,params);
+}
+
+void wc_printf(IRC_CTX *ircctx, const char *nick, char *format, ...)
+{
+	va_list params;
+	va_start( params, format );
+
+	printformatva(ircctx,nick,format,params);
+}
+
+#define wc_debug(server,nick,format,...) { \
+	if (debug) \
+		wc_printf(server,nick, \
+			    format, ## __VA_ARGS__); \
+}
+
+void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
+	char s[256];
+	char nmsg[512];
+	struct t_gui_buffer *buffer;
+	
+	sprintf(s,"%s.%s",ircctx->address,recipient);
+	buffer = weechat_buffer_search("irc",s);
+	if (buffer) {
+		wc_debug(ircctx,recipient,"OTR injection %s.%s: %s",ircctx->address,recipient,msg);
+		sprintf(nmsg,"/quote PRIVMSG %s :%s",recipient,msg);
+		weechat_command(buffer,nmsg);
+	} else {
+		wc_debug(ircctx,recipient,"OTR: injection error, no buffer found");
+		//TODO: create query window on demand
+	}
+}
+
+IRC_CTX *server_find_address(char *address)
+{
+	static IRC_CTX ircctx;
+
+	ircctx.address = address;
+
+        return &ircctx;
 }
 
 int extract_nick(char *nick, char *line)
@@ -127,6 +147,9 @@ char *wc_modifier_privmsg_in(void *data, const char *modifier,
 	if (!extract_nick(nick,argv[0]))
 		goto done;
 
+	if ((*argv[1]=='&')||(*argv[1]=='#'))
+		goto done;
+
 #ifdef HAVE_GREGEX_H
 	if (g_regex_match(regex_nickignore,nick,0,NULL))
 		goto done;
@@ -144,7 +167,7 @@ char *wc_modifier_privmsg_in(void *data, const char *modifier,
 	ircctx.nick = (char*)weechat_buffer_get_string(buffer,"localvar_nick");
 
 	msg = argv_eol[3]+1;
-	weechat_printf(NULL,"otr receive own %s, server %s, nick %s, msg %s",
+	wc_debug(&ircctx,nick,"otr receive own %s, server %s, nick %s, msg %s",
 		       ircctx.nick,ircctx.address,nick,msg);
 	newmsg = otr_receive(&ircctx,msg,nick);
 
@@ -217,7 +240,7 @@ char *wc_modifier_privmsg_out(void *data, const char *modifier,
 		goto done;
 	}
 	ircctx.nick = (char*)weechat_buffer_get_string(buffer,"localvar_nick");
-	weechat_printf(NULL,"otr send own %s, server %s, nick %s, msg %s",
+	wc_debug(&ircctx,argv[1],"otr send own %s, server %s, nick %s, msg %s",
 		       ircctx.nick,ircctx.address,argv[1],msg);
 	otrmsg = otr_send(&ircctx,msg,argv[1]);
 
@@ -225,13 +248,13 @@ char *wc_modifier_privmsg_out(void *data, const char *modifier,
 		goto done;
 
 	if (!otrmsg) {
-		weechat_printf(NULL,"OTR send NULL");
+		wc_debug(&ircctx,argv[1],"OTR send NULL");
 		free((char*)string);
 		string = strdup("");
 		goto done;
 	}
 
-	weechat_printf(NULL,"NEWMSG");
+	wc_debug(&ircctx,argv[1],"NEWMSG");
 	snprintf(newmsg, 511, "PRIVMSG %s :%s", argv[1], otrmsg);
 
 	otrl_message_free(otrmsg);
