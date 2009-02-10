@@ -135,8 +135,6 @@ char *wc_modifier_privmsg_in(void *data, const char *modifier,
 	char nick[256];
 	char *newmsg,*msg;
 	IRC_CTX ircctx;
-	struct t_gui_buffer *buffer;
-	char bname[256];
 	char cmsg[512];
 
 	string = strdup(string);
@@ -156,15 +154,7 @@ char *wc_modifier_privmsg_in(void *data, const char *modifier,
 #endif
 
 	ircctx.address = server;
-	sprintf(bname,"%s.%s",ircctx.address,nick);
-	buffer = weechat_buffer_search("irc",bname);
-	if (!buffer) {
-		weechat_printf(NULL,"OTR receive: no buffer found for %s",bname);
-		//TODO: create query window on demand
-		goto done;
-	}
-
-	ircctx.nick = (char*)weechat_buffer_get_string(buffer,"localvar_nick");
+	ircctx.nick = argv[2];
 
 	msg = argv_eol[3]+1;
 	wc_debug(&ircctx,nick,"otr receive own %s, server %s, nick %s, msg %s",
@@ -180,18 +170,11 @@ char *wc_modifier_privmsg_in(void *data, const char *modifier,
 		goto done;
 	}
 
-/*	weechat_printf_tags(buffer,
-			irc_protocol_tags("privmsg", "notify_private"),
-			"%s%s",
-			irc_nick_as_prefix(NULL,nick,IRC_COLOR_CHAT_NICK_OTHER),
-			"?");*/
-
-	sprintf(cmsg,"%s\t%s",nick,newmsg);
-	weechat_printf(buffer,cmsg);
+	snprintf(cmsg, 511, "%s %s %s :%s",argv[0],argv[1],argv[2],newmsg);
 
 	otrl_message_free(newmsg);
 
-	string = strdup("");
+	string = strdup(cmsg);
 done:
 	free(server);
 	weechat_string_free_exploded(argv);
@@ -240,6 +223,7 @@ char *wc_modifier_privmsg_out(void *data, const char *modifier,
 		goto done;
 	}
 	ircctx.nick = (char*)weechat_buffer_get_string(buffer,"localvar_nick");
+
 	wc_debug(&ircctx,argv[1],"otr send own %s, server %s, nick %s, msg %s",
 		       ircctx.nick,ircctx.address,argv[1],msg);
 	otrmsg = otr_send(&ircctx,msg,argv[1]);
