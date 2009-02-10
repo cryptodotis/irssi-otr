@@ -147,7 +147,7 @@ char *wc_modifier_privmsg_in(void *data, const char *modifier,
 	if (!extract_nick(nick,argv[0]))
 		goto done;
 
-	if ((*argv[1]=='&')||(*argv[1]=='#'))
+	if ((*argv[2]=='&')||(*argv[2]=='#'))
 		goto done;
 
 #ifdef HAVE_GREGEX_H
