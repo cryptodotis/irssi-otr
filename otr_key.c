@@ -97,6 +97,7 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 
 	read(g_io_channel_unix_get_fd(kg_st.ch[0]),&err,sizeof(err));
 
+	g_source_remove(kg_st.cpid);
 	g_io_channel_shutdown(kg_st.ch[0],FALSE,NULL);
 	g_io_channel_shutdown(kg_st.ch[1],FALSE,NULL);
 	g_io_channel_unref(kg_st.ch[0]);

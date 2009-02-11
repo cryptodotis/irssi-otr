@@ -87,11 +87,28 @@ static void IRCCTX_FREE(IRC_CTX *ircctx)
 	free(ircctx);
 }
 
+/* Don't look beyond this point. Ugly temporary hack. */
+
 #define g_io_add_watch(pid,a,func,b) gioaddwatchfake(pid,func)
 
-#define g_child_watch_add(pid,func,dunno) NULL
+#define g_child_watch_add(pid,func,dunno) gchildwatchaddfake(pid,dunno)
+#define g_io_channel_shutdown(channel,FALSE,NULL) \
+	close(g_io_channel_unix_get_fd(channel))
+
 #define g_source_remove(a) gsourceremovefake(a)
 #define guint  struct t_hook *
+
+#include <sys/types.h>
+#include <sys/wait.h>
+
+static void *gchildwatchaddfake(int pid,void *doit) __attribute__ ((unused));
+static void *gchildwatchaddfake(int pid,void *doit)
+{
+	if (doit)
+		waitpid(pid,NULL,0);
+	return NULL;
+
+}
 
 static void gsourceremovefake(struct t_hook *hook) __attribute__ ((unused));
 static void gsourceremovefake(struct t_hook *hook)
@@ -118,5 +135,5 @@ static struct t_hook *gioaddwatchfake(GIOChannel *source, int (*func)(GIOChannel
 static struct t_hook *gioaddwatchfake(GIOChannel *source, int (*func)(GIOChannel *source,GIOCondition
 					     condition, gpointer data))
 {
-	return weechat_hook_fd(g_io_channel_unix_get_fd(source),TRUE,FALSE,FALSE,cb,source);
+	return weechat_hook_fd(g_io_channel_unix_get_fd(source),TRUE,FALSE,FALSE,cb,NULL);
 }
