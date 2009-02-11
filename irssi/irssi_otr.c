@@ -222,7 +222,7 @@ static void cmd_help(const char *data, void *server, WI_ITEM_REC *item)
  */
 static void cmd_version(const char *data, void *server, WI_ITEM_REC *item)
 {
-	otr_noticest(TXT_CMD_VERSION,IRSSIOTR_VERSION);
+	otr_noticest(TXT_CMD_VERSION,IRCOTR_VERSION);
 }
 
 /*

@@ -1,22 +1,23 @@
-Quick start: Do "/load otr", write "?OTR?" to your OTR buddy, wait until the now
-ongoing key generation finishs and write "?OTR?" again. You should "go secure".
+Quick start:  Do "/load otr"  (irssi syntax), write  "?OTR?" to your  OTR buddy,
+wait until the now ongoing key  generation finishes and write "?OTR?" again. You
+should "go secure".
 
-Key generation happens in a seperate  process and its duration mainly depends on
+Key generation happens in a separate  process and its duration mainly depends on
 the available entropy. On  my desktop it takes about 6  Minutes, about 2 Minutes
 if I run  "du /" in parallel  and on an idle  server system it can  even take an
 hour.
 
-The  default  OTR policy  of  irssi-otr  is  now  something between  manual  and
-opportunistic. Manual means  you have to start it yourself  by issueing "?OTR?",
+The  default  OTR  policy  of  irc-otr  is  now  something  between  manual  and
+opportunistic. Manual  means you have to  start it yourself by  issuing "?OTR?",
 opportunistic means  both peers send  some magic  whitespace and start  OTR once
-they  receive this  whitespace from  the other  side. irssi-otr  uses a  mode in
-between  where  we  are  not  sending  whitespace  as  an  announcement  (as  in
-opportunistic) but we still  handle whitespace if we see it  from the other side
-(I'm  calling  it handlews).  Therefore  if  your  peer uses  opportunistic  the
-handshake should still start automatically once he writes something.
+they receive this whitespace from the other side. irc-otr uses a mode in between
+where we are not sending whitespace as an announcement (as in opportunistic) but
+we still  handle whitespace if  we see  it from the  other side (I'm  calling it
+handlews). Therefore if your peer  uses opportunistic the handshake should still
+start automatically once he writes something.
 
 You can  now set the  OTR policy  per peer via  the otr_policy /setting.  It's a
-comma seperated  list of "<nick>@<server> <policy>"  pairs where <nick>@<server>
+comma separated  list of "<nick>@<server> <policy>"  pairs where <nick>@<server>
 is interpreted as a glob pattern, i.e. you can use wildcard "*" and joker "?" as
 you would  in a shell.  The policy  can be one  of never, manual,  handlews (the
 default),  opportunistic, and  always. Be  aware that  the opportunistic  policy
@@ -27,11 +28,11 @@ encrypted.
 If  a  fingerprint can  be  found  for someone,  i.e.  someone  you had  an  OTR
 conversation  with  before,  then  the otr_policy_known  setting  applies  after
 otr_policy. It has the same syntax. The  default is "* always", i.e. enforce OTR
-with  anyone you've  used  OTR with  before.
+with anyone you've used OTR with before.
 
-Should you finish an OTR session via "/otr finish" and should the active policy
-be always or opportunistic then it will be temporarily set back to handlews.
-Otherwise OTR would start again right away which is probably not what you want.
+Should you finish an OTR session via  "/otr finish" and should the active policy
+be always  or opportunistic then  it will be  temporarily set back  to handlews.
+Otherwise OTR would start again right away  which is probably not what you want.
 This is however reset once you close the query window.
 
 To make  sure that you are  actually talking to your  buddy, you can agree  on a
@@ -40,11 +41,11 @@ other  one will  be  asked to  do  the  same and  you're  done. The  traditional
 alternative, comparing  fingerprints over a secure  line, can also be  used. Use
 "/otr trust" once you're sure they match.
 
-I also strongly  recommend to do "/statusbar window add  otr" so you're informed
-about what's going on.
+I also  strongly recommend to do  "/statusbar window add otr"  (irssi syntax) so
+you're informed about what's going on.
 
-In  "~/.irssi/otr/otr.{key,fp}" you'll  find the  fingerprints and  your private
-keys(should you at any point be interested).
+In "<client config dir>/otr/otr.{key,fp}" you'll  find the fingerprints and your
+private keys(should you at any point be interested).
 
 Commands:
 
@@ -64,7 +65,7 @@ Commands:
 /otr finish [<nick>@<server>]
 	Finish an OTR conversation
 /otr version
-	Display irssi-otr version. Might be a git commit
+	Display irc-otr version. Might be a git commit
 
 Settings:
 

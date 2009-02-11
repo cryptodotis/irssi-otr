@@ -1,5 +1,5 @@
 /*
- * Off-the-Record Messaging (OTR) module for the irssi IRC client
+ * Off-the-Record Messaging (OTR) modules for IRC
  * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -90,9 +90,9 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 			 gpointer data)
 {
 	gcry_error_t err;
-	const char *irssidir = get_irssi_dir();
-	char *filename    = g_strconcat(irssidir,KEYFILE,NULL);
-	char *tmpfilename = g_strconcat(irssidir,TMPKEYFILE,NULL);
+	const char *clconfdir = get_client_config_dir();
+	char *filename    = g_strconcat(clconfdir,KEYFILE,NULL);
+	char *tmpfilename = g_strconcat(clconfdir,TMPKEYFILE,NULL);
 
 	read(g_io_channel_unix_get_fd(kg_st.ch[0]),&err,sizeof(err));
 
@@ -138,7 +138,7 @@ void keygen_run(const char *accname)
 	gcry_error_t err;
 	int ret;
 	int fds[2];
-	char *filename = g_strconcat(get_irssi_dir(),TMPKEYFILE,NULL);
+	char *filename = g_strconcat(get_client_config_dir(),TMPKEYFILE,NULL);
 	char *dir = dirname(g_strdup(filename));
 
 	if (kg_st.status!=KEYGEN_NO) {
@@ -236,7 +236,7 @@ void keygen_abort(int ignoreidle)
 void otr_writefps()
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_irssi_dir(),FPSFILE,NULL);
+	char *filename = g_strconcat(get_client_config_dir(),FPSFILE,NULL);
 
 	err = otrl_privkey_write_fingerprints(otr_state,filename);
 
@@ -256,7 +256,7 @@ void otr_writefps()
 void key_load()
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_irssi_dir(),KEYFILE,NULL);
+	char *filename = g_strconcat(get_client_config_dir(),KEYFILE,NULL);
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		otr_noticest(TXT_KEY_NOT_FOUND);
@@ -281,7 +281,7 @@ void key_load()
 void fps_load()
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_irssi_dir(),FPSFILE,NULL);
+	char *filename = g_strconcat(get_client_config_dir(),FPSFILE,NULL);
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		otr_noticest(TXT_FP_NOT_FOUND);

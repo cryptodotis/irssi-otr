@@ -1,5 +1,5 @@
 /*
- * Off-the-Record Messaging (OTR) module for the irssi IRC client
+ * Off-the-Record Messaging (OTR) modules for IRC
  * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify

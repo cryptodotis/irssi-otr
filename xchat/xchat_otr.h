@@ -2,7 +2,7 @@
 
 #define PNAME "xchat-otr"
 #define PDESC "Off-The-Record Messaging for xchat"
-#define PVERSION IRSSIOTR_VERSION
+#define PVERSION IRCOTR_VERSION
 
 #define MAX_FORMAT_PARAMS 10
 
@@ -28,7 +28,7 @@ enum { MSGLEVEL_CRAP, MSGLEVEL_MSGS } lvls;
 extern xchat_plugin *ph;   /* plugin handle */
 
 #define statusbar_items_redraw(name) ;
-#define get_irssi_dir() xchat_get_info(ph,"xchatdir")
+#define get_client_config_dir() xchat_get_info(ph,"xchatdir")
 
 void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...);
 

@@ -17,6 +17,8 @@
 
 #define IRC_CTX SERVER_REC
 
+#define get_client_config_dir get_irssi_dir
+
 static IRC_CTX *IRCCTX_DUP(IRC_CTX *ircctx) __attribute__ ((unused));
 
 static IRC_CTX *IRCCTX_DUP(IRC_CTX *ircctx) {

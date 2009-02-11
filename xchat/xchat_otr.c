@@ -49,7 +49,7 @@ int cmd_otr(char *word[], char *word_eol[], void *userdata)
 		debug = !debug;
 		otr_noticest(debug ? TXT_CMD_DEBUG_ON : TXT_CMD_DEBUG_OFF);
 	} else if (strcmp(cmd,"version")==0) {
-		otr_noticest(TXT_CMD_VERSION,IRSSIOTR_VERSION);
+		otr_noticest(TXT_CMD_VERSION,IRCOTR_VERSION);
 	} else if (strcmp(cmd,"finish")==0) {
 		if (word[3]&&*word[3])
 			otr_finish(NULL,NULL,word[3],TRUE);

@@ -1,5 +1,5 @@
 #
-# Off-the-Record Messaging (OTR) module for the irssi IRC client
+# Off-the-Record Messaging (OTR) modules for IRC
 # Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
 #
 
-PROJECT(irssi-otr)
+PROJECT(irc-otr)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
 IF(COMMAND cmake_policy)
@@ -37,22 +37,22 @@ INCLUDE(tarballdefs.cmake OPTIONAL)
 
 # get version from git
 
-IF(NOT IRSSIOTR_VERSION)
+IF(NOT IRCOTR_VERSION)
   IF(NOT EXISTS "${PROJECT_SOURCE_DIR}/.git")
-    MESSAGE(FATAL_ERROR "Cannot determine the irssi-otr version since this is "
-    "not a git checkout. Please set IRSSIOTR_VERSION, e.g.
-    cmake -DIRSSIOTR_VERSION=mydistro-0.1
+    MESSAGE(FATAL_ERROR "Cannot determine the irc-otr version since this is "
+    "not a git checkout. Please set IRCOTR_VERSION, e.g.
+    cmake -DIRCOTR_VERSION=mydistro-0.1
     or
-    cmake -DIRSSIOTR_VERSION=mydistro-git-<git-commit>")
+    cmake -DIRCOTR_VERSION=mydistro-git-<git-commit>")
   ENDIF(NOT EXISTS "${PROJECT_SOURCE_DIR}/.git")
-  FIND_GIT_TAGORCOMMIT(${PROJECT_SOURCE_DIR} IRSSIOTR_VERSION)
-  IF(NOT IRSSIOTR_VERSION)
+  FIND_GIT_TAGORCOMMIT(${PROJECT_SOURCE_DIR} IRCOTR_VERSION)
+  IF(NOT IRCOTR_VERSION)
     MESSAGE(FATAL_ERROR 
-      "Couldn't determine version. Please run cmake -DIRSSIOTR_VERSION=...")
-  ENDIF(NOT IRSSIOTR_VERSION)
-ENDIF(NOT IRSSIOTR_VERSION)
+      "Couldn't determine version. Please run cmake -DIRCOTR_VERSION=...")
+  ENDIF(NOT IRCOTR_VERSION)
+ENDIF(NOT IRCOTR_VERSION)
 
-MESSAGE(STATUS "Building irssi-otr version ${IRSSIOTR_VERSION}")
+MESSAGE(STATUS "Building irc-otr version ${IRCOTR_VERSION}")
 
 # PkgConfig. Only available since 2.4.7, fetch if unavailable so people with
 # older cmake can run this
@@ -100,78 +100,17 @@ FIND_PACKAGE(LibGcrypt REQUIRED)
 
 # includes
 
-SET(IRSSIOTR_INCLUDE_DIRS
+SET(IRCOTR_INCLUDE_DIRS
   ${PROJECT_SOURCE_DIR} 
   ${PROJECT_BINARY_DIR} 
   ${GLIB_INCLUDE_DIRS} 
   ${LIBOTR_INCLUDE_DIRS})
 
-SET(CMAKE_REQUIRED_INCLUDES ${IRSSIOTR_INCLUDE_DIRS})
+SET(CMAKE_REQUIRED_INCLUDES ${IRCOTR_INCLUDE_DIRS})
 SET(CMAKE_REQUIRED_DEFINITIONS -DHAVE_CONFIG_H ${LIBGCRYPT_CFLAGS})
 
-# irssi public headers
 
-FIND_PATH(IRSSI_INCLUDE_DIR NAMES irssi/src/core/module.h)
-MARK_AS_ADVANCED(IRSSI_INCLUDE_DIR)
-
-IF(NOT IRSSI_INCLUDE_DIR)
-  MESSAGE(STATUS "*** no irssi found ***")
-ELSEIF(BUILDFOR AND NOT BUILDFOR STREQUAL "irssi")
-  MESSAGE(STATUS "*** not building for irssi ***")
-ELSE(NOT IRSSI_INCLUDE_DIR)
-  MESSAGE(STATUS "*** building for irssi ***")
-  SET(HAVE_IRSSI 1)
-  SET(IRSSIOTR_INCLUDE_DIRS
-    ${IRSSIOTR_INCLUDE_DIRS}
-    ${IRSSI_INCLUDE_DIR}/irssi
-    ${IRSSI_INCLUDE_DIR}/irssi/src
-    ${IRSSI_INCLUDE_DIR}/irssi/src/core
-    ${PROJECT_BINARY_DIR}/irssi-headers
-    ${PROJECT_SOURCE_DIR}/irssi-headers)
-
-  SET(CMAKE_REQUIRED_INCLUDES ${IRSSIOTR_INCLUDE_DIRS})
-
-  # irssi statusbar header
-
-  CHECK_INCLUDE_FILES("glib.h;common.h;fe-text/statusbar-item.h" HAVE_IRSSISBAR_H)
-
-  # Bad hack
-
-  IF (NOT HAVE_IRSSISBAR_H)
-    MESSAGE(STATUS "Need to fetch irssi header statusbar-item.h (you don't have it yet)")
-    IF (NOT WGET_EXECUTABLE)
-      FIND_PACKAGE(Wget REQUIRED)
-    ENDIF (NOT WGET_EXECUTABLE)
-    EXECUTE_PROCESS(COMMAND "mkdir" -p irssi-headers/fe-text)
-    EXECUTE_PROCESS(COMMAND "bash" "-c"
-      "${WGET_EXECUTABLE} '--post-data=revision=4936&root=irssi' \\
-      'http://svn.irssi.org/cgi-bin/viewvc.cgi/irssi/trunk/src/fe-text/statusbar-item.h' || exit 1"
-      ${PROJECT_SOURCE_DIR} WORKING_DIRECTORY irssi-headers/fe-text
-      RESULT_VARIABLE IISBAR_RET)
-    IF(NOT IISBAR_RET EQUAL 0)
-      MESSAGE(FATAL_ERROR "Couldn't check out irssi headers from SVN")
-    ENDIF(NOT IISBAR_RET EQUAL 0)
-    SET(HAVE_IRSSISBAR_H 1 CACHE INTERNAL "Having irssi headers" FORCE)
-  ENDIF (NOT HAVE_IRSSISBAR_H)
-
-ENDIF(NOT IRSSI_INCLUDE_DIR)
-
-FIND_PATH(XCHAT_INCLUDE_DIR NAMES xchat/xchat-plugin.h)
-MARK_AS_ADVANCED(XCHAT_INCLUDE_DIR)
-
-IF(NOT XCHAT_INCLUDE_DIR)
-  MESSAGE(STATUS "*** no xchat found ***")
-ELSEIF(BUILDFOR AND NOT BUILDFOR STREQUAL "xchat")
-  MESSAGE(STATUS "*** not building for xchat ***")
-ELSE(NOT XCHAT_INCLUDE_DIR)
-  MESSAGE(STATUS "*** building for xchat ***")
-  SET(HAVE_XCHAT 1)
-  SET(IRSSIOTR_INCLUDE_DIRS
-    ${IRSSIOTR_INCLUDE_DIRS}
-    ${XCHAT_INCLUDE_DIR}/xchat)
-ENDIF(NOT XCHAT_INCLUDE_DIR)
-
-include_directories(${IRSSIOTR_INCLUDE_DIRS})
+include_directories(${IRCOTR_INCLUDE_DIRS})
 
 # gregex.h 
 # available since 2.13 AFAIK
@@ -198,17 +137,11 @@ MESSAGE(STATUS "This is a ${CMAKE_BUILD_TYPE} build")
 
 ADD_DEFINITIONS(-DHAVE_CONFIG_H -Wall ${LIBGCRYPT_CFLAGS})
 
-# docdir
-
-IF(NOT DOCDIR)
-  SET(DOCDIR share/doc/${CMAKE_PROJECT_NAME})
-ENDIF(NOT DOCDIR)
-
 # generate otr-formats.{c,h}
 
 ADD_CUSTOM_COMMAND(OUTPUT 
-  ${PROJECT_BINARY_DIR}/otr-formats.c 
-  ${PROJECT_BINARY_DIR}/xchat-formats.c 
+  otr-formats.c 
+  xchat-formats.c 
   DEPENDS makeformats.py formats.txt README
   COMMAND 
   ${PYTHON_EXECUTABLE}
@@ -216,8 +149,6 @@ ADD_CUSTOM_COMMAND(OUTPUT
   ${PROJECT_SOURCE_DIR}/formats.txt
   ${PROJECT_SOURCE_DIR}/README
   )
-
-# lib
 
 # Now that took some time to figure out...
 
@@ -229,52 +160,31 @@ FOREACH(X ${LIBGCRYPT_LDFLAGS} ${GLIB_LDFLAGS} ${APPLE_LDFLAGS})
   SET(MAIN_LDFLAGS "${MAIN_LDFLAGS} ${X}")
 ENDFOREACH(X ${LIBGCRYPT_LDFLAGS} ${GLIB_LDFLAGS} ${APPLE_LDFLAGS})
 
-IF(HAVE_IRSSI)
-  ADD_LIBRARY(irssiotr SHARED irssi_otr.c otr_util.c otr_ops.c otr_key.c ${PROJECT_BINARY_DIR}/otr-formats.c)
-  TARGET_LINK_LIBRARIES(irssiotr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
-  SET_TARGET_PROPERTIES(irssiotr PROPERTIES 
-    COMPILE_FLAGS -DTARGET_IRSSI
-    OUTPUT_NAME "otr"
-    LINK_FLAGS "${MAIN_LDFLAGS}")
-  IF(APPLE)
-    SET_TARGET_PROPERTIES(irssiotr PROPERTIES SUFFIX ".so")
-  ENDIF(APPLE)
-ENDIF(HAVE_IRSSI)
+IF(CMAKE_SOURCE_DIR MATCHES "irssi[^/]*$")
+  SET(WANT_IRSSI ON)
+ELSEIF(CMAKE_SOURCE_DIR MATCHES "xchat[^/]*$")
+  SET(WANT_XCHAT ON)
+ELSE(CMAKE_SOURCE_DIR MATCHES "irssi[^/]*$")
+  SET(WANT_IRSSI ON)
+  SET(WANT_XCHAT ON)
+ENDIF(CMAKE_SOURCE_DIR MATCHES "irssi[^/]*$")
 
-IF(HAVE_XCHAT)
-  ADD_LIBRARY(xchatotr SHARED xchat_otr.c otr_util.c otr_ops.c otr_key.c ${PROJECT_BINARY_DIR}/xchat-formats.c)
-  TARGET_LINK_LIBRARIES(xchatotr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
-  SET_TARGET_PROPERTIES(xchatotr PROPERTIES 
-    COMPILE_FLAGS -DTARGET_XCHAT
-    OUTPUT_NAME "xchatotr"
-    LINK_FLAGS "${MAIN_LDFLAGS}")
-  IF(APPLE)
-    SET_TARGET_PROPERTIES(xchatotr PROPERTIES SUFFIX ".so")
-  ENDIF(APPLE)
-ENDIF(HAVE_XCHAT)
+OPTION(WANT_IRSSI "build irssi plugin" ${WANT_IRSSI})
+OPTION(WANT_XCHAT "build xchat plugin" ${WANT_XCHAT})
+
+IF(WANT_IRSSI)
+  INCLUDE(irssi/CMakeLists.txt)
+ENDIF(WANT_IRSSI)
+IF(WANT_XCHAT)
+  INCLUDE(xchat/CMakeLists.txt)
+ENDIF(WANT_XCHAT)
 
 # cscope
 
 FILE(GLOB CSANDHS *.c *.h)
-ADD_CSCOPE_TARGET("${CSANDHS}" "${IRSSIOTR_INCLUDE_DIRS}")
-
-# Install / CPack
-
-IF(CMAKE_INSTALL_TYPE MATCHES "package-.*")
-  INCLUDE(Packaging.cmake)
-ELSEIF(CMAKE_INSTALL_TYPE MATCHES "home")
-  INSTALL(TARGETS irssiotr DESTINATION "$ENV{HOME}/.irssi/modules")
-ELSE(CMAKE_INSTALL_TYPE MATCHES "package-.*")
-  IF(HAVE_IRSSI)
-    INSTALL(TARGETS irssiotr DESTINATION lib${LIB_SUFFIX}/irssi/modules)
-  ENDIF(HAVE_IRSSI)
-  IF(HAVE_XCHAT)
-    INSTALL(TARGETS xchatotr DESTINATION lib${LIB_SUFFIX}/xchat/plugins)
-  ENDIF(HAVE_XCHAT)
-  INSTALL(FILES README LICENSE DESTINATION ${DOCDIR})
-ENDIF(CMAKE_INSTALL_TYPE MATCHES "package-.*")
+ADD_CSCOPE_TARGET("${CSANDHS}" "${IRCOTR_INCLUDE_DIRS}")
 
 # Source tarball
 ADD_CUSTOM_TARGET(src-tarball 
   ${PROJECT_SOURCE_DIR}/mksrcpackage.sh ${PROJECT_SOURCE_DIR} 
-  ${IRSSIOTR_VERSION})
+  ${IRCOTR_VERSION})
