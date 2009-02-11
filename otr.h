@@ -82,7 +82,7 @@ void otr_log(IRC_CTX *server, const char *to,
 #define FPSFILE    "/otr/otr.fp"
 
 /* some defaults */
-#define IO_DEFAULT_POLICY "*@localhost opportunistic,*bitlbee* opportunistic,*@im.* opportunistic, *serv@irc.* never"
+#define IO_DEFAULT_POLICY "*@localhost opportunistic,*bitlbee* opportunistic,*@im.* opportunistic, *serv@irc* never"
 #define IO_DEFAULT_POLICY_KNOWN "* always"
 #define IO_DEFAULT_IGNORE "xmlconsole[0-9]*"
 
