@@ -52,7 +52,17 @@ void printformatva(IRC_CTX *ircctx, const char *nick, char *format, va_list para
 		char s[256];
 		sprintf(s,"%s.%s",ircctx->address,nick);
 		buffer = weechat_buffer_search("irc",s);
-		//TODO: create query window on demand
+		if (!buffer) {
+			char cmd[256];
+			sprintf(cmd,"/query -server %s %s",ircctx->address,nick);
+			weechat_command(NULL,cmd);
+			buffer = weechat_buffer_search("irc",s);
+			if (!buffer)
+				weechat_printf(NULL,"OTR: Failed to create " 
+					       "a buffer for the following "
+					       "message! server=%s,nick=%s",
+					       ircctx->address,nick);
+		}
 	}
 
 	if( vsnprintf( s, LOGMAX, format, params ) < 0 )
