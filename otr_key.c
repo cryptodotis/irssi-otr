@@ -37,7 +37,8 @@ struct {
 	char *protocol;
 	time_t started;
 	GIOChannel *ch[2];
-	guint cpid,cwid;
+	guint cpid;
+	guint cwid;
 	pid_t pid;
 } kg_st = {.status = KEYGEN_NO };
 

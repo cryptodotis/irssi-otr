@@ -58,7 +58,7 @@ void printformatva(IRC_CTX *ircctx, const char *nick, char *format, va_list para
 			weechat_command(NULL,cmd);
 			buffer = weechat_buffer_search("irc",s);
 			if (!buffer)
-				weechat_printf(NULL,"OTR: Failed to create " 
+				weechat_printf(NULL,"OTR: Failed to create "
 					       "a buffer for the following "
 					       "message! server=%s,nick=%s",
 					       ircctx->address,nick);

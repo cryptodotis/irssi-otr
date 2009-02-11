@@ -68,7 +68,6 @@ void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...);
 static IRC_CTX *IRCCTX_DUP(IRC_CTX *ircctx) __attribute__ ((unused));
 static void IRCCTX_FREE(IRC_CTX *ircctx) __attribute__ ((unused));
 
-//#define IRCCTX_DUP(ircctx) g_memdup(ircctx,sizeof(IRC_CTX));
 static IRC_CTX *IRCCTX_DUP(IRC_CTX *ircctx)
 {
 	IRC_CTX *nctx = g_memdup(ircctx,sizeof(IRC_CTX));
@@ -81,10 +80,43 @@ static IRC_CTX *IRCCTX_DUP(IRC_CTX *ircctx)
 
 #define IRCCTX_ADDR(ircctx) ircctx->address
 #define IRCCTX_NICK(ircctx) ircctx->nick
-//#define IRCCTX_FREE(ircctx) g_free(ircctx)
 static void IRCCTX_FREE(IRC_CTX *ircctx)
 {
-	g_free(ircctx->nick);
-	g_free(ircctx->address);
-	g_free(ircctx);
+	free(ircctx->nick);
+	free(ircctx->address);
+	free(ircctx);
+}
+
+#define g_io_add_watch(pid,a,func,b) gioaddwatchfake(pid,func)
+
+#define g_child_watch_add(pid,func,dunno) NULL
+#define g_source_remove(a) gsourceremovefake(a)
+#define guint  struct t_hook *
+
+static void gsourceremovefake(struct t_hook *hook) __attribute__ ((unused));
+static void gsourceremovefake(struct t_hook *hook)
+{
+	if (hook)
+		weechat_unhook(hook);
+
+}
+
+gboolean keygen_complete(GIOChannel *source, GIOCondition condition, 
+			 gpointer data);
+
+static int cb(void *data)
+{
+	keygen_complete(NULL,0,NULL);
+	return TRUE;
+}
+
+static struct t_hook *gioaddwatchfake(GIOChannel *source, int (*func)(GIOChannel *source,
+							   GIOCondition condition, 
+							   gpointer data)) 
+	__attribute__ ((unused));
+
+static struct t_hook *gioaddwatchfake(GIOChannel *source, int (*func)(GIOChannel *source,GIOCondition
+					     condition, gpointer data))
+{
+	return weechat_hook_fd(g_io_channel_unix_get_fd(source),TRUE,FALSE,FALSE,cb,source);
 }
