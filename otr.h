@@ -166,3 +166,18 @@ void key_load();
 void fps_load();
 void otr_writefps();
 
+int extract_nick(char *nick, char *line);
+
+struct _cmds {
+	char *name;
+	void (*cmdfunc)(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[], char *target);
+};
+
+/* see io_util.c */
+#define CMDCOUNT 9
+extern struct _cmds cmds[];
+
+int cmd_generic(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+	    char *target);
+
+void io_explode_args(const char *args, char ***argvp, char ***argv_eolp, int *argcp);

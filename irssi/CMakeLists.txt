@@ -43,7 +43,7 @@ IF (NOT HAVE_IRSSISBAR_H)
   SET(HAVE_IRSSISBAR_H 1 CACHE INTERNAL "Having irssi headers" FORCE)
 ENDIF (NOT HAVE_IRSSISBAR_H)
 
-ADD_LIBRARY(irssiotr SHARED irssi/irssi_otr.c otr_util.c otr_ops.c otr_key.c ${CMAKE_BINARY_DIR}/otr-formats.c)
+ADD_LIBRARY(irssiotr SHARED irssi/irssi_otr.c otr_util.c otr_ops.c otr_key.c io_util.c ${CMAKE_BINARY_DIR}/otr-formats.c)
 TARGET_LINK_LIBRARIES(irssiotr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
 SET_TARGET_PROPERTIES(irssiotr PROPERTIES 
   COMPILE_FLAGS -DTARGET_IRSSI

@@ -11,7 +11,7 @@ SET(IRCOTR_INCLUDE_DIRS
 
 INCLUDE_DIRECTORIES(${IRCOTR_INCLUDE_DIRS})
 
-ADD_LIBRARY(weechatotr SHARED weechat/weechat_otr.c otr_util.c otr_ops.c otr_key.c ${PROJECT_BINARY_DIR}/xchat-formats.c)
+ADD_LIBRARY(weechatotr SHARED weechat/weechat_otr.c otr_util.c otr_ops.c otr_key.c io_util.c io_set.c ${PROJECT_BINARY_DIR}/xchat-formats.c)
 TARGET_LINK_LIBRARIES(weechatotr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
 SET_TARGET_PROPERTIES(weechatotr PROPERTIES 
   COMPILE_FLAGS -DTARGET_WEECHAT

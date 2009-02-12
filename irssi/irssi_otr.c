@@ -88,179 +88,28 @@ static void sig_query_destroyed(QUERY_REC *query) {
  */
 static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item) 
 {
-	if (*data == '\0')
-		otr_noticest(TXT_CMD_OTR);
-	else {
-		command_runsub("otr", data, server, item);
-	}
-}
-
-/* used to handle a bunch of commands */
-static void cmd_generic(const char *cmd, const char *args, WI_ITEM_REC *item)
-{
+	char **argv, **argv_eol;
+	int argc;
 	QUERY_REC *query = QUERY(item);
 
-	if (*args == '\0')
-		args = NULL;
-
-	if (!(query&&query->server&&query->server->connrec))
-		query = NULL;
-
-	if (strcmp(cmd,"finish")==0) {
-		if (args) {
-			otr_finish(NULL,NULL,args,TRUE);
-			statusbar_items_redraw("otr");
-		} else if (query) {
-			otr_finish(query->server,query->name,NULL,TRUE);
-			statusbar_items_redraw("otr");
-		} else
-			otr_noticest(TXT_CMD_QNOTFOUND);
-	} else if (strcmp(cmd,"trust")==0) {
-		if (args) {
-			otr_trust(NULL,NULL,args);
-			statusbar_items_redraw("otr");
-		} else if (query) {
-			otr_trust(query->server,query->name,NULL);
-			statusbar_items_redraw("otr");
-		} else
-			otr_noticest(TXT_CMD_QNOTFOUND);
-	} else if (strcmp(cmd,"authabort")==0) {
-		if (args) {
-			otr_authabort(NULL,NULL,args);
-			statusbar_items_redraw("otr");
-		} else if (query) {
-			otr_authabort(query->server,query->name,NULL);
-			statusbar_items_redraw("otr");
-		} else
-			otr_noticest(TXT_CMD_QNOTFOUND);
-	} else if (strcmp(cmd,"auth")==0) {
-		if (args) {
-			char *second = strchr(args,' ');
-			char *add = strchr(args,'@');
-			if (add&&second&&(add<second)&&(*(second+1))) {
-				*second = '\0';
-				otr_auth(NULL,NULL,args,second+1);
-				*second = ' ';
-			} else if (query) {
-				otr_auth(query->server,query->name,NULL,args);
-			} else {
-				otr_noticest(TXT_CMD_QNOTFOUND);
-			}
-		} else if (query) {
-			otr_notice(query->server,query->name, 
-				   TXT_CMD_AUTH);
-		} else {
-			otr_noticest(TXT_CMD_AUTH);
-		}
+	if (*data == '\0') {
+		otr_noticest(TXT_CMD_OTR);
+		return;
 	}
-}
 
-/*
- * /otr finish [peername]
- */
-static void cmd_finish(const char *data, void *server, WI_ITEM_REC *item)
-{
-	cmd_generic("finish",data,item);
-}
+	io_explode_args(data,&argv,&argv_eol,&argc);
 
-/*
- * /otr trust [peername]
- */
-static void cmd_trust(const char *data, void *server, WI_ITEM_REC *item)
-{
-	cmd_generic("trust",data,item);
-}
-
-/*
- * /otr genkey nick@irc.server.com
- */
-static void cmd_genkey(const char *data, void *server, WI_ITEM_REC *item)
-{
-	if (strcmp(data,"abort")==0)
-		keygen_abort(FALSE);
-	else if (strchr(data,'@'))
-		keygen_run(data);
-	else
-		otr_noticest(TXT_KG_NEEDACC);
-}
-
-/*
- * /otr auth [peername] <secret>
- */
-static void cmd_auth(const char *data, void *server, WI_ITEM_REC *item)
-{
-	cmd_generic("auth",data,item);
-}
-
-/*
- * /otr authabort [peername]
- */
-static void cmd_authabort(const char *data, void *server, WI_ITEM_REC *item)
-{
-	cmd_generic("authabort",data,item);
-}
-
-/*
- * /otr debug
- */
-static void cmd_debug(const char *data, void *server, WI_ITEM_REC *item)
-{
-	debug = !debug;
-	otr_noticest(debug ? TXT_CMD_DEBUG_ON : TXT_CMD_DEBUG_OFF);
-}
-
-/*
- * /otr help
- */
-static void cmd_help(const char *data, void *server, WI_ITEM_REC *item)
-{
-	printtext(NULL,NULL,MSGLEVEL_CRAP,otr_help);
-}
-
-/*
- * /otr version
- */
-static void cmd_version(const char *data, void *server, WI_ITEM_REC *item)
-{
-	otr_noticest(TXT_CMD_VERSION,IRCOTR_VERSION);
-}
-
-/*
- * /otr contexts
- */
-static void cmd_contexts(const char *data, void *server, WI_ITEM_REC *item)
-{
-	struct ctxlist_ *ctxlist = otr_contexts(),*ctxnext = ctxlist;
-	struct fplist_ *fplist,*fpnext;
-
-	if (!ctxlist)
-		printformat(NULL,NULL,MSGLEVEL_CRAP,TXT_CTX_NOCTXS);
-
-	while (ctxlist) {
-		printformat(NULL,NULL,MSGLEVEL_CRAP,
-			    TXT_CTX_CTX_UNENCRYPTED+ctxlist->state,
-			    ctxlist->username,
-			    ctxlist->accountname);
-
-		fplist = ctxlist->fplist;
-		while (fplist) {
-			printformat(NULL,NULL,MSGLEVEL_CRAP,
-				    TXT_CTX_FPS_NO+fplist->authby,
-				    fplist->fp);
-			fplist = fplist->next;
-		}
-		ctxlist = ctxlist->next;
+	if (query&&query->server&&query->server->connrec) {
+		cmd_generic(query->server,argc,argv,argv_eol,query->name);
+	} else {
+		cmd_generic(NULL,argc,argv,argv_eol,NULL);
 	}
-	while ((ctxlist = ctxnext)) {
-		ctxnext = ctxlist->next;
-		fpnext = ctxlist->fplist;
-		while ((fplist = fpnext)) {
-			fpnext = fplist->next;
-			g_free(fplist->fp);
-			g_free(fplist);
-		}
-		g_free(ctxlist);
-	}
+
+	statusbar_items_redraw("otr");
+
+	g_free(argv_eol[0]);
+	g_free(argv_eol);
+	g_free(argv);
 }
 
 /*
@@ -330,15 +179,6 @@ void otr_init(void)
 	signal_add("query destroyed", (SIGNAL_FUNC) sig_query_destroyed);
 
 	command_bind("otr", NULL, (SIGNAL_FUNC) cmd_otr);
-	command_bind("otr debug", NULL, (SIGNAL_FUNC) cmd_debug);
-	command_bind("otr trust", NULL, (SIGNAL_FUNC) cmd_trust);
-	command_bind("otr finish", NULL, (SIGNAL_FUNC) cmd_finish);
-	command_bind("otr genkey", NULL, (SIGNAL_FUNC) cmd_genkey);
-	command_bind("otr auth", NULL, (SIGNAL_FUNC) cmd_auth);
-	command_bind("otr authabort", NULL, (SIGNAL_FUNC) cmd_authabort);
-	command_bind("otr help", NULL, (SIGNAL_FUNC) cmd_help);
-	command_bind("otr contexts", NULL, (SIGNAL_FUNC) cmd_contexts);
-	command_bind("otr version", NULL, (SIGNAL_FUNC) cmd_version);
 
 	command_bind_first("quit", NULL, (SIGNAL_FUNC) cmd_quit);
 
@@ -370,15 +210,6 @@ void otr_deinit(void)
 	signal_remove("query destroyed", (SIGNAL_FUNC) sig_query_destroyed);
 
 	command_unbind("otr", (SIGNAL_FUNC) cmd_otr);
-	command_unbind("otr debug", (SIGNAL_FUNC) cmd_debug);
-	command_unbind("otr trust", (SIGNAL_FUNC) cmd_trust);
-	command_unbind("otr finish", (SIGNAL_FUNC) cmd_finish);
-	command_unbind("otr genkey", (SIGNAL_FUNC) cmd_genkey);
-	command_unbind("otr auth", (SIGNAL_FUNC) cmd_auth);
-	command_unbind("otr authabort", (SIGNAL_FUNC) cmd_authabort);
-	command_unbind("otr help", (SIGNAL_FUNC) cmd_help);
-	command_unbind("otr contexts", (SIGNAL_FUNC) cmd_contexts);
-	command_unbind("otr version", (SIGNAL_FUNC) cmd_version);
 
 	command_unbind("quit", (SIGNAL_FUNC) cmd_quit);
 

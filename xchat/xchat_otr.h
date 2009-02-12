@@ -27,6 +27,14 @@ enum { MSGLEVEL_CRAP, MSGLEVEL_MSGS } lvls;
 
 extern xchat_plugin *ph;   /* plugin handle */
 
+/* stuff from io_set.c */
+extern char set_policy[512];
+extern char set_policy_known[512];
+extern char set_ignore[512];
+extern int set_finishonunload;
+void cmd_set(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+	    char *target);
+
 #define statusbar_items_redraw(name) ;
 #define get_client_config_dir() xchat_get_info(ph,"xchatdir")
 

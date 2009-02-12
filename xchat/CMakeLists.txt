@@ -12,7 +12,7 @@ SET(IRCOTR_INCLUDE_DIRS
 
 INCLUDE_DIRECTORIES(${IRCOTR_INCLUDE_DIRS})
 
-ADD_LIBRARY(xchatotr SHARED xchat/xchat_otr.c otr_util.c otr_ops.c otr_key.c ${PROJECT_BINARY_DIR}/xchat-formats.c)
+ADD_LIBRARY(xchatotr SHARED xchat/xchat_otr.c otr_util.c otr_ops.c otr_key.c io_util.c io_set.c ${PROJECT_BINARY_DIR}/xchat-formats.c)
 TARGET_LINK_LIBRARIES(xchatotr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
 SET_TARGET_PROPERTIES(xchatotr PROPERTIES 
   COMPILE_FLAGS -DTARGET_XCHAT

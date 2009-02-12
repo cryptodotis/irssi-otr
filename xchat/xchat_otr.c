@@ -1,3 +1,22 @@
+/*
+ * Off-the-Record Messaging (OTR) modules for IRC
+ * Copyright (C) 2009  Uli Meis <a.sporto+bee@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
+ */
+
 #include "otr.h"
 
 int debug = 0;
@@ -7,27 +26,6 @@ GRegex *regex_nickignore = NULL;
 #endif
 
 xchat_plugin *ph;
-
-static char set_policy[512] = IO_DEFAULT_POLICY;
-static char set_policy_known[512] = IO_DEFAULT_POLICY_KNOWN;
-static char set_ignore[512] = IO_DEFAULT_IGNORE;
-static int set_finishonunload = TRUE;
-
-int extract_nick(char *nick, char *line)
-{
-	char *excl;
-
-	if (*line++ != ':')
-		return FALSE;
-
-	strcpy(nick,line);
-	
-	if ((excl = strchr(nick,'!')))
-		*excl = '\0';
-
-	return TRUE;
-
-}
 
 void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
 	xchat_commandf(ph, "PRIVMSG %s :%s", recipient, msg);
@@ -42,73 +40,15 @@ int cmd_otr(char *word[], char *word_eol[], void *userdata)
 		.nick = (char*)own_nick, 
 		.address = (char*)server },
 		*ircctx = &ircctxs;
+	int argc=0;
 
-	char *cmd = word[2];
+	word+=3;
+	word_eol+=3;
+	
+	while (word[argc]&&*word[argc])
+		argc++;
 
-	if (strcmp(cmd,"debug")==0) {
-		debug = !debug;
-		otr_noticest(debug ? TXT_CMD_DEBUG_ON : TXT_CMD_DEBUG_OFF);
-	} else if (strcmp(cmd,"version")==0) {
-		otr_noticest(TXT_CMD_VERSION,IRCOTR_VERSION);
-	} else if (strcmp(cmd,"finish")==0) {
-		if (word[3]&&*word[3])
-			otr_finish(NULL,NULL,word[3],TRUE);
-		else
-			otr_finish(ircctx,target,NULL,TRUE);
-	} else if (strcmp(cmd,"trust")==0) {
-		if (word[3]&&*word[3])
-			otr_trust(NULL,NULL,word[3]);
-		else
-			otr_trust(ircctx,target,NULL);
-	} else if (strcmp(cmd,"authabort")==0) {
-		if (word[3]&&*word[3])
-			otr_authabort(NULL,NULL,word[3]);
-		else
-			otr_authabort(ircctx,target,NULL);
-	} else if (strcmp(cmd,"genkey")==0) {
-		if (word[3]&&*word[3]) {
-			if (strcmp(word[3],"abort")==0)
-				keygen_abort(FALSE);
-			else if (strchr(word[3],'@'))
-				keygen_run(word[3]);
-			else
-				otr_noticest(TXT_KG_NEEDACC);
-		} else {
-			otr_noticest(TXT_KG_NEEDACC);
-		}
-	} else if (strcmp(cmd,"auth")==0) {
-		if (!word[3]||!*word[3]) {
-			otr_notice(ircctx,target,
-				   TXT_CMD_AUTH);
-		} else if (word[4]&&*word[4]&&strchr(word[3],'@'))
-		    otr_auth(NULL,NULL,word_eol[4],word[3]);
-		else 
-			otr_auth(ircctx,target,NULL,word_eol[3]);
-	} else if (strcmp(cmd,"set")==0) {
-		if (strcmp(word[3],"policy")==0) {
-			otr_setpolicies(word_eol[4],FALSE);
-			strcpy(set_policy,word_eol[4]);
-		} else if (strcmp(word[3],"policy_known")==0) {
-			otr_setpolicies(word_eol[4],TRUE);
-			strcpy(set_policy_known,word_eol[4]);
-		} else if (strcmp(word[3],"ignore")==0) {
-#ifdef HAVE_GREGEX_H
-			if (regex_nickignore)
-				g_regex_unref(regex_nickignore);
-			regex_nickignore = g_regex_new(word_eol[4],0,0,NULL);
-			strcpy(set_ignore,word_eol[4]);
-#endif
-		} else if (strcmp(word[3],"finishonunload")==0) {
-			set_finishonunload = (strcasecmp(word[4],"true")==0);
-		} else {
-			xchat_printf(ph, "policy: %s\n"
-				     "policy_known: %s\nignore: %s\n"
-				     "finishonunload: %s\n",
-				     set_policy,set_policy_known,set_ignore,
-				     set_finishonunload ? "true" : "false");
-		}
-		
-	}
+	cmd_generic(ircctx,argc,word,word_eol,target);
 
 	return XCHAT_EAT_ALL;
 }
@@ -226,6 +166,9 @@ int xchat_plugin_init(xchat_plugin *plugin_handle,
 #endif
 
 	xchat_print(ph, "xchat-otr loaded successfully!\n");
+
+	cmds[CMDCOUNT].name = "set";
+	cmds[CMDCOUNT].cmdfunc = cmd_set;
 
 	return 1;
 }

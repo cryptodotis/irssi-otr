@@ -34,12 +34,7 @@ int debug = 0;
 GRegex *regex_nickignore = NULL;
 #endif
 
-static char set_policy[512] = IO_DEFAULT_POLICY;
-static char set_policy_known[512] = IO_DEFAULT_POLICY_KNOWN;
-static char set_ignore[512] = IO_DEFAULT_IGNORE;
-static int set_finishonunload = TRUE;
-
-void printformatva(IRC_CTX *ircctx, const char *nick, char *format, va_list params)
+void printformatva(IRC_CTX *ircctx, const char *nick, const char *format, va_list params)
 {
 	char msg[LOGMAX], *s = msg;
 	char *server = NULL;
@@ -80,13 +75,16 @@ void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...)
 	printformatva(ircctx,nick,formats[fnum].def,params);
 }
 
-void wc_printf(IRC_CTX *ircctx, const char *nick, char *format, ...)
+void otr_log(IRC_CTX *ircctx, const char *nick, int level, const char *format, ...)
 {
 	va_list params;
 	va_start( params, format );
 
 	printformatva(ircctx,nick,format,params);
 }
+
+#define wc_printf(server,nick,format,...) \
+	otr_log(server,nick,0,format, ## __VA_ARGS__)
 
 #define wc_debug(server,nick,format,...) { \
 	if (debug) \
@@ -109,22 +107,6 @@ IRC_CTX *server_find_address(char *address)
 	ircctx.address = address;
 
         return &ircctx;
-}
-
-int extract_nick(char *nick, char *line)
-{
-	char *excl;
-
-	if (*line++ != ':')
-		return FALSE;
-
-	strcpy(nick,line);
-	
-	if ((excl = strchr(nick,'!')))
-		*excl = '\0';
-
-	return TRUE;
-
 }
 
 char *wc_modifier_privmsg_in(void *data, const char *modifier,
@@ -256,79 +238,20 @@ int cmd_otr(void *data, struct t_gui_buffer *buffer, int argc, char **word, char
 		.address = (char*)server },
 		*ircctx = &ircctxs;
 
-	char *cmd = argc > 1 ? word[1] : NULL;
-	char *parm1 = argc > 2 ? word[2] : "";
-	char *parm2 = argc > 3 ? word[3] : "";
-	
-	if (!cmd) {
-		weechat_printf(buffer,otr_help);
-	} else if (strcmp(cmd,"debug")==0) {
-		debug = !debug;
-		otr_noticest(debug ? TXT_CMD_DEBUG_ON : TXT_CMD_DEBUG_OFF);
-	} else if (strcmp(cmd,"version")==0) {
-		otr_noticest(TXT_CMD_VERSION,IRCOTR_VERSION);
-	} else if (strcmp(cmd,"finish")==0) {
-		if (parm1&&*parm1)
-			otr_finish(NULL,NULL,parm1,TRUE);
-		else
-			otr_finish(ircctx,target,NULL,TRUE);
-	} else if (strcmp(cmd,"trust")==0) {
-		if (parm1&&*parm1)
-			otr_trust(NULL,NULL,parm1);
-		else
-			otr_trust(ircctx,target,NULL);
-	} else if (strcmp(cmd,"authabort")==0) {
-		if (parm1&&*parm1)
-			otr_authabort(NULL,NULL,parm1);
-		else
-			otr_authabort(ircctx,target,NULL);
-	} else if (strcmp(cmd,"genkey")==0) {
-		if (parm1&&*parm1) {
-			if (strcmp(parm1,"abort")==0)
-				keygen_abort(FALSE);
-			else if (strchr(parm1,'@'))
-				keygen_run(parm1);
-			else
-				otr_noticest(TXT_KG_NEEDACC);
-		} else {
-			otr_noticest(TXT_KG_NEEDACC);
-		}
-	} else if (strcmp(cmd,"auth")==0) {
-		if (!parm1||!*parm1) {
-			otr_notice(ircctx,target,
-				   TXT_CMD_AUTH);
-		} else if (parm2&&*parm2&&strchr(parm1,'@'))
-		    otr_auth(NULL,NULL,word_eol[3],parm1);
-		else
-			otr_auth(ircctx,target,NULL,word_eol[2]);
-	} else if (strcmp(cmd,"set")==0) {
-		if (strcmp(parm1,"policy")==0) {
-			otr_setpolicies(word_eol[3],FALSE);
-			strcpy(set_policy,word_eol[3]);
-		} else if (strcmp(parm1,"policy_known")==0) {
-			otr_setpolicies(word_eol[3],TRUE);
-			strcpy(set_policy_known,word_eol[3]);
-		} else if (strcmp(parm1,"ignore")==0) {
-#ifdef HAVE_GREGEX_H
-			if (regex_nickignore)
-				g_regex_unref(regex_nickignore);
-			regex_nickignore = g_regex_new(word_eol[3],0,0,NULL);
-			strcpy(set_ignore,word_eol[3]);
-#endif
-		} else if (strcmp(parm1,"finishonunload")==0) {
-			set_finishonunload = (strcasecmp(parm2,"true")==0);
-		} else {
-			weechat_printf(buffer, "policy: %s\n"
-				     "policy_known: %s\nignore: %s\n"
-				     "finishonunload: %s\n",
-				     set_policy,set_policy_known,set_ignore,
-				     set_finishonunload ? "true" : "false");
-		}
-		
+	word++;
+	word_eol++;
+	argc--;
+
+	if (!argc) {
+		otr_noticest(TXT_CMD_OTR);
+		return WEECHAT_RC_OK;
 	}
+
+	cmd_generic(ircctx,argc,word,word_eol,target);
 
 	return WEECHAT_RC_OK;
 }
+
 int weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
 {
 
@@ -355,6 +278,9 @@ int weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[]
 			      N_("text: write this text"),
 			      "",
 			      &cmd_otr, NULL);
+
+	cmds[CMDCOUNT].name = "set";
+	cmds[CMDCOUNT].cmdfunc = cmd_set;
 
 	return WEECHAT_RC_OK;
 }
