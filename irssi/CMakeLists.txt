@@ -1,5 +1,3 @@
-# irssi public headers
-
 IF(NOT IRSSI_INCLUDE_DIR)
   MESSAGE(FATAL_ERROR "*** no irssi found. If you don't want this plugin set the
   appropriate option to OFF, use for instance 'ccmake .' ***")
@@ -7,18 +5,17 @@ ENDIF(NOT IRSSI_INCLUDE_DIR)
 
 MESSAGE(STATUS "*** building for irssi ***")
 
-SET(IRCOTR_INCLUDE_DIRS
-  ${IRCOTR_INCLUDE_DIRS}
+SET(IRSSIOTR_INCLUDE_DIRS
   ${IRSSI_INCLUDE_DIR}/irssi
   ${IRSSI_INCLUDE_DIR}/irssi/src
   ${IRSSI_INCLUDE_DIR}/irssi/src/core
   ${PROJECT_BINARY_DIR}/irssi-headers
   ${PROJECT_SOURCE_DIR}/irssi-headers
-  irssi)
+  ${PROJECT_SOURCE_DIR}/irssi)
 
-INCLUDE_DIRECTORIES(${IRCOTR_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${IRSSIOTR_INCLUDE_DIRS})
 
-SET(CMAKE_REQUIRED_INCLUDES ${IRCOTR_INCLUDE_DIRS})
+SET(CMAKE_REQUIRED_INCLUDES ${IRCOTR_INCLUDE_DIRS} ${IRSSIOTR_INCLUDE_DIRS})
 
 # irssi statusbar header
 
@@ -43,12 +40,16 @@ IF (NOT HAVE_IRSSISBAR_H)
   SET(HAVE_IRSSISBAR_H 1 CACHE INTERNAL "Having irssi headers" FORCE)
 ENDIF (NOT HAVE_IRSSISBAR_H)
 
-ADD_LIBRARY(irssiotr SHARED irssi/irssi_otr.c otr_util.c otr_ops.c otr_key.c io_util.c ${CMAKE_BINARY_DIR}/otr-formats.c)
+ADD_LIBRARY(irssiotr SHARED irssi_otr.c ../otr_util.c ../otr_ops.c ../otr_key.c ../io_util.c ${CMAKE_BINARY_DIR}/otr-formats.c)
 TARGET_LINK_LIBRARIES(irssiotr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
 SET_TARGET_PROPERTIES(irssiotr PROPERTIES 
   COMPILE_FLAGS -DTARGET_IRSSI
   OUTPUT_NAME "otr"
   LINK_FLAGS "${MAIN_LDFLAGS}")
+
+add_dependencies(irssiotr otrformats)
+set_source_files_properties(${CMAKE_BINARY_DIR}/otr-formats.c PROPERTIES GENERATED TRUE)
+
 IF(APPLE)
   SET_TARGET_PROPERTIES(irssiotr PROPERTIES SUFFIX ".so")
 ENDIF(APPLE)

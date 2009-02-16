@@ -5,19 +5,21 @@ ENDIF(NOT XCHAT_INCLUDE_DIR)
 
 MESSAGE(STATUS "*** building for xchat ***")
 
-SET(IRCOTR_INCLUDE_DIRS
-  ${IRCOTR_INCLUDE_DIRS}
+SET(XCHATOTR_INCLUDE_DIRS
   ${XCHAT_INCLUDE_DIR}/xchat
-  xchat)
+  ${PROJECT_SOURCE_DIR}/xchat)
 
-INCLUDE_DIRECTORIES(${IRCOTR_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${XCHATOTR_INCLUDE_DIRS})
 
-ADD_LIBRARY(xchatotr SHARED xchat/xchat_otr.c otr_util.c otr_ops.c otr_key.c io_util.c io_set.c ${PROJECT_BINARY_DIR}/xchat-formats.c)
+ADD_LIBRARY(xchatotr SHARED xchat_otr.c ../otr_util.c ../otr_ops.c ../otr_key.c ../io_util.c ../io_set.c ${PROJECT_BINARY_DIR}/xchat-formats.c)
 TARGET_LINK_LIBRARIES(xchatotr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
 SET_TARGET_PROPERTIES(xchatotr PROPERTIES 
   COMPILE_FLAGS -DTARGET_XCHAT
   OUTPUT_NAME "xchatotr"
   LINK_FLAGS "${MAIN_LDFLAGS}")
+
+add_dependencies(xchatotr otrformats)
+set_source_files_properties(${CMAKE_BINARY_DIR}/xchat-formats.c PROPERTIES GENERATED TRUE)
 
 IF(APPLE)
   SET_TARGET_PROPERTIES(xchatotr PROPERTIES SUFFIX ".so")

@@ -4,19 +4,23 @@ IF(NOT WEECHAT_INCLUDE_DIR)
 ENDIF(NOT WEECHAT_INCLUDE_DIR)
 
 MESSAGE(STATUS "*** building for weechat ***")
-SET(IRCOTR_INCLUDE_DIRS
-  ${IRCOTR_INCLUDE_DIRS}
-  ${WEECHAT_INCLUDE_DIR}
-  weechat)
 
-INCLUDE_DIRECTORIES(${IRCOTR_INCLUDE_DIRS})
+SET(WEECHATOTR_INCLUDE_DIRS
+  ${WEECHAT_INCLUDE_DIR}/weechat
+  ${PROJECT_SOURCE_DIR}/weechat)
 
-ADD_LIBRARY(weechatotr SHARED weechat/weechat_otr.c otr_util.c otr_ops.c otr_key.c io_util.c io_set.c ${PROJECT_BINARY_DIR}/xchat-formats.c)
+INCLUDE_DIRECTORIES(${WEECHATOTR_INCLUDE_DIRS})
+
+ADD_LIBRARY(weechatotr SHARED weechat_otr.c ../otr_util.c ../otr_ops.c ../otr_key.c ../io_util.c ../io_set.c ${PROJECT_BINARY_DIR}/xchat-formats.c)
 TARGET_LINK_LIBRARIES(weechatotr ${GLIB_LIBRARIES} ${LIBOTR_LIBRARIES})
 SET_TARGET_PROPERTIES(weechatotr PROPERTIES 
   COMPILE_FLAGS -DTARGET_WEECHAT
   OUTPUT_NAME "weechatotr"
   LINK_FLAGS "${MAIN_LDFLAGS}")
+
+add_dependencies(weechatotr otrformats)
+set_source_files_properties(${CMAKE_BINARY_DIR}/xchat-formats.c PROPERTIES GENERATED TRUE)
+
 IF(APPLE)
   SET_TARGET_PROPERTIES(weechatotr PROPERTIES SUFFIX ".so")
 ENDIF(APPLE)

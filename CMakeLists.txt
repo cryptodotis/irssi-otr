@@ -150,6 +150,9 @@ ADD_CUSTOM_COMMAND(OUTPUT
   ${PROJECT_SOURCE_DIR}/README
   )
 
+
+add_custom_target(otrformats DEPENDS otr-formats.c)
+
 # Now that took some time to figure out...
 
 IF(APPLE)
@@ -163,7 +166,8 @@ ENDFOREACH(X ${LIBGCRYPT_LDFLAGS} ${GLIB_LDFLAGS} ${APPLE_LDFLAGS})
 FIND_PATH(IRSSI_INCLUDE_DIR NAMES irssi/src/core/module.h)
 MARK_AS_ADVANCED(IRSSI_INCLUDE_DIR)
 
-FIND_PATH(WEECHAT_INCLUDE_DIR NAMES weechat-plugin.h)
+FIND_PATH(WEECHAT_INCLUDE_DIR NAMES weechat/weechat-plugin.h
+  PATHS ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 MARK_AS_ADVANCED(WEECHAT_INCLUDE_DIR)
 
 FIND_PATH(XCHAT_INCLUDE_DIR NAMES xchat/xchat-plugin.h)
@@ -192,13 +196,13 @@ OPTION(WANT_XCHAT "build xchat plugin" ${W_XCHAT})
 OPTION(WANT_WEECHAT "build weechat plugin" ${W_WEECHAT})
 
 IF(WANT_IRSSI)
-  INCLUDE(irssi/CMakeLists.txt)
+  add_subdirectory(irssi)
 ENDIF(WANT_IRSSI)
 IF(WANT_XCHAT)
-  INCLUDE(xchat/CMakeLists.txt)
+  add_subdirectory(xchat)
 ENDIF(WANT_XCHAT)
 IF(WANT_WEECHAT)
-  INCLUDE(weechat/CMakeLists.txt)
+  add_subdirectory(weechat)
 ENDIF(WANT_WEECHAT)
 
 # cscope
