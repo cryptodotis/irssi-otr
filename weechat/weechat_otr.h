@@ -47,7 +47,7 @@ extern char set_policy[512];
 extern char set_policy_known[512];
 extern char set_ignore[512];
 extern int set_finishonunload;
-void cmd_set(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+void cmd_set(IOUSTATE *ioustate,IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	    char *target);
 
 #define statusbar_items_redraw(name) ;
@@ -94,6 +94,10 @@ static void IRCCTX_FREE(IRC_CTX *ircctx)
 	free(ircctx->address);
 	free(ircctx);
 }
+
+#define IRCCTX_ACCNAME(accname,ircctx) sprintf(accname, "%s@%s", ircctx->nick, ircctx->address)
+#define IRCCTX_IO_US(ircctx) (&ioustate_uniq)
+#define IO_CREATE_US(user) (&ioustate_uniq)
 
 /* Don't look beyond this point. Ugly temporary hack. */
 

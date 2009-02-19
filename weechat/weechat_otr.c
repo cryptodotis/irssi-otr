@@ -34,6 +34,8 @@ int debug = 0;
 GRegex *regex_nickignore = NULL;
 #endif
 
+static IOUSTATE *ioustate;
+
 void printformatva(IRC_CTX *ircctx, const char *nick, const char *format, va_list params)
 {
 	char msg[LOGMAX], *s = msg;
@@ -242,12 +244,7 @@ int cmd_otr(void *data, struct t_gui_buffer *buffer, int argc, char **word, char
 	word_eol++;
 	argc--;
 
-	if (!argc) {
-		otr_noticest(TXT_CMD_OTR);
-		return WEECHAT_RC_OK;
-	}
-
-	cmd_generic(ircctx,argc,word,word_eol,target);
+	cmd_generic(ioustate,ircctx,argc,word,word_eol,target);
 
 	return WEECHAT_RC_OK;
 }
@@ -263,8 +260,10 @@ int weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[]
 	if (otrlib_init())
 		return WEECHAT_RC_ERROR;
 
-	otr_setpolicies(IO_DEFAULT_POLICY,FALSE);
-	otr_setpolicies(IO_DEFAULT_POLICY_KNOWN,TRUE);
+	ioustate = otr_init_user("one to rule them all");
+
+	otr_setpolicies(ioustate,IO_DEFAULT_POLICY,FALSE);
+	otr_setpolicies(ioustate,IO_DEFAULT_POLICY_KNOWN,TRUE);
 
 #ifdef HAVE_GREGEX_H
 	if (regex_nickignore)
@@ -287,5 +286,9 @@ int weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[]
 
 int weechat_plugin_end (struct t_weechat_plugin *plugin)
 {
+	otr_deinit_user(ioustate);
+
+	otrlib_deinit();
+
 	return WEECHAT_RC_OK;
 }

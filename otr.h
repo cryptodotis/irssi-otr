@@ -34,22 +34,41 @@
 #include <glib/gprintf.h>
 #include <glib/gstdio.h>
 
+/* user state */
+
+typedef struct {
+	OtrlUserState otr_state;
+	GSList *plistunknown;
+	GSList *plistknown;
+} IOUSTATE;
+
+#ifndef TARGET_BITLBEE
+/* there can be only one */
+extern IOUSTATE ioustate_uniq;
+#endif
+
 /* irssi */
 
 #ifdef TARGET_IRSSI
-#include <irssi_otr.h>
+#include <irssi/irssi_otr.h>
 #endif
 
 /* xchat */
 
 #ifdef TARGET_XCHAT
-#include <xchat_otr.h>
+#include <xchat/xchat_otr.h>
 #endif
 
 /* weechat */
 
 #ifdef TARGET_WEECHAT
-#include <weechat_otr.h>
+#include <weechat/weechat_otr.h>
+#endif
+
+/* bitlbee */
+
+#ifdef TARGET_BITLBEE
+#include <bitlbee/bitlbee_otr.h>
 #endif
 
 /* log stuff */
@@ -132,21 +151,23 @@ struct plistentry {
 extern int debug;
 
 void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg);
-IRC_CTX *server_find_address(char *address);
+IRC_CTX *ircctx_by_peername(const char *peername, char *nick);
 
 /* init stuff */
 
 int otrlib_init();
 void otrlib_deinit();
 void otr_initops();
-void otr_setpolicies(const char *policies, int known);
+void otr_setpolicies(IOUSTATE *ioustate, const char *policies, int known);
+IOUSTATE *otr_init_user(char *user);
+void otr_deinit_user(IOUSTATE *ioustate);
 
 /* basic send/receive/status stuff */
 
 char *otr_send(IRC_CTX *server,const char *msg,const char *to);
 char *otr_receive(IRC_CTX *server,const char *msg,const char *from);
-int otr_getstatus(char *mynick, char *nick, char *server);
-ConnContext *otr_getcontext(const char *accname,const char *nick,int create,void *data);
+int otr_getstatus(IRC_CTX *ircctx, char *nick);
+ConnContext *otr_getcontext(const char *accname,const char *nick,int create,IRC_CTX *ircctx);
 
 /* user interaction */
 
@@ -154,30 +175,30 @@ void otr_trust(IRC_CTX *server, char *nick, const char *peername);
 void otr_finish(IRC_CTX *server, char *nick, const char *peername, int inquery);
 void otr_auth(IRC_CTX *server, char *nick, const char *peername, const char *secret);
 void otr_authabort(IRC_CTX *server, char *nick, const char *peername);
-struct ctxlist_ *otr_contexts();
-void otr_finishall();
+struct ctxlist_ *otr_contexts(IOUSTATE *ioustate);
+void otr_finishall(IOUSTATE *ioustate);
 
 
 /* key/fingerprint stuff */
 
-void keygen_run(const char *accname);
-void keygen_abort();
-void key_load();
-void fps_load();
-void otr_writefps();
+void keygen_run(IOUSTATE *ioustate, const char *accname);
+void keygen_abort(IOUSTATE *ioustate,int ignoreidle);
+void key_load(IOUSTATE *ioustate);
+void fps_load(IOUSTATE *ioustate);
+void otr_writefps(IOUSTATE *ioustate);
 
 int extract_nick(char *nick, char *line);
 
 struct _cmds {
 	char *name;
-	void (*cmdfunc)(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[], char *target);
+	void (*cmdfunc)(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[], char *target);
 };
 
 /* see io_util.c */
 #define CMDCOUNT 9
 extern struct _cmds cmds[];
 
-int cmd_generic(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+int cmd_generic(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	    char *target);
 
 void io_explode_args(const char *args, char ***argvp, char ***argv_eolp, int *argcp);

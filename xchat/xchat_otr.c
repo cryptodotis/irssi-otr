@@ -25,6 +25,8 @@ int debug = 0;
 GRegex *regex_nickignore = NULL;
 #endif
 
+static IOUSTATE *ioustate;
+
 xchat_plugin *ph;
 
 void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
@@ -48,7 +50,7 @@ int cmd_otr(char *word[], char *word_eol[], void *userdata)
 	while (word[argc]&&*word[argc])
 		argc++;
 
-	cmd_generic(ircctx,argc,word,word_eol,target);
+	cmd_generic(ioustate,ircctx,argc,word,word_eol,target);
 
 	return XCHAT_EAT_ALL;
 }
@@ -152,12 +154,14 @@ int xchat_plugin_init(xchat_plugin *plugin_handle,
 	if (otrlib_init())
 		return 0;
 
+	ioustate = otr_init_user("one to rule them all");
+
 	xchat_hook_server(ph, "PRIVMSG", XCHAT_PRI_NORM, hook_privmsg, 0);
 	xchat_hook_command(ph, "", XCHAT_PRI_NORM, hook_outgoing, 0, 0);
 	xchat_hook_command(ph, "otr", XCHAT_PRI_NORM, cmd_otr, 0, 0);
 
-	otr_setpolicies(IO_DEFAULT_POLICY,FALSE);
-	otr_setpolicies(IO_DEFAULT_POLICY_KNOWN,TRUE);
+	otr_setpolicies(ioustate,IO_DEFAULT_POLICY,FALSE);
+	otr_setpolicies(ioustate,IO_DEFAULT_POLICY_KNOWN,TRUE);
 
 #ifdef HAVE_GREGEX_H
 	if (regex_nickignore)
@@ -180,7 +184,9 @@ int xchat_plugin_deinit()
 #endif
 
 	if (set_finishonunload)
-		otr_finishall();
+		otr_finishall(ioustate);
+
+	otr_deinit_user(ioustate);
 
 	otrlib_deinit();
 

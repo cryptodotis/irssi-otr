@@ -20,8 +20,6 @@
 #include "otr.h"
 
 OtrlMessageAppOps otr_ops;
-extern OtrlUserState otr_state;
-extern GSList *plistunknown,*plistknown;
 
 OtrlPolicy IO_DEFAULT_OTR_POLICY =
 	OTRL_POLICY_MANUAL|OTRL_POLICY_WHITESPACE_START_AKE;
@@ -36,13 +34,14 @@ OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 	OtrlPolicy op = IO_DEFAULT_OTR_POLICY;
 	GSList *pl;
 	char fullname[1024];
+	IOUSTATE *ioustate = IRCCTX_IO_US(coi->ircctx);
 
 	sprintf(fullname, "%s@%s", context->username, server);
 
 	/* loop through otr_policy */
 
-	if (plistunknown) {
-		pl = plistunknown;
+	if (ioustate->plistunknown) {
+		pl = ioustate->plistunknown;
 		do {
 			struct plistentry *ple = pl->data;
 
@@ -52,8 +51,8 @@ OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 		} while ((pl = g_slist_next(pl)));
 	}
 
-	if (plistknown&&context->fingerprint_root.next) {
-		pl = plistknown;
+	if (ioustate->plistknown&&context->fingerprint_root.next) {
+		pl = ioustate->plistknown;
 
 		/* loop through otr_policy_known */
 
@@ -82,7 +81,9 @@ OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 void ops_create_privkey(void *opdata, const char *accountname,
 			const char *protocol)
 {
-	keygen_run(accountname);
+	IRC_CTX *ircctx __attribute__((unused)) = opdata;
+
+	keygen_run(IRCCTX_IO_US(ircctx),accountname);
 }
 
 /*
@@ -201,7 +202,7 @@ void ops_secure(void *opdata, ConnContext *context)
 				   context->active_fingerprint->fingerprint);
 
 	otr_notice(coi->ircctx,context->username,TXT_OPS_FPCOMP,
-		   otrl_privkey_fingerprint(otr_state,
+		   otrl_privkey_fingerprint(IRCCTX_IO_US(coi->ircctx)->otr_state,
 					    ownfp,
 					    context->accountname,
 					    PROTOCOLID),
@@ -263,7 +264,9 @@ void ops_up_ctx_list(void *opdata)
  */
 void ops_writefps(void *data)
 {
-	otr_writefps();
+	IRC_CTX *ircctx __attribute__((unused)) = data;
+
+	otr_writefps(IRCCTX_IO_US(ircctx));
 }
 
 int ops_is_logged_in(void *opdata, const char *accountname, 

@@ -28,7 +28,7 @@ char set_policy_known[512] = IO_DEFAULT_POLICY_KNOWN;
 char set_ignore[512] = IO_DEFAULT_IGNORE;
 int set_finishonunload = TRUE;
 
-void cmd_set(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+void cmd_set(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	    char *target) {
 	char *setting, *value;
 
@@ -44,10 +44,10 @@ void cmd_set(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 			  set_policy,set_policy_known,set_ignore,
 			  set_finishonunload ? "true" : "false");
 	} else if (strcmp(setting,"policy")==0) {
-		otr_setpolicies(value,FALSE);
+		otr_setpolicies(ioustate,value,FALSE);
 		strcpy(set_policy,value);
 	} else if (strcmp(setting,"policy_known")==0) {
-		otr_setpolicies(value,TRUE);
+		otr_setpolicies(ioustate,value,TRUE);
 		strcpy(set_policy_known,value);
 	} else if (strcmp(setting,"ignore")==0) {
 #ifdef HAVE_GREGEX_H

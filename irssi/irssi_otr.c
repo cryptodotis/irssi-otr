@@ -25,6 +25,8 @@ int debug = FALSE;
 GRegex *regex_nickignore = NULL;
 #endif
 
+static IOUSTATE *ioustate;
+
 void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
 	ircctx->send_message(
 		ircctx,recipient,msg,GPOINTER_TO_INT(SEND_TARGET_NICK));
@@ -100,9 +102,9 @@ static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item)
 	io_explode_args(data,&argv,&argv_eol,&argc);
 
 	if (query&&query->server&&query->server->connrec) {
-		cmd_generic(query->server,argc,argv,argv_eol,query->name);
+		cmd_generic(ioustate,query->server,argc,argv,argv_eol,query->name);
 	} else {
-		cmd_generic(NULL,argc,argv,argv_eol,NULL);
+		cmd_generic(ioustate,NULL,argc,argv,argv_eol,NULL);
 	}
 
 	statusbar_items_redraw("otr");
@@ -119,7 +121,7 @@ static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item)
 static void cmd_quit(const char *data, void *server, WI_ITEM_REC *item)
 {
 	if (settings_get_bool("otr_finishonunload"))
-		otr_finishall();
+		otr_finishall(ioustate);
 }
 
 /*
@@ -132,7 +134,7 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 	int formatnum=0;
 
 	if (query&&query->server&&query->server->connrec)
-		formatnum = otr_getstatus(query->server->nick,query->name,query->server->connrec->address);
+		formatnum = otr_getstatus(query->server,query->name);
 
 	statusbar_item_default_handler(
 		item, 
@@ -152,8 +154,8 @@ void otr_query_create(SERVER_REC *server, const char *nick)
 
 static void read_settings(void)
 {
-	otr_setpolicies(settings_get_str("otr_policy"),FALSE);
-	otr_setpolicies(settings_get_str("otr_policy_known"),TRUE);
+	otr_setpolicies(ioustate,settings_get_str("otr_policy"),FALSE);
+	otr_setpolicies(ioustate,settings_get_str("otr_policy_known"),TRUE);
 #ifdef HAVE_GREGEX_H
 	if (regex_nickignore)
 		g_regex_unref(regex_nickignore);
@@ -173,6 +175,8 @@ void otr_init(void)
 
 	if (otrlib_init())
 		return;
+
+	ioustate = otr_init_user("one to rule them all");
 
 	signal_add_first("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
 	signal_add_first("message private", (SIGNAL_FUNC) sig_message_private);
@@ -218,19 +222,31 @@ void otr_deinit(void)
 	statusbar_item_unregister("otr");
 
 	if (settings_get_bool("otr_finishonunload"))
-		otr_finishall();
+		otr_finishall(ioustate);
+
+	otr_deinit_user(ioustate);
 
 	otrlib_deinit();
 
 	theme_unregister();
 }
 
-IRC_CTX *server_find_address(char *address)
+IRC_CTX *ircctx_by_peername(const char *peername, char *nick)
 {
         GSList *tmp;
+	char pname[256];
+	char *address;
 
-        g_return_val_if_fail(address != NULL, NULL);
-        if (*address == '\0') return NULL;
+	strcpy(pname,peername);
+
+	address = strchr(pname,'@');
+
+	if (!address)
+		return NULL;
+
+	*address = '\0';
+	strcpy(nick,pname);
+	*address++ = '@';
 
         for (tmp = servers; tmp != NULL; tmp = tmp->next) {
                 SERVER_REC *server = tmp->data;

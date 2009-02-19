@@ -27,8 +27,6 @@
 #include <sys/poll.h>
 #include <signal.h>
 
-extern OtrlUserState otr_state;
-
 typedef enum { KEYGEN_NO, KEYGEN_RUNNING } keygen_status_t;
 
 struct {
@@ -40,6 +38,7 @@ struct {
 	guint cpid;
 	guint cwid;
 	pid_t pid;
+	IOUSTATE *ioustate;
 } kg_st = {.status = KEYGEN_NO };
 
 void keygen_childwatch(GPid pid,gint status, gpointer data) {
@@ -80,7 +79,7 @@ void keygen_childwatch(GPid pid,gint status, gpointer data) {
 	} else if (ret==-1)
 		otr_noticest(TXT_KG_POLLERR,kg_st.accountname,strerror(errno));
 
-	keygen_abort(FALSE);
+	keygen_abort(kg_st.ioustate,FALSE);
 }	
 
 /*
@@ -115,7 +114,7 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 			     time(NULL)-kg_st.started);
 		rename(tmpfilename,filename);
 		//otrl_privkey_forget_all(otr_state); <-- done by lib
-		key_load();
+		key_load(kg_st.ioustate);
 	}
 
 	g_source_remove(kg_st.cwid);
@@ -135,7 +134,7 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
  * The other process will rewrite the key file, we shouldn't 
  * change anything till it's done and we've reloaded the keys.
  */
-void keygen_run(const char *accname)
+void keygen_run(IOUSTATE *ioustate, const char *accname)
 {
 	gcry_error_t err;
 	int ret;
@@ -173,6 +172,7 @@ void keygen_run(const char *accname)
 	kg_st.ch[1] = g_io_channel_unix_new(fds[1]);
 
 	kg_st.accountname = g_strdup(accname);
+	kg_st.ioustate = ioustate;
 	kg_st.protocol = PROTOCOLID;
 	kg_st.started = time(NULL);
 
@@ -200,7 +200,7 @@ void keygen_run(const char *accname)
 
 	/* child */
 
-	err = otrl_privkey_generate(otr_state,filename,accname,PROTOCOLID);
+	err = otrl_privkey_generate(ioustate->otr_state,filename,accname,PROTOCOLID);
 	write(fds[1],&err,sizeof(err));
 
 	//g_free(filename);
@@ -210,7 +210,7 @@ void keygen_run(const char *accname)
 /*
  * Abort ongoing key generation.
  */
-void keygen_abort(int ignoreidle)
+void keygen_abort(IOUSTATE *ioustate,int ignoreidle)
 {
 	if (kg_st.status!=KEYGEN_RUNNING) {
 		if (!ignoreidle)
@@ -235,12 +235,12 @@ void keygen_abort(int ignoreidle)
 /* 
  * Write fingerprints to file.
  */
-void otr_writefps()
+void otr_writefps(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
 	char *filename = g_strconcat(get_client_config_dir(),FPSFILE,NULL);
 
-	err = otrl_privkey_write_fingerprints(otr_state,filename);
+	err = otrl_privkey_write_fingerprints(ioustate->otr_state,filename);
 
 	if (err == GPG_ERR_NO_ERROR) {
 		otr_noticest(TXT_FP_SAVED);
@@ -255,7 +255,7 @@ void otr_writefps()
 /*
  * Load private keys.
  */
-void key_load()
+void key_load(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
 	char *filename = g_strconcat(get_client_config_dir(),KEYFILE,NULL);
@@ -265,7 +265,7 @@ void key_load()
 		return;
 	}
 
-	err =  otrl_privkey_read(otr_state, filename);
+	err =  otrl_privkey_read(ioustate->otr_state, filename);
 
 	if (err == GPG_ERR_NO_ERROR) {
 		otr_noticest(TXT_KEY_LOADED);
@@ -280,7 +280,7 @@ void key_load()
 /*
  * Load fingerprints.
  */
-void fps_load()
+void fps_load(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
 	char *filename = g_strconcat(get_client_config_dir(),FPSFILE,NULL);
@@ -290,7 +290,7 @@ void fps_load()
 		return;
 	}
 
-	err =  otrl_privkey_read_fingerprints(otr_state,filename,NULL,NULL);
+	err =  otrl_privkey_read_fingerprints(ioustate->otr_state,filename,NULL,NULL);
 
 	if (err == GPG_ERR_NO_ERROR) {
 		otr_noticest(TXT_FP_LOADED);

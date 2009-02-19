@@ -35,19 +35,26 @@ int extract_nick(char *nick, char *line)
 
 }
 
-int cmd_generic(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+int cmd_generic(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 		char *target)
 {
-	char *cmd = argv[0];
+	char *cmd;
+	struct _cmds *commands = cmds;
+
+	if (!argc) {
+		otr_noticest(TXT_CMD_OTR);
+		return TRUE;
+	}
+
+	cmd = argv[0];
+
 	argv++;
 	argv_eol++;
 	argc--;
 	
-	struct _cmds *commands = cmds;
-
 	do {
 		if (strcmp(commands->name,cmd)==0) {
-			commands->cmdfunc(ircctx,argc,argv,argv_eol,target);
+			commands->cmdfunc(ioustate,ircctx,argc,argv,argv_eol,target);
 			return TRUE;
 		}
 	} while ((++commands)->name);
@@ -55,23 +62,23 @@ int cmd_generic(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	return FALSE;
 }
 
-void cmd_debug(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+void cmd_debug(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	      char *target) {
 	debug = !debug;
 	otr_noticest(debug ? TXT_CMD_DEBUG_ON : TXT_CMD_DEBUG_OFF);
 }
 
-void cmd_version(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+void cmd_version(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 		char *target) {
 	otr_noticest(TXT_CMD_VERSION,IRCOTR_VERSION);
 }
 
-void cmd_help(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+void cmd_help(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 		char *target) {
 	otr_log(ircctx,target,MSGLEVEL_CRAP,otr_help);
 }
 
-void cmd_finish(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+void cmd_finish(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	       char *target) {
 	if (argc)
 		otr_finish(NULL,NULL,argv[0],TRUE);
@@ -82,7 +89,7 @@ void cmd_finish(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 
 }
 
-void cmd_trust(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+void cmd_trust(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	      char *target) {
 	if (argc)
 		otr_trust(NULL,NULL,argv[0]);
@@ -92,7 +99,7 @@ void cmd_trust(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 		otr_noticest(TXT_CMD_QNOTFOUND);
 }
 
-void cmd_authabort(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[], 
+void cmd_authabort(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[], 
 		  char *target) {
 	if (argc)
 		otr_authabort(NULL,NULL,argv[0]);
@@ -102,13 +109,13 @@ void cmd_authabort(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 		otr_noticest(TXT_CMD_QNOTFOUND);
 }
 
-void cmd_genkey(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+void cmd_genkey(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	       char *target) {
 	if (argc) {
 		if (strcmp(argv[0],"abort")==0)
-			keygen_abort(FALSE);
+			keygen_abort(ioustate,FALSE);
 		else if (strchr(argv[0],'@'))
-			keygen_run(argv[0]);
+			keygen_run(ioustate,argv[0]);
 		else
 			otr_noticest(TXT_KG_NEEDACC);
 	} else {
@@ -116,7 +123,7 @@ void cmd_genkey(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	}
 }
 
-void cmd_auth(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+void cmd_auth(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	     char *target) {
 	if (!argc) {
 		otr_notice(ircctx,target,
@@ -133,9 +140,9 @@ void cmd_auth(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 /*
  * /otr contexts
  */
-void cmd_contexts(IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+void cmd_contexts(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	     char *target) {
-	struct ctxlist_ *ctxlist = otr_contexts(),*ctxnext = ctxlist;
+	struct ctxlist_ *ctxlist = otr_contexts(ioustate),*ctxnext = ctxlist;
 	struct fplist_ *fplist,*fpnext;
 
 	if (!ctxlist)

@@ -21,33 +21,59 @@
 
 #include <gcrypt.h>
 
-OtrlUserState otr_state = NULL;
 extern OtrlMessageAppOps otr_ops;
 static int otrinited = FALSE;
-GSList *plistunknown = NULL;
-GSList *plistknown = NULL;
+
+#ifdef TARGET_BITLBEE
+GHashTable *ioustates;
+#else
+IOUSTATE ioustate_uniq = { 0,0,0 };
+#endif
 
 #ifdef HAVE_GREGEX_H
 GRegex *regex_policies;
 #endif
+
+IOUSTATE *otr_init_user(char *user)
+{
+	IOUSTATE *ioustate = IO_CREATE_US(user);
+
+	ioustate->otr_state = otrl_userstate_create();
+
+	/* load keys and fingerprints */
+
+	key_load(ioustate);
+	fps_load(ioustate);
+
+	return ioustate;
+}
+
+void otr_deinit_user(IOUSTATE *ioustate)
+{
+	keygen_abort(ioustate,TRUE);
+
+	if (ioustate->otr_state) {
+		otr_writefps(ioustate);
+		otrl_userstate_free(ioustate->otr_state);
+		ioustate->otr_state = NULL;
+	}
+	otr_setpolicies(ioustate,"",FALSE);
+	otr_setpolicies(ioustate,"",TRUE);
+}
 
 /*
  * init otr lib.
  */
 int otrlib_init()
 {
-
 	if (!otrinited) {
 		OTRL_INIT;
 		otrinited = TRUE;
 	}
 
-	otr_state = otrl_userstate_create();
-
-	/* load keys and fingerprints */
-
-	key_load();
-	fps_load();
+#ifdef TARGET_BITLBEE
+	ioustates = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,otr_deinit_user);
+#endif
 
 	otr_initops();
 
@@ -57,7 +83,7 @@ int otrlib_init()
 			    "(,|$)",0,0,NULL);
 #endif
 
-	return otr_state==NULL;
+	return 0;
 }
 
 /*
@@ -65,21 +91,13 @@ int otrlib_init()
  */
 void otrlib_deinit()
 {
-	if (otr_state) {
-		otr_writefps();
-		otrl_userstate_free(otr_state);
-		otr_state = NULL;
-	}
-
-	keygen_abort(TRUE);
-
-	otr_setpolicies("",FALSE);
-	otr_setpolicies("",TRUE);
-
 #ifdef HAVE_GREGEX_H
 	g_regex_unref(regex_policies);
 #endif
 
+#ifdef TARGET_BITLBEE
+	g_hash_table_destroy(ioustates);
+#endif
 }
 
 
@@ -117,21 +135,21 @@ void context_add_app_info(void *data,ConnContext *co)
  * Get a context from a pair.
  */
 ConnContext *otr_getcontext(const char *accname,const char *nick,
-			    int create,void *data)
+			    int create,IRC_CTX *ircctx)
 {
 	ConnContext *co = otrl_context_find(
-		otr_state,
+		IRCCTX_IO_US(ircctx)->otr_state,
 		nick,
 		accname,
 		PROTOCOLID,
 		create,
 		NULL,
 		context_add_app_info,
-		data);
+		ircctx);
 
 	/* context came from a fingerprint */
-	if (co&&data&&!co->app_data)
-		context_add_app_info(data,co);
+	if (co&&ircctx&&!co->app_data)
+		context_add_app_info(ircctx,co);
 
 	return co;
 }
@@ -143,17 +161,15 @@ ConnContext *otr_getcontext(const char *accname,const char *nick,
  */
 char *otr_send(IRC_CTX *ircctx, const char *msg,const char *to)
 {
-	const char *nick = IRCCTX_NICK(ircctx);
-	const char *address = IRCCTX_ADDR(ircctx);
 	gcry_error_t err;
 	char *newmessage = NULL;
 	ConnContext *co;
 	char accname[256];
 
-	sprintf(accname, "%s@%s", nick, address);
+	IRCCTX_ACCNAME(accname,ircctx);
 
 	err = otrl_message_sending(
-		otr_state, 
+		IRCCTX_IO_US(ircctx)->otr_state, 
 		&otr_ops, 
 		ircctx, 
 		accname,
@@ -196,7 +212,8 @@ char *otr_send(IRC_CTX *ircctx, const char *msg,const char *to)
 	return NULL;
 }
 
-struct ctxlist_ *otr_contexts() {
+struct ctxlist_ *otr_contexts(IOUSTATE *ioustate)
+{
 	ConnContext *context;
 	Fingerprint *fprint;
 	struct ctxlist_ *ctxlist = NULL, *ctxhead = NULL;
@@ -205,7 +222,7 @@ struct ctxlist_ *otr_contexts() {
 	char *trust;
 	int i;
 
-	for(context = otr_state->context_root; context; 
+	for(context = ioustate->otr_state->context_root; context; 
 	    context = context->next) {
 		if (!ctxlist)
 			ctxhead = ctxlist = g_malloc0(sizeof(struct ctxlist_));
@@ -251,15 +268,15 @@ struct ctxlist_ *otr_contexts() {
 /*
  * Get the OTR status of this conversation.
  */
-int otr_getstatus(char *mynick, char *nick, char *server)
+int otr_getstatus(IRC_CTX *ircctx, char *nick)
 {
 	ConnContext *co;
 	char accname[128];
 	struct co_info *coi;
 
-	sprintf(accname, "%s@%s", mynick, server);
+	IRCCTX_ACCNAME(accname,ircctx);
 
-	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
+	if (!(co = otr_getcontext(accname,nick,FALSE,ircctx))) {
 		return 0;
 	}
 
@@ -302,31 +319,25 @@ void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 	ConnContext *co;
 	char accname[128];
 	struct co_info *coi;
-	char *pserver = NULL;
+	char nickbuf[128];
 
 	if (peername) {
-		pserver = strchr(peername,'@');
-		if (!pserver)
-			return;
-		ircctx = server_find_address(pserver+1);
+		nick = nickbuf;
+		ircctx = ircctx_by_peername(peername,nick);
 		if (!ircctx)
 			return;
-		*pserver = '\0';
-		nick = (char*)peername;
 	}
 
-	sprintf((char*)accname, "%s@%s", IRCCTX_NICK(ircctx), IRCCTX_ADDR(ircctx));
+	IRCCTX_ACCNAME(accname,ircctx);
 
-	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
+	if (!(co = otr_getcontext(accname,nick,FALSE,ircctx))) {
 		if (inquery)
 			otr_noticest(TXT_CTX_NOT_FOUND,
 				     accname,nick);
-		if (peername)
-			*pserver = '@';
 		return;
 	}
 
-	otrl_message_disconnect(otr_state,&otr_ops,ircctx,accname,
+	otrl_message_disconnect(IRCCTX_IO_US(ircctx)->otr_state,&otr_ops,ircctx,accname,
 				PROTOCOLID,nick);
 
 	if (inquery) {
@@ -341,24 +352,21 @@ void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 	 * we're called cause the query window has been closed. */
 	if (coi) 
 		coi->finished = inquery;
-
-	if (peername)
-		*pserver = '@';
 }
 
-void otr_finishall()
+void otr_finishall(IOUSTATE *ioustate)
 {
 	ConnContext *context;
 	int finished=0;
 
-	for(context = otr_state->context_root; context; 
+	for(context = ioustate->otr_state->context_root; context; 
 	    context = context->next) {
 		struct co_info *coi = context->app_data;
 
 		if (context->msgstate!=OTRL_MSGSTATE_ENCRYPTED)
 			continue;
 
-		otrl_message_disconnect(otr_state,&otr_ops,coi->ircctx,
+		otrl_message_disconnect(ioustate->otr_state,&otr_ops,coi->ircctx,
 					context->accountname,
 					PROTOCOLID,
 					context->username);
@@ -380,26 +388,20 @@ void otr_trust(IRC_CTX *ircctx, char *nick, const char *peername)
 	ConnContext *co;
 	char accname[128];
 	struct co_info *coi;
-	char *pserver = NULL;
+	char nickbuf[128];
 
 	if (peername) {
-		pserver = strchr(peername,'@');
-		if (!pserver)
-			return;
-		ircctx = server_find_address(pserver+1);
+		nick = nickbuf;
+		ircctx = ircctx_by_peername(peername,nick);
 		if (!ircctx)
 			return;
-		*pserver = '\0';
-		nick = (char*)peername;
 	}
 
-	sprintf((char*)accname, "%s@%s", IRCCTX_NICK(ircctx), IRCCTX_ADDR(ircctx));
+	IRCCTX_ACCNAME(accname,ircctx);
 
-	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
+	if (!(co = otr_getcontext(accname,nick,FALSE,ircctx))) {
 		otr_noticest(TXT_CTX_NOT_FOUND,
 			     accname,nick);
-		if (peername)
-			*pserver = '@';
 		return;
 	}
 
@@ -410,8 +412,6 @@ void otr_trust(IRC_CTX *ircctx, char *nick, const char *peername)
 
 	otr_notice(ircctx,nick,TXT_FP_TRUST,nick);
 
-	if (peername)
-		*pserver = '@';
 }
 
 /*
@@ -430,7 +430,7 @@ void otr_abort_auth(ConnContext *co, IRC_CTX *ircctx, const char *nick)
 		   TXT_AUTH_ABORTED_ONGOING :
 		   TXT_AUTH_ABORTED);
 
-	otrl_message_abort_smp(otr_state,&otr_ops,ircctx,co);
+	otrl_message_abort_smp(IRCCTX_IO_US(ircctx)->otr_state,&otr_ops,ircctx,co);
 }
 
 /*
@@ -440,33 +440,25 @@ void otr_authabort(IRC_CTX *ircctx, char *nick, const char *peername)
 {
 	ConnContext *co;
 	char accname[128];
-	char *pserver = NULL;
+	char nickbuf[128];
 
 	if (peername) {
-		pserver = strchr(peername,'@');
-		if (!pserver)
-			return;
-		ircctx = server_find_address(pserver+1);
+		nick = nickbuf;
+		ircctx = ircctx_by_peername(peername,nick);
 		if (!ircctx)
 			return;
-		*pserver = '\0';
-		nick = (char*)peername;
 	}
 
-	sprintf((char*)accname, "%s@%s", IRCCTX_NICK(ircctx), IRCCTX_ADDR(ircctx));
+	IRCCTX_ACCNAME(accname,ircctx);
 
-	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
+	if (!(co = otr_getcontext(accname,nick,FALSE,ircctx))) {
 		otr_noticest(TXT_CTX_NOT_FOUND,
 			     accname,nick);
-		if (peername)
-			*pserver = '@';
 		return;
 	}
 
 	otr_abort_auth(co,ircctx,nick);
 
-	if (peername)
-		*pserver = '@';
 }
 
 /*
@@ -477,26 +469,20 @@ void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *sec
 	ConnContext *co;
 	char accname[128];
 	struct co_info *coi;
-	char *pserver = NULL;
+	char nickbuf[128];
 
 	if (peername) {
-		pserver = strchr(peername,'@');
-		if (!pserver)
-			return;
-		ircctx = server_find_address(pserver+1);
+		nick = nickbuf;
+		ircctx = ircctx_by_peername(peername,nick);
 		if (!ircctx)
 			return;
-		*pserver = '\0';
-		nick = (char*)peername;
 	}
 
-	sprintf((char*)accname, "%s@%s", IRCCTX_NICK(ircctx), IRCCTX_ADDR(ircctx));
+	IRCCTX_ACCNAME(accname,ircctx);
 
-	if (!(co = otr_getcontext(accname,nick,FALSE,NULL))) {
+	if (!(co = otr_getcontext(accname,nick,FALSE,ircctx))) {
 		otr_noticest(TXT_CTX_NOT_FOUND,
 			     accname,nick);
-		if (peername)
-			*pserver = '@';
 		return;
 	}
 
@@ -518,13 +504,13 @@ void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *sec
 		char *trust = co->active_fingerprint->trust;
 		if (trust&&(*trust!='\0')) {
 			otrl_context_set_trust(co->active_fingerprint, "");
-			otr_writefps();
+			otr_writefps(IRCCTX_IO_US(ircctx));
 		}
 	}
 
 	if (!coi->received_smp_init)
 		otrl_message_initiate_smp(
-			otr_state, 
+			IRCCTX_IO_US(ircctx)->otr_state, 
 			&otr_ops,
 			ircctx,
 			co,
@@ -532,7 +518,7 @@ void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *sec
 			strlen(secret));
 	else
 		otrl_message_respond_smp(
-			otr_state,
+			IRCCTX_IO_US(ircctx)->otr_state,
 			&otr_ops,
 			ircctx,
 			co,
@@ -546,8 +532,6 @@ void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *sec
 
 	statusbar_items_redraw("otr");
 
-	if (peername)
-		*pserver = '@';
 }
 
 /* 
@@ -658,7 +642,7 @@ char *otr_receive(IRC_CTX *ircctx, const char *msg,const char *from)
 	struct co_info *coi;
 	OtrlTLV *tlvs;
 
-	sprintf(accname, "%s@%s", IRCCTX_NICK(ircctx), IRCCTX_ADDR(ircctx));
+	IRCCTX_ACCNAME(accname,ircctx);
 
 	if (!(co = otr_getcontext(accname,from,TRUE,ircctx))) {
 		otr_noticest(TXT_CTX_NOT_CREATE,
@@ -714,7 +698,7 @@ char *otr_receive(IRC_CTX *ircctx, const char *msg,const char *from)
 	}
 
 	ignore_message = otrl_message_receiving(
-		otr_state,
+		IRCCTX_IO_US(ircctx)->otr_state,
 		&otr_ops,
 		ircctx,
 		accname, 
@@ -741,11 +725,11 @@ char *otr_receive(IRC_CTX *ircctx, const char *msg,const char *from)
 	return newmessage ? : (char*)msg;
 }
 
-void otr_setpolicies(const char *policies, int known)
+void otr_setpolicies(IOUSTATE *ioustate, const char *policies, int known)
 {
 #ifdef HAVE_GREGEX_H
 	GMatchInfo *match_info;
-	GSList *plist = known ? plistknown : plistunknown;
+	GSList *plist = known ? ioustate->plistknown : ioustate->plistunknown;
 
 	if (plist) {
 		GSList *p = plist;
@@ -795,8 +779,8 @@ void otr_setpolicies(const char *policies, int known)
 	g_match_info_free(match_info);
 
 	if (known)
-		plistknown = plist;
+		ioustate->plistknown = plist;
 	else
-		plistunknown = plist;
+		ioustate->plistunknown = plist;
 #endif
 }

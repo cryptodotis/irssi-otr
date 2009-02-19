@@ -72,7 +72,7 @@ cmd_debug_on	Debug mode is on
 cmd_debug_off	Debug mode is off
 cmd_finish	Finished conversation with %s@%s.
 cmd_finishall_none	No conversations to finish.
-cmd_version	This is irssi-otr version %s
+cmd_version	This is irc-otr version %s
 peer_finished	%s has finished the OTR conversation. If you want to continue talking enter %9/otr finish%9 for plaintext or ?OTR? to restart OTR.
 Contexts
 ctx_ctx_unencrypted	%%9%20s%%9    %30s    plaintext
