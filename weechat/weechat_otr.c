@@ -55,7 +55,7 @@ void printformatva(IRC_CTX *ircctx, const char *nick, const char *format, va_lis
 			weechat_command(NULL,cmd);
 			buffer = weechat_buffer_search("irc",s);
 			if (!buffer)
-				weechat_printf(NULL,"OTR: Failed to create "
+				weechat_printf(NULL,"OTR:\tFailed to create "
 					       "a buffer for the following "
 					       "message! server=%s,nick=%s",
 					       ircctx->address,nick);
@@ -66,7 +66,7 @@ void printformatva(IRC_CTX *ircctx, const char *nick, const char *format, va_lis
 		sprintf( s, "internal error parsing error string (BUG)" );
 	va_end( params );
 
-	weechat_printf(buffer,"OTR: %s",s);
+	weechat_printf(buffer,"OTR:\t%s",s);
 }
 
 void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...)
