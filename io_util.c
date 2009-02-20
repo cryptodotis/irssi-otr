@@ -29,7 +29,7 @@ char *otr_status_txt[] = {
 	"SMP_INCOMING",
 	"SMP_FINALIZE",
 	"SMP_ABORTED",
-	"SMP_PEER_FINISHED",
+	"PEER_FINISHED",
 	"SMP_FAILED",
 	"SMP_SUCCESS",
 	"GONE_SECURE",

@@ -647,7 +647,7 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
 
 	tlv = otrl_tlv_find(tlvs, OTRL_TLV_DISCONNECTED);
 	if (tlv) {
-		otr_status_change(ircctx,from,IO_STC_SMP_PEER_FINISHED);
+		otr_status_change(ircctx,from,IO_STC_PEER_FINISHED);
 		otr_notice(ircctx,from,TXT_PEER_FINISHED,from);
 	}
 
