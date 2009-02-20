@@ -54,7 +54,6 @@ extern int set_finishonunload;
 void cmd_set(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, 
 	     char *argv[], char *argv_eol[], char *target);
 
-#define statusbar_items_redraw(name) ;
 #define get_client_config_dir() xchat_get_info(ph,"xchatdir")
 
 void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...);

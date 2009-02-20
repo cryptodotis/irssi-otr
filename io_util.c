@@ -19,6 +19,24 @@
 
 #include "otr.h"
 
+char *otr_status_txt[] = {
+	"FINISHED",
+	"TRUST_MANUAL",
+	"TRUST_SMP",
+	"SMP_ABORT",
+	"SMP_STARTED",
+	"SMP_RESPONDED",
+	"SMP_INCOMING",
+	"SMP_FINALIZE",
+	"SMP_ABORTED",
+	"SMP_PEER_FINISHED",
+	"SMP_FAILED",
+	"SMP_SUCCESS",
+	"GONE_SECURE",
+	"GONE_INSECURE",
+	"CTX_UPDATE"
+};
+
 int extract_nick(char *nick, char *line)
 {
 	char *excl;
@@ -214,4 +232,38 @@ void io_explode_args(const char *args, char ***argvp, char ***argv_eolp, int *ar
 	*argvp = argv;
 	*argv_eolp = argv_eol;
 	*argcp = argc;
+}
+
+/*
+ * Get a format describing the OTR status of this conversation.
+ */
+int otr_getstatus_format(IRC_CTX *ircctx, char *nick)
+{
+	int status = otr_getstatus(ircctx,nick);
+
+	if (status&(IO_ST_SMP_ONGOING)) {
+		/* we don't care about the trust level in that case */
+		status = status & IO_ST_SMP_ONGOING;
+	}
+
+	switch (status) {
+	case IO_ST_PLAINTEXT:
+		return TXT_ST_PLAINTEXT;
+	case IO_ST_FINISHED:
+		return TXT_ST_FINISHED;
+	case IO_ST_UNTRUSTED:
+		return TXT_ST_UNTRUSTED;
+	case IO_ST_SMP_INCOMING:
+		return TXT_ST_SMP_INCOMING;
+	case IO_ST_SMP_OUTGOING:
+		return TXT_ST_SMP_OUTGOING;
+	case IO_ST_SMP_FINALIZE:
+		return TXT_ST_SMP_FINALIZE;
+	case IO_ST_TRUST_MANUAL:
+		return TXT_ST_TRUST_MANUAL;
+	case IO_ST_TRUST_SMP:
+		return TXT_ST_TRUST_SMP;
+	default:
+		return TXT_ST_SMP_UNKNOWN;
+	}
 }

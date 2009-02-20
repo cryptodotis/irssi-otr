@@ -88,9 +88,8 @@ st_plaintext	{sb plaintext}
 st_untrusted	{sb %rOTR(not auth'ed)%n}
 st_trust_smp	{sb %gOTR%n}
 st_trust_manual	{sb %gOTR%n}
-st_smp_wait_2	{sb {hilight awaiting auth reply...}}
-st_smp_have_2	{sb {hilight finalizing auth... (won't happen with libotr 3.1(bug), ask the other guy to initiate)}}
-st_smp_failed	{sb {hilight auth failed}}
+st_smp_incoming	{sb {hilight incoming auth request...}}
+st_smp_outgoing	{sb {hilight awaiting auth reply...}}
 st_smp_finalize	{sb {hilight finalizing auth...}}
 st_smp_unknown	{sb {hilight unknown auth state!}}
 st_finished	{sb finished}

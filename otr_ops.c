@@ -192,6 +192,7 @@ void ops_secure(void *opdata, ConnContext *context)
 
 	otr_notice(coi->ircctx,
 		   context->username,TXT_OPS_SEC);
+	otr_status_change(coi->ircctx,context->username,IO_STC_GONE_SECURE);
 	if (*trust!='\0')
 		return;
 
@@ -218,6 +219,7 @@ void ops_insecure(void *opdata, ConnContext *context)
 	struct co_info *coi = context->app_data;
 	otr_notice(coi->ircctx,
 		   context->username,TXT_OPS_INSEC);
+	otr_status_change(coi->ircctx,context->username,IO_STC_GONE_INSECURE);
 }
 
 /*
@@ -256,7 +258,7 @@ int ops_max_msg(void *opdata, ConnContext *context)
  */
 void ops_up_ctx_list(void *opdata)
 {
-	statusbar_items_redraw("otr");
+	otr_status_change(opdata,NULL,IO_STC_CTX_UPDATE);
 }
 
 /*

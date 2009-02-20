@@ -277,37 +277,49 @@ int otr_getstatus(IRC_CTX *ircctx, char *nick)
 	IRCCTX_ACCNAME(accname,ircctx);
 
 	if (!(co = otr_getcontext(accname,nick,FALSE,ircctx))) {
-		return 0;
+		return IO_ST_PLAINTEXT;
 	}
 
 	coi = co->app_data;
 
 	switch (co->msgstate) {
 	case OTRL_MSGSTATE_PLAINTEXT:
-		return TXT_ST_PLAINTEXT;
+		return IO_ST_PLAINTEXT;
 	case OTRL_MSGSTATE_ENCRYPTED: {
 		char *trust = co->active_fingerprint->trust;
 		int ex = co->smstate->nextExpected;
-
-		if (trust&&(*trust!='\0'))
-			return strcmp(trust,"smp")==0 ? TXT_ST_TRUST_SMP : TXT_ST_TRUST_MANUAL;
+		int code=0;
 
 		switch (ex) {
 		case OTRL_SMP_EXPECT1:
-			return TXT_ST_UNTRUSTED;
+			if (coi->received_smp_init)
+				code = IO_ST_SMP_INCOMING;
+			break;
 		case OTRL_SMP_EXPECT2:
-			return TXT_ST_SMP_WAIT_2;
+			code = IO_ST_SMP_OUTGOING;
+			break;
 		case OTRL_SMP_EXPECT3: 
 		case OTRL_SMP_EXPECT4:
-			return TXT_ST_SMP_FINALIZE;
+			code = IO_ST_SMP_FINALIZE;
+			break;
 		default:
-			return TXT_ST_SMP_UNKNOWN;
+			otr_logst(MSGLEVEL_CRAP,"BUG Found! Please write us a mail and describe how you got here");
+			return IO_ST_UNKNOWN;
 		}
+
+		if (trust&&(*trust!='\0'))
+			code |= strcmp(trust,"smp")==0 ? IO_ST_TRUST_SMP :
+				IO_ST_TRUST_MANUAL;
+		else
+			code |= IO_ST_UNTRUSTED;
+
+		return code;
 	}
 	case OTRL_MSGSTATE_FINISHED:
-		return TXT_ST_FINISHED;
+		return IO_ST_FINISHED;
 	default:
-		return TXT_ST_UNKNOWN;
+		otr_logst(MSGLEVEL_CRAP,"BUG Found! Please write us a mail and describe how you got here");
+		return IO_ST_UNKNOWN;
 	}
 }
 
@@ -339,6 +351,7 @@ void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 
 	otrl_message_disconnect(IRCCTX_IO_US(ircctx)->otr_state,&otr_ops,ircctx,accname,
 				PROTOCOLID,nick);
+	otr_status_change(ircctx,nick,IO_STC_FINISHED);
 
 	if (inquery) {
 		otr_info(ircctx,nick,TXT_CMD_FINISH,nick,IRCCTX_ADDR(ircctx));
@@ -370,6 +383,7 @@ void otr_finishall(IOUSTATE *ioustate)
 					context->accountname,
 					PROTOCOLID,
 					context->username);
+		otr_status_change(coi->ircctx,context->username,IO_STC_FINISHED);
 
 		otr_infost(TXT_CMD_FINISH,context->username,
 			   IRCCTX_ADDR(coi->ircctx));
@@ -406,6 +420,7 @@ void otr_trust(IRC_CTX *ircctx, char *nick, const char *peername)
 	}
 
 	otrl_context_set_trust(co->active_fingerprint,"manual");
+	otr_status_change(ircctx,nick,IO_STC_TRUST_MANUAL);
 
 	coi = co->app_data;
 	coi->smp_failed = FALSE;
@@ -431,6 +446,7 @@ void otr_abort_auth(ConnContext *co, IRC_CTX *ircctx, const char *nick)
 		   TXT_AUTH_ABORTED);
 
 	otrl_message_abort_smp(IRCCTX_IO_US(ircctx)->otr_state,&otr_ops,ircctx,co);
+	otr_status_change(ircctx,nick,IO_STC_SMP_ABORT);
 }
 
 /*
@@ -508,7 +524,7 @@ void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *sec
 		}
 	}
 
-	if (!coi->received_smp_init)
+	if (!coi->received_smp_init) {
 		otrl_message_initiate_smp(
 			IRCCTX_IO_US(ircctx)->otr_state, 
 			&otr_ops,
@@ -516,7 +532,8 @@ void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *sec
 			co,
 			(unsigned char*)secret,
 			strlen(secret));
-	else
+		otr_status_change(ircctx,nick,IO_STC_SMP_STARTED);
+	} else {
 		otrl_message_respond_smp(
 			IRCCTX_IO_US(ircctx)->otr_state,
 			&otr_ops,
@@ -524,13 +541,13 @@ void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *sec
 			co,
 			(unsigned char*)secret,
 			strlen(secret));
+		otr_status_change(ircctx,nick,IO_STC_SMP_RESPONDED);
+	}
 
 	otr_notice(ircctx,nick,
 		   coi->received_smp_init ?
 		   TXT_AUTH_RESPONDING :
 		   TXT_AUTH_INITIATED);
-
-	statusbar_items_redraw("otr");
 
 }
 
@@ -554,6 +571,7 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
 			otr_notice(ircctx,from,TXT_AUTH_PEER,
 				   from);
 			coi->received_smp_init = TRUE;
+			otr_status_change(ircctx,from,IO_STC_SMP_INCOMING);
 		}
 	}
 
@@ -569,6 +587,7 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
 				   TXT_AUTH_PEER_REPLIED,
 				   from);
 			co->smstate->nextExpected = OTRL_SMP_EXPECT4;
+			otr_status_change(ircctx,from,IO_STC_SMP_FINALIZE);
 		}
 	}
 
@@ -584,10 +603,12 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
 			if (trust&&(*trust!='\0')) {
 				otr_notice(ircctx,from,
 					   TXT_AUTH_SUCCESSFUL);
+				otr_status_change(ircctx,from,IO_STC_SMP_SUCCESS);
 			} else {
 				otr_notice(ircctx,from,
 					   TXT_AUTH_FAILED);
 				coi->smp_failed = TRUE;
+				otr_status_change(ircctx,from,IO_STC_SMP_FAILED);
 			}
 			co->smstate->nextExpected = OTRL_SMP_EXPECT1;
 			coi->received_smp_init = FALSE;
@@ -606,25 +627,30 @@ void otr_handle_tlvs(OtrlTLV *tlvs, ConnContext *co,
 			if (trust&&(*trust!='\0')) {
 				otr_notice(ircctx,from,
 					   TXT_AUTH_SUCCESSFUL);
+				otr_status_change(ircctx,from,IO_STC_SMP_SUCCESS);
 			} else {
 				/* unreachable since 4 is never sent out on
 				 * error */
 				otr_notice(ircctx,from,
 					   TXT_AUTH_FAILED);
 				coi->smp_failed = TRUE;
+				otr_status_change(ircctx,from,IO_STC_SMP_FAILED);
 			}
 			co->smstate->nextExpected = OTRL_SMP_EXPECT1;
 			coi->received_smp_init = FALSE;
 		}
 	}
-	if (abort)
+	if (abort) {
 		otr_abort_auth(co,ircctx,from);
+		otr_status_change(ircctx,from,IO_STC_SMP_ABORTED);
+	}
 
 	tlv = otrl_tlv_find(tlvs, OTRL_TLV_DISCONNECTED);
-	if (tlv)
+	if (tlv) {
+		otr_status_change(ircctx,from,IO_STC_SMP_PEER_FINISHED);
 		otr_notice(ircctx,from,TXT_PEER_FINISHED,from);
+	}
 
-	statusbar_items_redraw("otr");
 }
 
 /*

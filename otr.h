@@ -140,6 +140,43 @@ struct ctxlist_ {
 	struct ctxlist_ *next;
 };
 
+/* returned by otr_getstatus */
+enum { 
+	IO_ST_PLAINTEXT,
+	IO_ST_FINISHED,
+	IO_ST_SMP_INCOMING,
+	IO_ST_SMP_OUTGOING,
+	IO_ST_SMP_FINALIZE,
+	IO_ST_UNKNOWN,
+	IO_ST_UNTRUSTED=32,
+	IO_ST_TRUST_MANUAL=64,
+	IO_ST_TRUST_SMP=128,
+	IO_ST_SMP_ONGOING=
+		IO_ST_SMP_INCOMING|IO_ST_SMP_OUTGOING|IO_ST_SMP_FINALIZE
+};
+
+/* given to otr_status_change */
+enum {
+	IO_STC_FINISHED,
+	IO_STC_TRUST_MANUAL,
+	IO_STC_TRUST_SMP,
+	IO_STC_SMP_ABORT,
+	IO_STC_SMP_STARTED,
+	IO_STC_SMP_RESPONDED,
+	IO_STC_SMP_INCOMING,
+	IO_STC_SMP_FINALIZE,
+	IO_STC_SMP_ABORTED,
+	IO_STC_SMP_PEER_FINISHED,
+	IO_STC_SMP_FAILED,
+	IO_STC_SMP_SUCCESS,
+	IO_STC_GONE_SECURE,
+	IO_STC_GONE_INSECURE,
+	IO_STC_CTX_UPDATE
+};
+
+/* the above as text for scripting */
+extern char *otr_status_txt[];
+
 /* policy list generated from /set otr_policy */
 
 struct plistentry {
@@ -151,6 +188,7 @@ struct plistentry {
 extern int debug;
 
 void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg);
+void otr_status_change(IRC_CTX *ircctx, const char *nick, int event);
 IRC_CTX *ircctx_by_peername(const char *peername, char *nick);
 
 /* init stuff */
@@ -200,5 +238,6 @@ extern struct _cmds cmds[];
 
 int cmd_generic(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	    char *target);
+int otr_getstatus_format(IRC_CTX *ircctx, char *nick);
 
 void io_explode_args(const char *args, char ***argvp, char ***argv_eolp, int *argcp);

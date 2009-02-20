@@ -21,9 +21,16 @@
 
 int debug = FALSE;
 
+static const char *signal_args_otr_event[] = {
+	"iobject", "string", "string", "NULL" };
+
 #ifdef HAVE_GREGEX_H
 GRegex *regex_nickignore = NULL;
 #endif
+
+/* need this to decode arguments in perl signal handlers. Maybe irssi should
+ * install perl/perl-signals.h which is where this definition comes from? */
+void perl_signal_register(const char *signal, const char **args);
 
 static IOUSTATE *ioustate;
 
@@ -134,7 +141,7 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 	int formatnum=0;
 
 	if (query&&query->server&&query->server->connrec)
-		formatnum = otr_getstatus(query->server,query->name);
+		formatnum = otr_getstatus_format(query->server,query->name);
 
 	statusbar_item_default_handler(
 		item, 
@@ -162,6 +169,12 @@ static void read_settings(void)
 	regex_nickignore = g_regex_new(settings_get_str("otr_ignore"),0,0,NULL);
 #endif
 
+}
+
+void otr_status_change(IRC_CTX *ircctx, const char *nick, int event)
+{
+	statusbar_items_redraw("otr");
+	signal_emit("otr event",3,ircctx,nick,otr_status_txt[event]);
 }
 
 /*
@@ -198,6 +211,7 @@ void otr_init(void)
 
 	statusbar_items_redraw("window");
 
+	perl_signal_register("otr event",signal_args_otr_event);
 }
 
 /*
