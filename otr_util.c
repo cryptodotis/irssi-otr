@@ -268,7 +268,7 @@ struct ctxlist_ *otr_contexts(IOUSTATE *ioustate)
 /*
  * Get the OTR status of this conversation.
  */
-int otr_getstatus(IRC_CTX *ircctx, char *nick)
+int otr_getstatus(IRC_CTX *ircctx, const char *nick)
 {
 	ConnContext *co;
 	char accname[128];

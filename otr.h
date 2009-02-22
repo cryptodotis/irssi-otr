@@ -204,7 +204,7 @@ void otr_deinit_user(IOUSTATE *ioustate);
 
 char *otr_send(IRC_CTX *server,const char *msg,const char *to);
 char *otr_receive(IRC_CTX *server,const char *msg,const char *from);
-int otr_getstatus(IRC_CTX *ircctx, char *nick);
+int otr_getstatus(IRC_CTX *ircctx, const char *nick);
 ConnContext *otr_getcontext(const char *accname,const char *nick,int create,IRC_CTX *ircctx);
 
 /* user interaction */
@@ -238,6 +238,6 @@ extern struct _cmds cmds[];
 
 int cmd_generic(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
 	    char *target);
-int otr_getstatus_format(IRC_CTX *ircctx, char *nick);
+int otr_getstatus_format(IRC_CTX *ircctx, const char *nick);
 
 void io_explode_args(const char *args, char ***argvp, char ***argv_eolp, int *argcp);

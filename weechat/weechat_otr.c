@@ -27,6 +27,7 @@ WEECHAT_PLUGIN_WEECHAT_VERSION("unknown");
 WEECHAT_PLUGIN_LICENSE("GPL3");
 
 struct t_weechat_plugin *weechat_otr_plugin = NULL;
+struct t_gui_bar_item *otr_statusbar;
 
 int debug = 0;
 
@@ -102,11 +103,25 @@ void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
 	weechat_command(NULL,nmsg);
 }
 
-IRC_CTX *server_find_address(char *address)
+IRC_CTX *ircctx_by_peername(const char *peername, char *nick)
 {
+	char *address;
 	static IRC_CTX ircctx;
+	static char pname[256];
+
+	strcpy(pname,peername);
+
+	address = strchr(pname,'@');
+
+	if (!address)
+		return NULL;
+
+	*address = '\0';
+	strcpy(nick,pname);
+	*address++ = '@';
 
 	ircctx.address = address;
+	ircctx.nick = pname;
 
         return &ircctx;
 }
@@ -249,6 +264,48 @@ int cmd_otr(void *data, struct t_gui_buffer *buffer, int argc, char **word, char
 	return WEECHAT_RC_OK;
 }
 
+/*
+ * otr status bar
+ */
+char* otr_statusbar_callback (void *data,
+			      struct t_gui_bar_item *item,
+			      struct t_gui_window *window)
+{
+	const char *target;
+	IRC_CTX ircctx;
+	int formatnum;
+	struct t_gui_buffer *buffer = 
+		weechat_window_get_pointer(window, "buffer");
+	const char *type = weechat_buffer_get_string (buffer, "localvar_type");
+
+	if (!type || strcmp(type, "private") != 0) 
+		return strdup("");
+	
+	ircctx.nick = (char*)weechat_buffer_get_string(buffer,"localvar_nick");
+	ircctx.address =  (char*)weechat_buffer_get_string(buffer,"localvar_server");
+	target = weechat_buffer_get_string(buffer,"short_name");
+
+	formatnum = otr_getstatus_format(&ircctx, target);
+
+	return strdup (formats[formatnum].def);
+}
+
+
+void otr_status_change(IRC_CTX *ircctx, const char *nick, int event)
+{
+	char signalname[128];
+	char servernick[256];
+
+	sprintf(signalname,"OTR_%s",otr_status_txt[event]);
+	sprintf(servernick,"%s,%s",ircctx->address,nick);
+
+	weechat_hook_signal_send(signalname,
+				 WEECHAT_HOOK_SIGNAL_STRING,
+				 servernick);
+
+	weechat_bar_item_update("otr");
+}
+
 int weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[])
 {
 
@@ -281,11 +338,16 @@ int weechat_plugin_init (struct t_weechat_plugin *plugin, int argc, char *argv[]
 	cmds[CMDCOUNT].name = "set";
 	cmds[CMDCOUNT].cmdfunc = cmd_set;
 
+	otr_statusbar = weechat_bar_item_new ("otr", &otr_statusbar_callback, NULL);
+	weechat_bar_item_update ("otr");
+
 	return WEECHAT_RC_OK;
 }
 
 int weechat_plugin_end (struct t_weechat_plugin *plugin)
 {
+	weechat_bar_item_remove(otr_statusbar);
+
 	otr_deinit_user(ioustate);
 
 	otrlib_deinit();

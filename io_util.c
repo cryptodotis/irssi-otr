@@ -237,7 +237,7 @@ void io_explode_args(const char *args, char ***argvp, char ***argv_eolp, int *ar
 /*
  * Get a format describing the OTR status of this conversation.
  */
-int otr_getstatus_format(IRC_CTX *ircctx, char *nick)
+int otr_getstatus_format(IRC_CTX *ircctx, const char *nick)
 {
 	int status = otr_getstatus(ircctx,nick);
 
