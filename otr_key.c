@@ -140,7 +140,8 @@ void keygen_run(IOUSTATE *ioustate, const char *accname)
 	int ret;
 	int fds[2];
 	char *filename = g_strconcat(get_client_config_dir(),TMPKEYFILE,NULL);
-	char *dir = dirname(g_strdup(filename));
+	char *filenamedup = g_strdup(filename);
+	char *dir = dirname(filenamedup);
 
 	if (kg_st.status!=KEYGEN_NO) {
 		if (strcmp(accname,kg_st.accountname)!=0)
@@ -153,13 +154,13 @@ void keygen_run(IOUSTATE *ioustate, const char *accname)
 		if (g_mkdir(dir,S_IRWXU)) {
 			otr_noticest(TXT_KG_ABORTED_DIR,
 				     accname,dir,strerror(errno));
-			g_free(dir);
+			g_free(filenamedup);
 			g_free(filename);
 			return;
 		} else
 			otr_noticest(TXT_KG_MKDIR,dir);
 	}
-	g_free(dir);
+	g_free(filenamedup);
 
 	if (pipe(fds) != 0) {
 		otr_noticest(TXT_KG_PIPE,
