@@ -93,6 +93,10 @@ FIND_PACKAGE(LibOTR REQUIRED)
 IF (LIBOTR_VERSION LESS "3.1.0")
   MESSAGE(FATAL_ERROR "Need libotr version >= 3.1.0 (fragmentation)")
 ENDIF (LIBOTR_VERSION LESS "3.1.0")
+IF (LIBOTR_VERSION LESS "4.0.0")
+  MESSAGE(STATUS "libotr<4, no Q&A authentication support")
+  SET(LIBOTR3 ON)
+ENDIF (LIBOTR_VERSION LESS "4.0.0")
 
 # LIBGCRYPT. A dependency of libotr and therefore one of ours.
 

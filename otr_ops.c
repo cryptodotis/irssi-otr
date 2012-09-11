@@ -102,9 +102,14 @@ void ops_inject_msg(void *opdata, const char *accountname,
 	g_strdelimit (msgcopy,"\n",' ');
 	a_serv = opdata;
 	if (!a_serv) {
+		char nick[256];
+		a_serv = ircctx_by_peername(accountname,nick);
+	}
+	if (!a_serv) {
 		otr_notice(a_serv,recipient,TXT_OPS_INJECT,
 			   accountname,recipient,message);
 	} else {
+		otr_logst(MSGLEVEL_CRAP,"%d: INJECT %s",time(NULL),msgcopy);
 		irc_send_message(a_serv, recipient, msgcopy);
 	}
 	g_free(msgcopy);
@@ -193,6 +198,10 @@ void ops_secure(void *opdata, ConnContext *context)
 	otr_notice(coi->ircctx,
 		   context->username,TXT_OPS_SEC);
 	otr_status_change(coi->ircctx,context->username,IO_STC_GONE_SECURE);
+
+	//TODO: pull master context
+	coi->finished = FALSE;
+
 	if (*trust!='\0')
 		return;
 
@@ -252,6 +261,21 @@ int ops_max_msg(void *opdata, ConnContext *context)
 	return OTR_MAX_MSG_SIZE;
 }
 
+#ifndef LIBOTR3
+void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
+			 ConnContext *context, const char *message,
+			 gcry_error_t err)
+{
+	IRC_CTX *server  = opdata;
+	char *username = context->username;
+
+	otr_debug(server,
+		  username,
+		  TXT_OPS_HANDLE_MSG,
+		  otr_msg_event_txt[msg_event],message);
+}
+#endif
+
 /*
  * A context changed. 
  * I believe this is not happening for the SMP expects.
@@ -280,6 +304,66 @@ int ops_is_logged_in(void *opdata, const char *accountname,
 	return TRUE;
 }
 
+#ifndef LIBOTR3
+void ops_create_instag(void *opdata, const char *accountname,
+		      const char *protocol)
+{
+	otrl_instag_generate(IRCCTX_IO_US(ircctx)->otr_state,"/dev/null",accountname,protocol);
+	otr_writeinstags(IRCCTX_IO_US(ircctx));
+}
+
+void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
+		   ConnContext *context, unsigned short progress_percent,
+		   char *question)
+{
+	IRC_CTX *ircctx = (opdata);
+	char *from = context->username;
+	struct co_info *coi = context->app_data;
+
+	coi->received_smp_init = 
+		(smp_event==OTRL_SMPEVENT_ASK_FOR_SECRET)||
+		(smp_event==OTRL_SMPEVENT_ASK_FOR_ANSWER);
+
+	switch (smp_event) {
+	case OTRL_SMPEVENT_ASK_FOR_SECRET:
+		otr_notice(ircctx,from,TXT_AUTH_PEER,
+			   from);
+		otr_status_change(ircctx,from,IO_STC_SMP_INCOMING);
+		break;
+	case OTRL_SMPEVENT_ASK_FOR_ANSWER:
+		otr_notice(ircctx,from,TXT_AUTH_PEER_QA,from,question);
+		otr_status_change(ircctx,from,IO_STC_SMP_INCOMING);
+		break;
+	case OTRL_SMPEVENT_IN_PROGRESS:
+		otr_notice(ircctx,from,
+			   TXT_AUTH_PEER_REPLIED,
+			   from);
+		otr_status_change(ircctx,from,IO_STC_SMP_FINALIZE);
+		break;
+	case OTRL_SMPEVENT_SUCCESS:
+		otr_notice(ircctx,from,
+			   TXT_AUTH_SUCCESSFUL);
+		otr_status_change(ircctx,from,IO_STC_SMP_SUCCESS);
+		break;
+	case OTRL_SMPEVENT_ABORT:
+		otr_abort_auth(context,ircctx,from);
+		otr_status_change(ircctx,from,IO_STC_SMP_ABORTED);
+		break;
+	case OTRL_SMPEVENT_FAILURE:
+	case OTRL_SMPEVENT_CHEATED:
+	case OTRL_SMPEVENT_ERROR:
+		otr_notice(ircctx,from,TXT_AUTH_FAILED);
+		coi->smp_failed = TRUE;
+		otr_status_change(ircctx,from,IO_STC_SMP_FAILED);
+		break;
+	default:
+		otr_logst(MSGLEVEL_CRAP,"Received unknown SMP event");
+		break;
+	}
+}
+
+#endif
+
 /*
  * Initialize our OtrlMessageAppOps
  */
@@ -289,14 +373,21 @@ void otr_initops() {
 	otr_ops.policy = ops_policy;
 	otr_ops.create_privkey = ops_create_privkey;
 	otr_ops.inject_message = ops_inject_msg;
-	otr_ops.notify = ops_notify;
-	otr_ops.display_otr_message = ops_display_msg;
 	otr_ops.gone_secure = ops_secure;
 	otr_ops.gone_insecure = ops_insecure;
 	otr_ops.still_secure = ops_still_secure;
-	otr_ops.log_message = ops_log;
 	otr_ops.max_message_size = ops_max_msg;
 	otr_ops.update_context_list = ops_up_ctx_list;
 	otr_ops.write_fingerprints = ops_writefps;
 	otr_ops.is_logged_in = ops_is_logged_in;
+
+#ifdef LIBOTR3
+	otr_ops.notify = ops_notify;
+	otr_ops.display_otr_message = ops_display_msg;
+	otr_ops.log_message = ops_log;
+#else
+	otr_ops.handle_msg_event = ops_handle_msg_event;
+	otr_ops.create_instag = ops_create_instag;
+	otr_ops.handle_smp_event = ops_smp_event;
+#endif
 }

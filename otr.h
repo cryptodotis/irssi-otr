@@ -105,6 +105,7 @@ void otr_log(IRC_CTX *server, const char *to,
 #define KEYFILE    "/otr/otr.key"
 #define TMPKEYFILE "/otr/otr.key.tmp"
 #define FPSFILE    "/otr/otr.fp"
+#define INSTAGFILE "/otr/otr.instag"
 
 /* some defaults */
 #define IO_DEFAULT_POLICY "*@localhost opportunistic,*bitlbee* opportunistic,*@im.* opportunistic, *serv@irc* never"
@@ -174,6 +175,9 @@ enum {
 	IO_STC_CTX_UPDATE
 };
 
+/* libotr4 handle_msg_event */
+extern char *otr_msg_event_txt[];
+
 /* the above as text for scripting */
 extern char *otr_status_txt[];
 
@@ -211,8 +215,10 @@ ConnContext *otr_getcontext(const char *accname,const char *nick,int create,IRC_
 
 void otr_trust(IRC_CTX *server, char *nick, const char *peername);
 void otr_finish(IRC_CTX *server, char *nick, const char *peername, int inquery);
-void otr_auth(IRC_CTX *server, char *nick, const char *peername, const char *secret);
+void otr_auth(IRC_CTX *server, char *nick, const char *peername,
+	      const char *question, const char *secret);
 void otr_authabort(IRC_CTX *server, char *nick, const char *peername);
+void otr_abort_auth(ConnContext *co, IRC_CTX *ircctx, const char *nick);
 struct ctxlist_ *otr_contexts(IOUSTATE *ioustate);
 void otr_finishall(IOUSTATE *ioustate);
 
@@ -224,6 +230,12 @@ void keygen_abort(IOUSTATE *ioustate,int ignoreidle);
 void key_load(IOUSTATE *ioustate);
 void fps_load(IOUSTATE *ioustate);
 void otr_writefps(IOUSTATE *ioustate);
+
+#ifndef LIBOTR3
+/* instance tags */
+void instag_load(IOUSTATE *ioustate);
+void otr_writeinstags(IOUSTATE *ioustate);
+#endif
 
 int extract_nick(char *nick, char *line);
 

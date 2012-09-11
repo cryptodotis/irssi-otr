@@ -37,6 +37,25 @@ char *otr_status_txt[] = {
 	"CTX_UPDATE"
 };
 
+char *otr_msg_event_txt[] = {
+	"NONE",
+	"ENCRYPTION_REQUIRED",
+	"ENCRYPTION_ERROR",
+	"CONNECTION_ENDED",
+	"SETUP_ERROR",
+	"MSG_REFLECTED",
+	"MSG_RESENT",
+	"RCVDMSG_NOT_IN_PRIVATE",
+	"RCVDMSG_UNREADABLE",
+	"RCVDMSG_MALFORMED",
+	"LOG_HEARTBEAT_RCVD",
+	"LOG_HEARTBEAT_SENT",
+	"RCVDMSG_GENERAL_ERR",
+	"RCVDMSG_UNENCRYPTED",
+	"RCVDMSG_UNRECOGNIZED",
+	"RCVDMSG_FOR_OTHER_INSTANCE"
+};
+
 int extract_nick(char *nick, char *line)
 {
 	char *excl;
@@ -141,18 +160,50 @@ void cmd_genkey(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], cha
 	}
 }
 
-void cmd_auth(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
-	     char *target) {
-	if (!argc) {
+void _cmd_auth(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+	       char *target, int qanda) {
+	char *accountname = NULL;
+	char *question = NULL;
+	char *secret;
+
+	/* have args? */
+	if (argc<(qanda ? 2 : 1)) {
 		otr_notice(ircctx,target,
 			   TXT_CMD_AUTH);
-	} else if ((argc>1)&&strchr(argv[0],'@')) {
-	    otr_auth(NULL,NULL,argv[0],argv[1]);
-	} else if (ircctx&&target) {
-		otr_auth(ircctx,target,NULL,argv_eol[0]);
-	} else {
-		otr_noticest(TXT_CMD_QNOTFOUND);
+		return;
 	}
+
+	/* have buddy? */
+	if (!(ircctx&&target)) {
+		accountname = strchr(argv[0],'@');
+		if (!accountname) {
+			otr_noticest(TXT_CMD_QNOTFOUND);
+			return;
+		}
+		ircctx = NULL;
+		target = NULL;
+		argv++;argv_eol++;argc--;
+	}
+
+	/* have question? */
+	if (qanda) {
+		question = argv[0];
+		argv++;argv_eol++;argc--;
+	}
+
+	secret  = argv_eol[0];
+
+	otr_auth(ircctx,target,accountname,question,secret);
+}
+
+void cmd_authq(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+	     char *target) {
+	_cmd_auth(ioustate,ircctx,argc,argv,argv_eol,target,TRUE);
+}
+
+void cmd_auth(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
+	     char *target) {
+	_cmd_auth(ioustate,ircctx,argc,argv,argv_eol,target,FALSE);
 }
 
 /*
@@ -199,6 +250,9 @@ struct _cmds cmds[] = {
 	{ "trust", cmd_trust },
 	{ "authabort", cmd_authabort },
 	{ "auth", cmd_auth },
+#ifndef LIBOTR3
+	{ "authq", cmd_authq },
+#endif
 	{ "genkey", cmd_genkey },
 	{ "contexts", cmd_contexts },
 	{ NULL, NULL },

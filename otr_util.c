@@ -42,6 +42,9 @@ IOUSTATE *otr_init_user(char *user)
 
 	/* load keys and fingerprints */
 
+#ifndef LIBOTR3
+	instag_load(ioustate);
+#endif
 	key_load(ioustate);
 	fps_load(ioustate);
 
@@ -67,6 +70,12 @@ void otr_deinit_user(IOUSTATE *ioustate)
 int otrlib_init()
 {
 	if (!otrinited) {
+		/* apparently used in pidgin-otr to
+		 * force gcrypt to /dev/urandom */
+		/*
+		gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
+		gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+		*/
 		OTRL_INIT;
 		otrinited = TRUE;
 	}
@@ -142,6 +151,9 @@ ConnContext *otr_getcontext(const char *accname,const char *nick,
 		nick,
 		accname,
 		PROTOCOLID,
+#ifndef LIBOTR3
+		OTRL_INSTAG_BEST,
+#endif
 		create,
 		NULL,
 		context_add_app_info,
@@ -168,6 +180,7 @@ char *otr_send(IRC_CTX *ircctx, const char *msg,const char *to)
 
 	IRCCTX_ACCNAME(accname,ircctx);
 
+	otr_logst(MSGLEVEL_CRAP,"%d: send...",time(NULL));
 	err = otrl_message_sending(
 		IRCCTX_IO_US(ircctx)->otr_state, 
 		&otr_ops, 
@@ -175,11 +188,19 @@ char *otr_send(IRC_CTX *ircctx, const char *msg,const char *to)
 		accname,
 		PROTOCOLID, 
 		to, 
+#ifndef LIBOTR3
+		OTRL_INSTAG_BEST,
+#endif
 		msg, 
 		NULL, 
 		&newmessage, 
+#ifndef LIBOTR3
+		OTRL_FRAGMENT_SEND_ALL, 
+		&co,
+#endif
 		context_add_app_info, 
 		ircctx);
+	otr_logst(MSGLEVEL_CRAP,"%d: sent",time(NULL));
 
 	if (err != 0) {
 		otr_notice(ircctx,to,TXT_SEND_FAILED,msg);
@@ -191,6 +212,7 @@ char *otr_send(IRC_CTX *ircctx, const char *msg,const char *to)
 
 	/* OTR message. Need to do fragmentation */
 
+#ifdef LIBOTR3
 	if (!(co = otr_getcontext(accname,to,FALSE,ircctx))) {
 		otr_notice(ircctx,to,TXT_SEND_CHANGE);
 		return NULL;
@@ -208,6 +230,8 @@ char *otr_send(IRC_CTX *ircctx, const char *msg,const char *to)
 		otr_notice(ircctx,to,TXT_SEND_FRAGMENT,msg);
 	} else
 		otr_debug(ircctx,to,TXT_SEND_CONVERTED,newmessage);
+
+#endif
 
 	return NULL;
 }
@@ -303,7 +327,7 @@ int otr_getstatus(IRC_CTX *ircctx, const char *nick)
 			code = IO_ST_SMP_FINALIZE;
 			break;
 		default:
-			otr_logst(MSGLEVEL_CRAP,"BUG Found! Please write us a mail and describe how you got here");
+			otr_logst(MSGLEVEL_CRAP,"Encountered unknown SMP state in libotr, please let maintainers know");
 			return IO_ST_UNKNOWN;
 		}
 
@@ -349,8 +373,15 @@ void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 		return;
 	}
 
-	otrl_message_disconnect(IRCCTX_IO_US(ircctx)->otr_state,&otr_ops,ircctx,accname,
-				PROTOCOLID,nick);
+	otrl_message_disconnect(IRCCTX_IO_US(ircctx)->otr_state,
+				&otr_ops,ircctx,accname,
+				PROTOCOLID,
+#ifdef LIBOTR3
+				nick);
+#else
+				nick,co->their_instance);
+#endif
+
 	otr_status_change(ircctx,nick,IO_STC_FINISHED);
 
 	if (inquery) {
@@ -365,6 +396,24 @@ void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 	 * we're called cause the query window has been closed. */
 	if (coi) 
 		coi->finished = inquery;
+
+#ifndef LIBOTR3
+	// write the finished into the master as well
+	co = otrl_context_find(
+		IRCCTX_IO_US(ircctx)->otr_state,
+		nick,
+		accname,
+		PROTOCOLID,
+		OTRL_INSTAG_MASTER,
+		FALSE,
+		NULL,
+		NULL,
+		NULL);
+	coi = co->app_data;
+	if (coi) 
+		coi->finished = inquery;
+#endif
+
 }
 
 void otr_finishall(IOUSTATE *ioustate)
@@ -382,7 +431,11 @@ void otr_finishall(IOUSTATE *ioustate)
 		otrl_message_disconnect(ioustate->otr_state,&otr_ops,coi->ircctx,
 					context->accountname,
 					PROTOCOLID,
+#ifdef LIBOTR3
 					context->username);
+#else
+					context->username,context->their_instance);
+#endif
 		otr_status_change(coi->ircctx,context->username,IO_STC_FINISHED);
 
 		otr_infost(TXT_CMD_FINISH,context->username,
@@ -480,7 +533,8 @@ void otr_authabort(IRC_CTX *ircctx, char *nick, const char *peername)
 /*
  * Initiate or respond to SMP authentication.
  */
-void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *secret)
+void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername,
+	      const char *question, const char *secret)
 {
 	ConnContext *co;
 	char accname[128];
@@ -525,13 +579,26 @@ void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername, const char *sec
 	}
 
 	if (!coi->received_smp_init) {
-		otrl_message_initiate_smp(
-			IRCCTX_IO_US(ircctx)->otr_state, 
-			&otr_ops,
-			ircctx,
-			co,
-			(unsigned char*)secret,
-			strlen(secret));
+#ifndef LIBOTR3
+		if (question)
+			otrl_message_initiate_smp_q(
+				IRCCTX_IO_US(ircctx)->otr_state, 
+				&otr_ops,
+				ircctx,
+				co,
+				question,
+				(unsigned char*)secret,
+				strlen(secret));
+		else
+#endif
+			otrl_message_initiate_smp(
+				IRCCTX_IO_US(ircctx)->otr_state, 
+				&otr_ops,
+				ircctx,
+				co,
+				(unsigned char*)secret,
+				strlen(secret));
+
 		otr_status_change(ircctx,nick,IO_STC_SMP_STARTED);
 	} else {
 		otrl_message_respond_smp(
@@ -723,6 +790,7 @@ char *otr_receive(IRC_CTX *ircctx, const char *msg,const char *from)
 		return NULL;
 	}
 
+	otr_logst(MSGLEVEL_CRAP,"%d: receive...",time(NULL));
 	ignore_message = otrl_message_receiving(
 		IRCCTX_IO_US(ircctx)->otr_state,
 		&otr_ops,
@@ -733,11 +801,28 @@ char *otr_receive(IRC_CTX *ircctx, const char *msg,const char *from)
 		msg, 
 		&newmessage,
 		&tlvs,
+#ifdef LIBOTR3
 		NULL,
 		NULL);
+#else
+		&co,
+		context_add_app_info,
+		ircctx);
+#endif
+	otr_logst(MSGLEVEL_CRAP,"%d: received",time(NULL));
 
-	if (tlvs) 
+	if (tlvs) {
+#ifdef LIBOTR3
 		otr_handle_tlvs(tlvs,co,coi,ircctx,from);
+#else
+
+		OtrlTLV *tlv = otrl_tlv_find(tlvs, OTRL_TLV_DISCONNECTED);
+		if (tlv) {
+			otr_status_change(ircctx,from,IO_STC_PEER_FINISHED);
+			otr_notice(ircctx,from,TXT_PEER_FINISHED,from);
+		}
+#endif
+	}
 	
 	if (ignore_message) {
 		otr_debug(ircctx,from,

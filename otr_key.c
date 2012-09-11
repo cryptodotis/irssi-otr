@@ -139,8 +139,8 @@ void keygen_run(IOUSTATE *ioustate, const char *accname)
 	gcry_error_t err;
 	int ret;
 	int fds[2];
-	char *filename = g_strconcat(get_client_config_dir(),TMPKEYFILE,NULL);
-	char *dir = dirname(g_strdup(filename));
+	char *filename = g_strconcat(get_client_config_dir(),TMPKEYFILE,NULL), *filenamedup = g_strdup(filename);
+	char *dir = dirname(filenamedup);
 
 	if (kg_st.status!=KEYGEN_NO) {
 		if (strcmp(accname,kg_st.accountname)!=0)
@@ -159,7 +159,7 @@ void keygen_run(IOUSTATE *ioustate, const char *accname)
 		} else
 			otr_noticest(TXT_KG_MKDIR,dir);
 	}
-	g_free(dir);
+	g_free(filenamedup);
 
 	if (pipe(fds) != 0) {
 		otr_noticest(TXT_KG_PIPE,
@@ -203,7 +203,7 @@ void keygen_run(IOUSTATE *ioustate, const char *accname)
 	err = otrl_privkey_generate(ioustate->otr_state,filename,accname,PROTOCOLID);
 	write(fds[1],&err,sizeof(err));
 
-	//g_free(filename);
+	g_free(filename);
 	_exit(0);
 }
 
@@ -251,6 +251,28 @@ void otr_writefps(IOUSTATE *ioustate)
 	}
 	g_free(filename);
 }
+
+#ifndef LIBOTR3
+/* 
+ * Write instance tags to file.
+ */
+void otr_writeinstags(IOUSTATE *ioustate)
+{
+	gcry_error_t err;
+	char *filename = g_strconcat(get_client_config_dir(),INSTAGFILE,NULL);
+
+	err = otrl_instag_write(ioustate->otr_state,filename);
+
+	if (err == GPG_ERR_NO_ERROR) {
+		otr_noticest(TXT_INSTAG_SAVED);
+	} else {
+		otr_noticest(TXT_INSTAG_SAVE_ERROR,
+			     gcry_strerror(err),
+			     gcry_strsource(err));
+	}
+	g_free(filename);
+}
+#endif
 
 /*
  * Load private keys.
@@ -302,3 +324,29 @@ void fps_load(IOUSTATE *ioustate)
 	g_free(filename);
 }
 
+#ifndef LIBOTR3
+/*
+ * Load instance tags.
+ */
+void instag_load(IOUSTATE *ioustate)
+{
+	gcry_error_t err;
+	char *filename = g_strconcat(get_client_config_dir(),INSTAGFILE,NULL);
+
+	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
+		otr_noticest(TXT_INSTAG_NOT_FOUND);
+		return;
+	}
+
+	err = otrl_instag_read(ioustate->otr_state,filename);
+
+	if (err == GPG_ERR_NO_ERROR) {
+		otr_noticest(TXT_INSTAG_LOADED);
+	} else {
+		otr_noticest(TXT_INSTAG_LOAD_ERROR,
+			     gcry_strerror(err),
+			     gcry_strsource(err));
+	}
+	g_free(filename);
+}
+#endif
