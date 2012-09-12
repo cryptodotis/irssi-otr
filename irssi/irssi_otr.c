@@ -77,11 +77,71 @@ static void sig_message_private(SERVER_REC *server, const char *msg,
 	newmsg = otr_receive(server,msg,nick);
 
 	if (newmsg&&(newmsg!=msg)) {
-		signal_continue(4,server,newmsg,nick,address);
+		if (g_str_has_prefix(newmsg,IRCACTIONMARK)) {
+			signal_stop();
+			signal_emit("message irc action",
+				    5,
+				    server,
+				    newmsg+IRCACTIONMARKLEN,
+				    nick,
+				    address,
+				    nick);
+
+		} else {
+			signal_continue(4,server,newmsg,nick,address);
+		}
 		otrl_message_free(newmsg);
 	} else if (newmsg==NULL)
 		signal_stop();
 }
+
+static void cmd_me(const char *data, IRC_SERVER_REC *server, WI_ITEM_REC *item)
+{
+	QUERY_REC *query = QUERY(item);
+        const char *target;
+	char *otrmsg,*msg;
+	int unchanged;
+
+	if (!query || !query->server)
+		return;
+
+        CMD_IRC_SERVER(server);
+        if (!IS_IRC_QUERY(item))
+                return;
+
+        if (server == NULL || !server->connected)
+                cmd_return_error(CMDERR_NOT_CONNECTED);
+
+        target = window_item_get_target(item);
+
+#ifdef HAVE_GREGEX_H
+	if (g_regex_match(regex_nickignore,target,0,NULL))
+		return;
+#endif
+
+	/* since we can't track the message anymore once it's encrypted,
+	 * mark it as a /me inline.
+	 */
+	msg = g_strconcat(IRCACTIONMARK,data,NULL);
+	otrmsg = otr_send(query->server,msg,target);
+
+	unchanged = otrmsg==msg;
+	g_free(msg);
+
+	if (unchanged)
+		return;
+
+	signal_stop();
+
+	if (otrmsg) {
+		irc_send_message(SERVER(server), target, otrmsg);
+		otrl_message_free(otrmsg);
+	}
+
+        signal_emit("message irc own_action", 3, server, data,
+                    item->visible_name);
+}
+
 
 /*
  * Finish an OTR conversation when its query is closed.
@@ -193,6 +253,7 @@ void otr_init(void)
 
 	signal_add_first("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
 	signal_add_first("message private", (SIGNAL_FUNC) sig_message_private);
+	command_bind_irc_first("me", NULL, (SIGNAL_FUNC) cmd_me);
 	signal_add("query destroyed", (SIGNAL_FUNC) sig_query_destroyed);
 
 	command_bind("otr", NULL, (SIGNAL_FUNC) cmd_otr);
@@ -225,6 +286,7 @@ void otr_deinit(void)
 
 	signal_remove("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
 	signal_remove("message private", (SIGNAL_FUNC) sig_message_private);
+	command_unbind("me", (SIGNAL_FUNC) cmd_me);
 	signal_remove("query destroyed", (SIGNAL_FUNC) sig_query_destroyed);
 
 	command_unbind("otr", (SIGNAL_FUNC) cmd_otr);

@@ -112,6 +112,14 @@ void otr_log(IRC_CTX *server, const char *to,
 #define IO_DEFAULT_POLICY_KNOWN "* always"
 #define IO_DEFAULT_IGNORE "xmlconsole[0-9]*"
 
+/* used as a prefix for /me messages.
+ * This makes it readable and sensible for
+ * people not on IRC (i.e. in case of a gateway
+ * like bitlbee)
+ */ 
+#define IRCACTIONMARK "/me "
+#define IRCACTIONMARKLEN 4
+
 /* one for each OTR context (=communication pair) */
 struct co_info {
 	char *msgqueue;			/* holds partially reconstructed base64

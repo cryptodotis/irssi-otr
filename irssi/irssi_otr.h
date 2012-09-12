@@ -31,6 +31,8 @@
 #include <core/settings.h>
 #include <irc/core/irc.h>
 #include <irc/core/irc-queries.h>
+#include <irc/core/irc-servers.h>
+#include <irc/core/irc-commands.h>
 
 #include <fe-text/statusbar-item.h>
 
