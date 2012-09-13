@@ -1,5 +1,6 @@
 /*
  * Off-the-Record Messaging (OTR) module for the irssi IRC client
+ *
  * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,21 +26,22 @@ static const char *signal_args_otr_event[] = {
 	"iobject", "string", "string", "NULL"
 };
 
-#ifdef HAVE_GREGEX_H
-GRegex *regex_nickignore = NULL;
-#endif
-
-/* need this to decode arguments in perl signal handlers. Maybe irssi should
- * install perl/perl-signals.h which is where this definition comes from? */
-void perl_signal_register(const char *signal, const char **args);
+static const char *lvlstring[] = {
+	"NOTICE", "DEBUG",
+};
 
 static IOUSTATE *ioustate;
 
-void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg)
-{
-	ircctx->send_message(
-		ircctx, recipient, msg, GPOINTER_TO_INT(SEND_TARGET_NICK));
-}
+#ifdef HAVE_GREGEX_H
+/* Define in io_set.c as extern */
+GRegex *regex_nickignore = NULL;
+#endif
+
+/*
+ * Need this to decode arguments in perl signal handlers. Maybe irssi should
+ * install perl/perl-signals.h which is where this definition comes from?
+ */
+void perl_signal_register(const char *signal, const char **args);
 
 /*
  * Pipes all outgoing private messages through OTR
@@ -122,10 +124,13 @@ static void cmd_me(const char *data, IRC_SERVER_REC *server,
 		return;
 #endif
 
-	/* since we can't track the message anymore once it's encrypted,
-	 * mark it as a /me inline.
+	/*
+	 * Since we can't track the message anymore once it's encrypted, mark it
+	 * as
+	 * a /me inline.
 	 */
 	msg = g_strconcat(IRCACTIONMARK, data, NULL);
+
 	otrmsg = otr_send(query->server, msg, target);
 
 	unchanged = otrmsg == msg;
@@ -157,7 +162,7 @@ static void sig_query_destroyed(QUERY_REC *query)
 }
 
 /*
- * /otr
+ * Irssi command /otr <arg>...
  */
 static void cmd_otr(const char *data, void *server, WI_ITEM_REC *item)
 {
@@ -209,19 +214,9 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 		formatnum = otr_getstatus_format(query->server, query->name);
 
 	statusbar_item_default_handler(
-		item,
-		get_size_only,
-		formatnum ? formats[formatnum].def : "", " ", FALSE);
-}
-
-void otr_query_create(SERVER_REC *server, const char *nick)
-{
-	if (!server || !nick ||
-	    !settings_get_bool("otr_createqueries") ||
-	    query_find(server, nick))
-		return;
-
-	irc_query_create(server->tag, nick, TRUE);
+		item, get_size_only,
+		formatnum ? formats[formatnum].def :
+		"", " ", FALSE);
 }
 
 static void read_settings(void)
@@ -236,10 +231,76 @@ static void read_settings(void)
 #endif
 }
 
+void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg)
+{
+	ircctx->send_message(ircctx, recipient, msg,
+			     GPOINTER_TO_INT(SEND_TARGET_NICK));
+}
+
 void otr_status_change(IRC_CTX *ircctx, const char *nick, int event)
 {
 	statusbar_items_redraw("otr");
 	signal_emit("otr event", 3, ircctx, nick, otr_status_txt[event]);
+}
+
+IRC_CTX *ircctx_by_peername(const char *peername, char *nick)
+{
+	GSList *tmp;
+	char pname[256];
+	char *address;
+
+	strcpy(pname, peername);
+
+	address = strchr(pname, '@');
+	if (!address)
+		return NULL;
+
+	*address = '\0';
+	strcpy(nick, pname);
+	*address++ = '@';
+
+	for (tmp = servers; tmp != NULL; tmp = tmp->next) {
+		SERVER_REC *server = tmp->data;
+
+		if (g_strcasecmp(server->connrec->address, address) == 0)
+			return server;
+	}
+
+	return NULL;
+}
+
+void otr_query_create(SERVER_REC *server, const char *nick)
+{
+	if (!server || !nick || !settings_get_bool("otr_createqueries")
+	    || query_find(server, nick))
+		return;
+
+	irc_query_create(server->tag, nick, TRUE);
+}
+
+void otr_log(IRC_CTX *server, const char *nick, int level,
+	     const char *format, ...)
+{
+	va_list params;
+	va_start(params, format);
+	char msg[LOGMAX], *s = msg;
+
+	if ((level == LVL_DEBUG) && !debug)
+		return;
+
+	s += sprintf(s, "%s", "%9OTR%9");
+
+	if (level != LVL_NOTICE)
+		s += sprintf(s, "(%s)", lvlstring[level]);
+
+	s += sprintf(s, ": ");
+
+	if (vsnprintf(s, LOGMAX, format, params) < 0)
+		sprintf(s, "internal error parsing error string (BUG)");
+
+	va_end(params);
+
+	printtext(server, nick, MSGLEVEL_MSGS, msg);
 }
 
 /*
@@ -310,61 +371,4 @@ void otr_deinit(void)
 	otrlib_deinit();
 
 	theme_unregister();
-}
-
-IRC_CTX *ircctx_by_peername(const char *peername, char *nick)
-{
-	GSList *tmp;
-	char pname[256];
-	char *address;
-
-	strcpy(pname, peername);
-
-	address = strchr(pname, '@');
-
-	if (!address)
-		return NULL;
-
-	*address = '\0';
-	strcpy(nick, pname);
-	*address++ = '@';
-
-	for (tmp = servers; tmp != NULL; tmp = tmp->next) {
-		SERVER_REC *server = tmp->data;
-
-		if (g_strcasecmp(server->connrec->address, address) == 0)
-			return server;
-	}
-
-	return NULL;
-}
-
-char *lvlstring[] = {
-	"NOTICE",
-	"DEBUG"
-};
-
-
-void otr_log(IRC_CTX *server, const char *nick,
-	     int level, const char *format, ...)
-{
-	va_list params;
-	va_start(params, format);
-	char msg[LOGMAX], *s = msg;
-
-	if ((level == LVL_DEBUG) && !debug)
-		return;
-
-	s += sprintf(s, "%s", "%9OTR%9");
-
-	if (level != LVL_NOTICE)
-		s += sprintf(s, "(%s)", lvlstring[level]);
-
-	s += sprintf(s, ": ");
-
-	if (vsnprintf(s, LOGMAX, format, params) < 0)
-		sprintf(s, "internal error parsing error string (BUG)");
-	va_end(params);
-
-	printtext(server, nick, MSGLEVEL_MSGS, msg);
 }
