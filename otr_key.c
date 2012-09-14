@@ -39,66 +39,68 @@ struct {
 	guint cwid;
 	pid_t pid;
 	IOUSTATE *ioustate;
-} kg_st = {.status = KEYGEN_NO };
+} kg_st = { .status = KEYGEN_NO };
 
-void keygen_childwatch(GPid pid,gint status, gpointer data) {
-	struct pollfd pfd = { 
+void keygen_childwatch(GPid pid, gint status, gpointer data)
+{
+	struct pollfd pfd = {
 		.fd = g_io_channel_unix_get_fd(kg_st.ch[0]),
-		.events = POLLIN };
+		.events = POLLIN
+	};
 	int ret;
 
 	/* nothing to do if keygen_complete has already been called */
-	if (data) 
+	if (data)
 		return;
 
 	kg_st.pid = 0;
 
-	ret = poll(&pfd,1,0);
+	ret = poll(&pfd, 1, 0);
 
 	/* data is there, let's wait for keygen_complete to be called */
 	if (ret == 1)
 		return;
 
 	/* no data, report error and reset kg_st */
-	if (ret==0) {
+	if (ret == 0) {
 		if (WIFSIGNALED(status)) {
 			char sigstr[16];
 
 			sprintf(sigstr,
 #ifndef HAVE_STRSIGNAL
-				"%d",WTERMSIG(status));
+				"%d", WTERMSIG(status));
 #else
-				"%s",strsignal(WTERMSIG(status)));
+				"%s", strsignal(WTERMSIG(status)));
 #endif
 			otr_noticest(TXT_KG_EXITSIG,
 				     kg_st.accountname,
 				     sigstr);
-		}
-		else
-			otr_noticest(TXT_KG_EXITED,kg_st.accountname);
-	} else if (ret==-1)
-		otr_noticest(TXT_KG_POLLERR,kg_st.accountname,strerror(errno));
+		}else
+			otr_noticest(TXT_KG_EXITED, kg_st.accountname);
+	} else if (ret == -1)
+		otr_noticest(TXT_KG_POLLERR, kg_st.accountname,
+			     strerror(errno));
 
-	keygen_abort(kg_st.ioustate,FALSE);
-}	
+	keygen_abort(kg_st.ioustate, FALSE);
+}
 
 /*
  * Installed as g_io_watch and called when the key generation
  * process finishs.
  */
-gboolean keygen_complete(GIOChannel *source, GIOCondition condition, 
+gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 			 gpointer data)
 {
 	gcry_error_t err;
 	const char *clconfdir = get_client_config_dir();
-	char *filename    = g_strconcat(clconfdir,KEYFILE,NULL);
-	char *tmpfilename = g_strconcat(clconfdir,TMPKEYFILE,NULL);
+	char *filename = g_strconcat(clconfdir, KEYFILE, NULL);
+	char *tmpfilename = g_strconcat(clconfdir, TMPKEYFILE, NULL);
 
-	read(g_io_channel_unix_get_fd(kg_st.ch[0]),&err,sizeof(err));
+	read(g_io_channel_unix_get_fd(kg_st.ch[0]), &err, sizeof(err));
 
 	g_source_remove(kg_st.cpid);
-	g_io_channel_shutdown(kg_st.ch[0],FALSE,NULL);
-	g_io_channel_shutdown(kg_st.ch[1],FALSE,NULL);
+	g_io_channel_shutdown(kg_st.ch[0], FALSE, NULL);
+	g_io_channel_shutdown(kg_st.ch[1], FALSE, NULL);
 	g_io_channel_unref(kg_st.ch[0]);
 	g_io_channel_unref(kg_st.ch[1]);
 
@@ -111,14 +113,14 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 		/* reload keys */
 		otr_noticest(TXT_KG_COMPLETED,
 			     kg_st.accountname,
-			     time(NULL)-kg_st.started);
-		rename(tmpfilename,filename);
+			     time(NULL) - kg_st.started);
+		rename(tmpfilename, filename);
 		//otrl_privkey_forget_all(otr_state); <-- done by lib
 		key_load(kg_st.ioustate);
 	}
 
 	g_source_remove(kg_st.cwid);
-	kg_st.cwid = g_child_watch_add(kg_st.pid,keygen_childwatch,(void*)1);
+	kg_st.cwid = g_child_watch_add(kg_st.pid, keygen_childwatch, (void*)1);
 
 	kg_st.status = KEYGEN_NO;
 	g_free(kg_st.accountname);
@@ -131,7 +133,7 @@ gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 
 /*
  * Run key generation in a seperate process (takes ages).
- * The other process will rewrite the key file, we shouldn't 
+ * The other process will rewrite the key file, we shouldn't
  * change anything till it's done and we've reloaded the keys.
  */
 void keygen_run(IOUSTATE *ioustate, const char *accname)
@@ -139,31 +141,34 @@ void keygen_run(IOUSTATE *ioustate, const char *accname)
 	gcry_error_t err;
 	int ret;
 	int fds[2];
-	char *filename = g_strconcat(get_client_config_dir(),TMPKEYFILE,NULL), *filenamedup = g_strdup(filename);
+	char *filename = g_strconcat(
+		get_client_config_dir(), TMPKEYFILE,
+		NULL), *filenamedup = g_strdup(
+		filename);
 	char *dir = dirname(filenamedup);
 
-	if (kg_st.status!=KEYGEN_NO) {
-		if (strcmp(accname,kg_st.accountname)!=0)
+	if (kg_st.status != KEYGEN_NO) {
+		if (strcmp(accname, kg_st.accountname) != 0)
 			otr_noticest(TXT_KG_ABORTED_DUP,
-				     accname,kg_st.accountname);
+				     accname, kg_st.accountname);
 		return;
 	}
 
 	if (!g_file_test(dir, G_FILE_TEST_EXISTS)) {
-		if (g_mkdir(dir,S_IRWXU)) {
+		if (g_mkdir(dir, S_IRWXU)) {
 			otr_noticest(TXT_KG_ABORTED_DIR,
-				     accname,dir,strerror(errno));
+				     accname, dir, strerror(errno));
 			g_free(dir);
 			g_free(filename);
 			return;
 		} else
-			otr_noticest(TXT_KG_MKDIR,dir);
+			otr_noticest(TXT_KG_MKDIR, dir);
 	}
 	g_free(filenamedup);
 
 	if (pipe(fds) != 0) {
 		otr_noticest(TXT_KG_PIPE,
-			     accname,strerror(errno));
+			     accname, strerror(errno));
 		g_free(filename);
 		return;
 	}
@@ -178,9 +183,9 @@ void keygen_run(IOUSTATE *ioustate, const char *accname)
 
 	if ((ret = fork())) {
 		g_free(filename);
-		if (ret==-1) {
+		if (ret == -1) {
 			otr_noticest(TXT_KG_FORK,
-				     accname,strerror(errno));
+				     accname, strerror(errno));
 			return;
 		}
 
@@ -190,9 +195,10 @@ void keygen_run(IOUSTATE *ioustate, const char *accname)
 		otr_noticest(TXT_KG_INITIATED,
 			     accname);
 
-		kg_st.cpid = g_io_add_watch(kg_st.ch[0], G_IO_IN, 
-					    (GIOFunc) keygen_complete, NULL);
-		kg_st.cwid = g_child_watch_add(kg_st.pid,keygen_childwatch,NULL);
+		kg_st.cpid = g_io_add_watch(kg_st.ch[0], G_IO_IN,
+					    (GIOFunc)keygen_complete, NULL);
+		kg_st.cwid = g_child_watch_add(kg_st.pid, keygen_childwatch,
+					       NULL);
 
 		kg_st.started = time(NULL);
 		return;
@@ -200,8 +206,9 @@ void keygen_run(IOUSTATE *ioustate, const char *accname)
 
 	/* child */
 
-	err = otrl_privkey_generate(ioustate->otr_state,filename,accname,PROTOCOLID);
-	write(fds[1],&err,sizeof(err));
+	err = otrl_privkey_generate(ioustate->otr_state, filename, accname,
+				    PROTOCOLID);
+	write(fds[1], &err, sizeof(err));
 
 	g_free(filename);
 	_exit(0);
@@ -210,37 +217,37 @@ void keygen_run(IOUSTATE *ioustate, const char *accname)
 /*
  * Abort ongoing key generation.
  */
-void keygen_abort(IOUSTATE *ioustate,int ignoreidle)
+void keygen_abort(IOUSTATE *ioustate, int ignoreidle)
 {
-	if (kg_st.status!=KEYGEN_RUNNING) {
+	if (kg_st.status != KEYGEN_RUNNING) {
 		if (!ignoreidle)
 			otr_noticest(TXT_KG_NOABORT);
 		return;
 	}
 
-	otr_noticest(TXT_KG_ABORT,kg_st.accountname);
+	otr_noticest(TXT_KG_ABORT, kg_st.accountname);
 
 	g_source_remove(kg_st.cpid);
 	g_source_remove(kg_st.cwid);
 	g_free(kg_st.accountname);
 
-	if (kg_st.pid!=0) {
-		kill(kg_st.pid,SIGTERM);
-		g_child_watch_add(kg_st.pid,keygen_childwatch,(void*)1);
+	if (kg_st.pid != 0) {
+		kill(kg_st.pid, SIGTERM);
+		g_child_watch_add(kg_st.pid, keygen_childwatch, (void*)1);
 	}
 
 	kg_st.status = KEYGEN_NO;
 }
 
-/* 
+/*
  * Write fingerprints to file.
  */
 void otr_writefps(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(),FPSFILE,NULL);
+	char *filename = g_strconcat(get_client_config_dir(), FPSFILE, NULL);
 
-	err = otrl_privkey_write_fingerprints(ioustate->otr_state,filename);
+	err = otrl_privkey_write_fingerprints(ioustate->otr_state, filename);
 
 	if (err == GPG_ERR_NO_ERROR) {
 		otr_noticest(TXT_FP_SAVED);
@@ -253,15 +260,16 @@ void otr_writefps(IOUSTATE *ioustate)
 }
 
 #ifndef LIBOTR3
-/* 
+/*
  * Write instance tags to file.
  */
 void otr_writeinstags(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(),INSTAGFILE,NULL);
+	char *filename = g_strconcat(
+		get_client_config_dir(), INSTAGFILE, NULL);
 
-	err = otrl_instag_write(ioustate->otr_state,filename);
+	err = otrl_instag_write(ioustate->otr_state, filename);
 
 	if (err == GPG_ERR_NO_ERROR) {
 		otr_noticest(TXT_INSTAG_SAVED);
@@ -280,14 +288,14 @@ void otr_writeinstags(IOUSTATE *ioustate)
 void key_load(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(),KEYFILE,NULL);
+	char *filename = g_strconcat(get_client_config_dir(), KEYFILE, NULL);
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		otr_noticest(TXT_KEY_NOT_FOUND);
 		return;
 	}
 
-	err =  otrl_privkey_read(ioustate->otr_state, filename);
+	err = otrl_privkey_read(ioustate->otr_state, filename);
 
 	if (err == GPG_ERR_NO_ERROR) {
 		otr_noticest(TXT_KEY_LOADED);
@@ -305,14 +313,17 @@ void key_load(IOUSTATE *ioustate)
 void fps_load(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(),FPSFILE,NULL);
+	char *filename = g_strconcat(get_client_config_dir(), FPSFILE, NULL);
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		otr_noticest(TXT_FP_NOT_FOUND);
 		return;
 	}
 
-	err =  otrl_privkey_read_fingerprints(ioustate->otr_state,filename,NULL,NULL);
+	err =
+		otrl_privkey_read_fingerprints(ioustate->otr_state, filename,
+					       NULL,
+					       NULL);
 
 	if (err == GPG_ERR_NO_ERROR) {
 		otr_noticest(TXT_FP_LOADED);
@@ -331,14 +342,15 @@ void fps_load(IOUSTATE *ioustate)
 void instag_load(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(),INSTAGFILE,NULL);
+	char *filename = g_strconcat(
+		get_client_config_dir(), INSTAGFILE, NULL);
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		otr_noticest(TXT_INSTAG_NOT_FOUND);
 		return;
 	}
 
-	err = otrl_instag_read(ioustate->otr_state,filename);
+	err = otrl_instag_read(ioustate->otr_state, filename);
 
 	if (err == GPG_ERR_NO_ERROR) {
 		otr_noticest(TXT_INSTAG_LOADED);

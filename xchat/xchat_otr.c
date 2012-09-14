@@ -29,7 +29,8 @@ static IOUSTATE *ioustate;
 
 xchat_plugin *ph;
 
-void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
+void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg)
+{
 	xchat_commandf(ph, "PRIVMSG %s :%s", recipient, msg);
 }
 
@@ -38,19 +39,20 @@ int cmd_otr(char *word[], char *word_eol[], void *userdata)
 	const char *own_nick = xchat_get_info(ph, "nick");
 	char *target = (char*)xchat_get_info(ph, "channel");
 	const char *server = xchat_get_info(ph, "server");
-	IRC_CTX ircctxs = { 
-		.nick = (char*)own_nick, 
-		.address = (char*)server },
-		*ircctx = &ircctxs;
-	int argc=0;
+	IRC_CTX ircctxs = {
+		.nick = (char*)own_nick,
+		.address = (char*)server
+	},
+	*ircctx = &ircctxs;
+	int argc = 0;
 
-	word+=3;
-	word_eol+=3;
-	
-	while (word[argc]&&*word[argc])
+	word += 3;
+	word_eol += 3;
+
+	while (word[argc] && *word[argc])
 		argc++;
 
-	cmd_generic(ioustate,ircctx,argc,word,word_eol,target);
+	cmd_generic(ioustate, ircctx, argc, word, word_eol, target);
 
 	return XCHAT_EAT_ALL;
 }
@@ -62,23 +64,25 @@ int hook_outgoing(char *word[], char *word_eol[], void *userdata)
 	const char *server = xchat_get_info(ph, "server");
 	char newmsg[512];
 	char *otrmsg;
-	IRC_CTX ircctx = { 
+	IRC_CTX ircctx = {
 		.nick = (char*)own_nick,
-		.address = (char*)server };
+		.address = (char*)server
+	};
 
-	if ((*channel == '&')||(*channel == '#'))
+	if ((*channel == '&') || (*channel == '#'))
 		return XCHAT_EAT_NONE;
 
 #ifdef HAVE_GREGEX_H
-	if (g_regex_match(regex_nickignore,channel,0,NULL))
+	if (g_regex_match(regex_nickignore, channel, 0, NULL))
 		return XCHAT_EAT_NONE;
 #endif
-	otrmsg = otr_send(&ircctx,word_eol[1],channel);
+	otrmsg = otr_send(&ircctx, word_eol[1], channel);
 
-	if (otrmsg==word_eol[1])
+	if (otrmsg == word_eol[1])
 		return XCHAT_EAT_NONE;
 
-	xchat_emit_print(ph, "Your Message", own_nick, word_eol[1], NULL, NULL);
+	xchat_emit_print(ph, "Your Message", own_nick, word_eol[1], NULL,
+			 NULL);
 
 	if (!otrmsg)
 		return XCHAT_EAT_ALL;
@@ -97,26 +101,27 @@ int hook_privmsg(char *word[], char *word_eol[], void *userdata)
 	char *newmsg;
 	const char *server = xchat_get_info(ph, "server");
 	const char *own_nick = xchat_get_info(ph, "nick");
-	IRC_CTX ircctx = { 
+	IRC_CTX ircctx = {
 		.nick = (char*)own_nick,
-		.address = (char*)server };
+		.address = (char*)server
+	};
 	xchat_context *query_ctx;
 
-	if (!extract_nick(nick,word[1]))
+	if (!extract_nick(nick, word[1]))
 		return XCHAT_EAT_NONE;
 
 #ifdef HAVE_GREGEX_H
-	if (g_regex_match(regex_nickignore,nick,0,NULL))
+	if (g_regex_match(regex_nickignore, nick, 0, NULL))
 		return XCHAT_EAT_NONE;
 #endif
 
-	newmsg = otr_receive(&ircctx,word_eol[2],nick);
+	newmsg = otr_receive(&ircctx, word_eol[2], nick);
 
 	if (!newmsg) {
 		return XCHAT_EAT_ALL;
 	}
 
-	if (newmsg==word_eol[2]) {
+	if (newmsg == word_eol[2]) {
 		return XCHAT_EAT_NONE;
 	}
 
@@ -132,18 +137,19 @@ int hook_privmsg(char *word[], char *word_eol[], void *userdata)
 	return XCHAT_EAT_ALL;
 }
 
-void xchat_plugin_get_info(char **name, char **desc, char **version, void **reserved)
+void xchat_plugin_get_info(char **name, char **desc, char **version,
+			   void **reserved)
 {
-   *name = PNAME;
-   *desc = PDESC;
-   *version = PVERSION;
+	*name = PNAME;
+	*desc = PDESC;
+	*version = PVERSION;
 }
 
 int xchat_plugin_init(xchat_plugin *plugin_handle,
-                      char **plugin_name,
-                      char **plugin_desc,
-                      char **plugin_version,
-                      char *arg)
+		      char **plugin_name,
+		      char **plugin_desc,
+		      char **plugin_version,
+		      char *arg)
 {
 	ph = plugin_handle;
 
@@ -160,13 +166,13 @@ int xchat_plugin_init(xchat_plugin *plugin_handle,
 	xchat_hook_command(ph, "", XCHAT_PRI_NORM, hook_outgoing, 0, 0);
 	xchat_hook_command(ph, "otr", XCHAT_PRI_NORM, cmd_otr, 0, 0);
 
-	otr_setpolicies(ioustate,IO_DEFAULT_POLICY,FALSE);
-	otr_setpolicies(ioustate,IO_DEFAULT_POLICY_KNOWN,TRUE);
+	otr_setpolicies(ioustate, IO_DEFAULT_POLICY, FALSE);
+	otr_setpolicies(ioustate, IO_DEFAULT_POLICY_KNOWN, TRUE);
 
 #ifdef HAVE_GREGEX_H
 	if (regex_nickignore)
 		g_regex_unref(regex_nickignore);
-	regex_nickignore = g_regex_new(IO_DEFAULT_IGNORE,0,0,NULL);
+	regex_nickignore = g_regex_new(IO_DEFAULT_IGNORE, 0, 0, NULL);
 #endif
 
 	xchat_print(ph, "xchat-otr loaded successfully!\n");
@@ -196,7 +202,7 @@ int xchat_plugin_deinit()
 void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...)
 {
 	va_list params;
-	va_start( params, fnum );
+	va_start(params, fnum);
 	char msg[LOGMAX], *s = msg;
 	xchat_context *find_query_ctx;
 	char *server = NULL;
@@ -204,9 +210,9 @@ void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...)
 	if (ircctx)
 		server = ircctx->address;
 
-	if (server&&nick) {
+	if (server && nick) {
 		find_query_ctx = xchat_find_context(ph, server, nick);
-		if(find_query_ctx==NULL) {
+		if (find_query_ctx == NULL) {
 			// no query window yet, let's open one
 			xchat_commandf(ph, "query %s", nick);
 			find_query_ctx = xchat_find_context(ph, server, nick);
@@ -215,16 +221,18 @@ void printformat(IRC_CTX *ircctx, const char *nick, int lvl, int fnum, ...)
 		find_query_ctx = xchat_find_context(ph,
 						    NULL,
 						    xchat_get_info(ph,
-								   "network") ?
+								   "network")
+						    ?
 						    :
-						    xchat_get_info(ph,"server"));
+						    xchat_get_info(ph,
+								   "server"));
 	}
 
 	xchat_set_context(ph, find_query_ctx);
 
-	if( vsnprintf( s, LOGMAX, formats[fnum].def, params ) < 0 )
-		sprintf( s, "internal error parsing error string (BUG)" );
-	va_end( params );
+	if (vsnprintf(s, LOGMAX, formats[fnum].def, params) < 0)
+		sprintf(s, "internal error parsing error string (BUG)");
+	va_end(params);
 	xchat_printf(ph, "OTR: %s", s);
 }
 
@@ -234,5 +242,5 @@ IRC_CTX *server_find_address(char *address)
 
 	ircctx.address = address;
 
-        return &ircctx;
+	return &ircctx;
 }

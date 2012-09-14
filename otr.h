@@ -78,10 +78,10 @@ extern IOUSTATE ioustate_uniq;
 #define LVL_NOTICE  0
 #define LVL_DEBUG   1
 
-#define otr_logst(level,format,...) \
-	otr_log(NULL,NULL,level,format, ## __VA_ARGS__)
+#define otr_logst(level, format, ...) \
+	otr_log(NULL, NULL, level, format, ## __VA_ARGS__)
 
-void otr_log(IRC_CTX *server, const char *to, 
+void otr_log(IRC_CTX *server, const char *to,
 	     int level, const char *format, ...);
 
 /* own */
@@ -93,7 +93,7 @@ void otr_log(IRC_CTX *server, const char *to,
 
 #include "otr-formats.h"
 
-/* 
+/*
  * maybe this should be configurable?
  * I believe bitlbee has something >500.
  */
@@ -108,7 +108,8 @@ void otr_log(IRC_CTX *server, const char *to,
 #define INSTAGFILE "/otr/otr.instag"
 
 /* some defaults */
-#define IO_DEFAULT_POLICY "*@localhost opportunistic,*bitlbee* opportunistic,*@im.* opportunistic, *serv@irc* never"
+#define IO_DEFAULT_POLICY \
+	"*@localhost opportunistic,*bitlbee* opportunistic,*@im.* opportunistic, *serv@irc* never"
 #define IO_DEFAULT_POLICY_KNOWN "* always"
 #define IO_DEFAULT_IGNORE "xmlconsole[0-9]*"
 
@@ -116,41 +117,41 @@ void otr_log(IRC_CTX *server, const char *to,
  * This makes it readable and sensible for
  * people not on IRC (i.e. in case of a gateway
  * like bitlbee)
- */ 
+ */
 #define IRCACTIONMARK "/me "
 #define IRCACTIONMARKLEN 4
 
 /* one for each OTR context (=communication pair) */
 struct co_info {
-	char *msgqueue;			/* holds partially reconstructed base64
-					   messages */
-	IRC_CTX *ircctx;		/* irssi server object for this peer */
-	int received_smp_init;		/* received SMP init msg */
-	int smp_failed;			/* last SMP failed */
-	char better_msg_two[256];	/* what the second line of the "better"
-					   default query msg should like. Eat it
-					   up when it comes in */
-	int finished;			/* true after you've /otr finished */
+	char *msgqueue;                 /* holds partially reconstructed base64
+	                                   messages */
+	IRC_CTX *ircctx;                /* irssi server object for this peer */
+	int received_smp_init;          /* received SMP init msg */
+	int smp_failed;                 /* last SMP failed */
+	char better_msg_two[256];       /* what the second line of the "better"
+	                                   default query msg should like. Eat it
+	                                   up when it comes in */
+	int finished;                   /* true after you've /otr finished */
 };
 
 /* these are returned by /otr contexts */
 
 struct fplist_ {
 	char *fp;
-	enum { NOAUTH,AUTHSMP,AUTHMAN } authby;
+	enum { NOAUTH, AUTHSMP, AUTHMAN } authby;
 	struct fplist_ *next;
 };
 
 struct ctxlist_ {
 	char *username;
 	char *accountname;
-	enum { STUNENCRYPTED,STENCRYPTED,STFINISHED,STUNKNOWN } state;
+	enum { STUNENCRYPTED, STENCRYPTED, STFINISHED, STUNKNOWN } state;
 	struct fplist_ *fplist;
 	struct ctxlist_ *next;
 };
 
 /* returned by otr_getstatus */
-enum { 
+enum {
 	IO_ST_PLAINTEXT,
 	IO_ST_FINISHED,
 	IO_ST_SMP_INCOMING,
@@ -161,7 +162,7 @@ enum {
 	IO_ST_TRUST_MANUAL=64,
 	IO_ST_TRUST_SMP=128,
 	IO_ST_SMP_ONGOING=
-		IO_ST_SMP_INCOMING|IO_ST_SMP_OUTGOING|IO_ST_SMP_FINALIZE
+		IO_ST_SMP_INCOMING | IO_ST_SMP_OUTGOING | IO_ST_SMP_FINALIZE
 };
 
 /* given to otr_status_change */
@@ -214,15 +215,17 @@ void otr_deinit_user(IOUSTATE *ioustate);
 
 /* basic send/receive/status stuff */
 
-char *otr_send(IRC_CTX *server,const char *msg,const char *to);
-char *otr_receive(IRC_CTX *server,const char *msg,const char *from);
+char *otr_send(IRC_CTX *server, const char *msg, const char *to);
+char *otr_receive(IRC_CTX *server, const char *msg, const char *from);
 int otr_getstatus(IRC_CTX *ircctx, const char *nick);
-ConnContext *otr_getcontext(const char *accname,const char *nick,int create,IRC_CTX *ircctx);
+ConnContext *otr_getcontext(const char *accname, const char *nick, int create,
+			    IRC_CTX *ircctx);
 
 /* user interaction */
 
 void otr_trust(IRC_CTX *server, char *nick, const char *peername);
-void otr_finish(IRC_CTX *server, char *nick, const char *peername, int inquery);
+void otr_finish(IRC_CTX *server, char *nick, const char *peername,
+		int inquery);
 void otr_auth(IRC_CTX *server, char *nick, const char *peername,
 	      const char *question, const char *secret);
 void otr_authabort(IRC_CTX *server, char *nick, const char *peername);
@@ -234,7 +237,7 @@ void otr_finishall(IOUSTATE *ioustate);
 /* key/fingerprint stuff */
 
 void keygen_run(IOUSTATE *ioustate, const char *accname);
-void keygen_abort(IOUSTATE *ioustate,int ignoreidle);
+void keygen_abort(IOUSTATE *ioustate, int ignoreidle);
 void key_load(IOUSTATE *ioustate);
 void fps_load(IOUSTATE *ioustate);
 void otr_writefps(IOUSTATE *ioustate);
@@ -249,15 +252,18 @@ int extract_nick(char *nick, char *line);
 
 struct _cmds {
 	char *name;
-	void (*cmdfunc)(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[], char *target);
+	void (*cmdfunc)(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
+			char *argv[], char *argv_eol[], char *target);
 };
 
 /* see io_util.c */
 #define CMDCOUNT 9
 extern struct _cmds cmds[];
 
-int cmd_generic(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
-	    char *target);
+int cmd_generic(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
+		char *argv_eol[],
+		char *target);
 int otr_getstatus_format(IRC_CTX *ircctx, const char *nick);
 
-void io_explode_args(const char *args, char ***argvp, char ***argv_eolp, int *argcp);
+void io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
+		     int *argcp);

@@ -22,7 +22,8 @@
 int debug = FALSE;
 
 static const char *signal_args_otr_event[] = {
-	"iobject", "string", "string", "NULL" };
+	"iobject", "string", "string", "NULL"
+};
 
 #ifdef HAVE_GREGEX_H
 GRegex *regex_nickignore = NULL;
@@ -34,9 +35,10 @@ void perl_signal_register(const char *signal, const char **args);
 
 static IOUSTATE *ioustate;
 
-void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
+void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg)
+{
 	ircctx->send_message(
-		ircctx,recipient,msg,GPOINTER_TO_INT(SEND_TARGET_NICK));
+		ircctx, recipient, msg, GPOINTER_TO_INT(SEND_TARGET_NICK));
 }
 
 /*
@@ -45,16 +47,17 @@ void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg) {
 static void sig_server_sendmsg(SERVER_REC *server, const char *target,
 			       const char *msg, void *target_type_p)
 {
-	if (GPOINTER_TO_INT(target_type_p)==SEND_TARGET_NICK) {
+	if (GPOINTER_TO_INT(target_type_p) == SEND_TARGET_NICK) {
 		char *otrmsg;
 
 #ifdef HAVE_GREGEX_H
-		if (g_regex_match(regex_nickignore,target,0,NULL))
+		if (g_regex_match(regex_nickignore, target, 0, NULL))
 			return;
 #endif
-		otrmsg = otr_send(server,msg,target);
-		if (otrmsg&&(otrmsg!=msg)) {
-			signal_continue(4,server,target,otrmsg,target_type_p);
+		otrmsg = otr_send(server, msg, target);
+		if (otrmsg && (otrmsg != msg)) {
+			signal_continue(4, server, target, otrmsg,
+					target_type_p);
 			otrl_message_free(otrmsg);
 		} else if (!otrmsg)
 			signal_stop();
@@ -70,62 +73,62 @@ static void sig_message_private(SERVER_REC *server, const char *msg,
 	char *newmsg;
 
 #ifdef HAVE_GREGEX_H
-	if (g_regex_match(regex_nickignore,nick,0,NULL))
+	if (g_regex_match(regex_nickignore, nick, 0, NULL))
 		return;
 #endif
 
-	newmsg = otr_receive(server,msg,nick);
+	newmsg = otr_receive(server, msg, nick);
 
-	if (newmsg&&(newmsg!=msg)) {
-		if (g_str_has_prefix(newmsg,IRCACTIONMARK)) {
+	if (newmsg && (newmsg != msg)) {
+		if (g_str_has_prefix(newmsg, IRCACTIONMARK)) {
 			signal_stop();
 			signal_emit("message irc action",
 				    5,
 				    server,
-				    newmsg+IRCACTIONMARKLEN,
+				    newmsg + IRCACTIONMARKLEN,
 				    nick,
 				    address,
 				    nick);
-
 		} else {
-			signal_continue(4,server,newmsg,nick,address);
+			signal_continue(4, server, newmsg, nick, address);
 		}
 		otrl_message_free(newmsg);
-	} else if (newmsg==NULL)
+	} else if (newmsg == NULL)
 		signal_stop();
 }
 
-static void cmd_me(const char *data, IRC_SERVER_REC *server, WI_ITEM_REC *item)
+static void cmd_me(const char *data, IRC_SERVER_REC *server,
+		   WI_ITEM_REC *item)
 {
 	QUERY_REC *query = QUERY(item);
-        const char *target;
-	char *otrmsg,*msg;
+	const char *target;
+	char *otrmsg, *msg;
 	int unchanged;
 
 	if (!query || !query->server)
 		return;
 
-        CMD_IRC_SERVER(server);
-        if (!IS_IRC_QUERY(item))
-                return;
+	CMD_IRC_SERVER(server);
+	if (!IS_IRC_QUERY(item))
+		return;
 
-        if (server == NULL || !server->connected)
-                cmd_return_error(CMDERR_NOT_CONNECTED);
+	if (server == NULL || !server->connected)
+		cmd_return_error(CMDERR_NOT_CONNECTED);
 
-        target = window_item_get_target(item);
+	target = window_item_get_target(item);
 
 #ifdef HAVE_GREGEX_H
-	if (g_regex_match(regex_nickignore,target,0,NULL))
+	if (g_regex_match(regex_nickignore, target, 0, NULL))
 		return;
 #endif
 
 	/* since we can't track the message anymore once it's encrypted,
 	 * mark it as a /me inline.
 	 */
-	msg = g_strconcat(IRCACTIONMARK,data,NULL);
-	otrmsg = otr_send(query->server,msg,target);
+	msg = g_strconcat(IRCACTIONMARK, data, NULL);
+	otrmsg = otr_send(query->server, msg, target);
 
-	unchanged = otrmsg==msg;
+	unchanged = otrmsg == msg;
 	g_free(msg);
 
 	if (unchanged)
@@ -138,24 +141,25 @@ static void cmd_me(const char *data, IRC_SERVER_REC *server, WI_ITEM_REC *item)
 		otrl_message_free(otrmsg);
 	}
 
-        signal_emit("message irc own_action", 3, server, data,
-                    item->visible_name);
+	signal_emit("message irc own_action", 3, server, data,
+		    item->visible_name);
 }
 
 
 /*
  * Finish an OTR conversation when its query is closed.
  */
-static void sig_query_destroyed(QUERY_REC *query) {
-	if (query&&query->server&&query->server->connrec) {
-		otr_finish(query->server,query->name,NULL,FALSE);
+static void sig_query_destroyed(QUERY_REC *query)
+{
+	if (query && query->server && query->server->connrec) {
+		otr_finish(query->server, query->name, NULL, FALSE);
 	}
 }
 
 /*
  * /otr
  */
-static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item) 
+static void cmd_otr(const char *data, void *server, WI_ITEM_REC *item)
 {
 	char **argv, **argv_eol;
 	int argc;
@@ -166,12 +170,13 @@ static void cmd_otr(const char *data,void *server,WI_ITEM_REC *item)
 		return;
 	}
 
-	io_explode_args(data,&argv,&argv_eol,&argc);
+	io_explode_args(data, &argv, &argv_eol, &argc);
 
-	if (query&&query->server&&query->server->connrec) {
-		cmd_generic(ioustate,query->server,argc,argv,argv_eol,query->name);
+	if (query && query->server && query->server->connrec) {
+		cmd_generic(ioustate, query->server, argc, argv, argv_eol,
+			    query->name);
 	} else {
-		cmd_generic(ioustate,NULL,argc,argv,argv_eol,NULL);
+		cmd_generic(ioustate, NULL, argc, argv, argv_eol, NULL);
 	}
 
 	statusbar_items_redraw("otr");
@@ -198,21 +203,21 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 {
 	WI_ITEM_REC *wi = active_win->active;
 	QUERY_REC *query = QUERY(wi);
-	int formatnum=0;
+	int formatnum = 0;
 
-	if (query&&query->server&&query->server->connrec)
-		formatnum = otr_getstatus_format(query->server,query->name);
+	if (query && query->server && query->server->connrec)
+		formatnum = otr_getstatus_format(query->server, query->name);
 
 	statusbar_item_default_handler(
-		item, 
-		get_size_only, 
-		formatnum ? formats[formatnum].def : ""," ",FALSE);
+		item,
+		get_size_only,
+		formatnum ? formats[formatnum].def : "", " ", FALSE);
 }
 
 void otr_query_create(SERVER_REC *server, const char *nick)
 {
-	if (!server||!nick||
-	    !settings_get_bool("otr_createqueries")||
+	if (!server || !nick ||
+	    !settings_get_bool("otr_createqueries") ||
 	    query_find(server, nick))
 		return;
 
@@ -221,20 +226,20 @@ void otr_query_create(SERVER_REC *server, const char *nick)
 
 static void read_settings(void)
 {
-	otr_setpolicies(ioustate,settings_get_str("otr_policy"),FALSE);
-	otr_setpolicies(ioustate,settings_get_str("otr_policy_known"),TRUE);
+	otr_setpolicies(ioustate, settings_get_str("otr_policy"), FALSE);
+	otr_setpolicies(ioustate, settings_get_str("otr_policy_known"), TRUE);
 #ifdef HAVE_GREGEX_H
 	if (regex_nickignore)
 		g_regex_unref(regex_nickignore);
-	regex_nickignore = g_regex_new(settings_get_str("otr_ignore"),0,0,NULL);
+	regex_nickignore = g_regex_new(settings_get_str(
+					       "otr_ignore"), 0, 0, NULL);
 #endif
-
 }
 
 void otr_status_change(IRC_CTX *ircctx, const char *nick, int event)
 {
 	statusbar_items_redraw("otr");
-	signal_emit("otr event",3,ircctx,nick,otr_status_txt[event]);
+	signal_emit("otr event", 3, ircctx, nick, otr_status_txt[event]);
 }
 
 /*
@@ -251,28 +256,28 @@ void otr_init(void)
 
 	ioustate = otr_init_user("one to rule them all");
 
-	signal_add_first("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
-	signal_add_first("message private", (SIGNAL_FUNC) sig_message_private);
-	command_bind_irc_first("me", NULL, (SIGNAL_FUNC) cmd_me);
-	signal_add("query destroyed", (SIGNAL_FUNC) sig_query_destroyed);
+	signal_add_first("server sendmsg", (SIGNAL_FUNC)sig_server_sendmsg);
+	signal_add_first("message private", (SIGNAL_FUNC)sig_message_private);
+	command_bind_irc_first("me", NULL, (SIGNAL_FUNC)cmd_me);
+	signal_add("query destroyed", (SIGNAL_FUNC)sig_query_destroyed);
 
-	command_bind("otr", NULL, (SIGNAL_FUNC) cmd_otr);
+	command_bind("otr", NULL, (SIGNAL_FUNC)cmd_otr);
 
-	command_bind_first("quit", NULL, (SIGNAL_FUNC) cmd_quit);
+	command_bind_first("quit", NULL, (SIGNAL_FUNC)cmd_quit);
 
-	settings_add_str("otr", "otr_policy",IO_DEFAULT_POLICY);
-	settings_add_str("otr", "otr_policy_known",IO_DEFAULT_POLICY_KNOWN);
-	settings_add_str("otr", "otr_ignore",IO_DEFAULT_IGNORE);
-	settings_add_bool("otr", "otr_finishonunload",TRUE);
-	settings_add_bool("otr", "otr_createqueries",TRUE);
+	settings_add_str("otr", "otr_policy", IO_DEFAULT_POLICY);
+	settings_add_str("otr", "otr_policy_known", IO_DEFAULT_POLICY_KNOWN);
+	settings_add_str("otr", "otr_ignore", IO_DEFAULT_IGNORE);
+	settings_add_bool("otr", "otr_finishonunload", TRUE);
+	settings_add_bool("otr", "otr_createqueries", TRUE);
 	read_settings();
-	signal_add("setup changed", (SIGNAL_FUNC) read_settings);
+	signal_add("setup changed", (SIGNAL_FUNC)read_settings);
 
 	statusbar_item_register("otr", NULL, otr_statusbar);
 
 	statusbar_items_redraw("window");
 
-	perl_signal_register("otr event",signal_args_otr_event);
+	perl_signal_register("otr event", signal_args_otr_event);
 }
 
 /*
@@ -284,16 +289,16 @@ void otr_deinit(void)
 	g_regex_unref(regex_nickignore);
 #endif
 
-	signal_remove("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
-	signal_remove("message private", (SIGNAL_FUNC) sig_message_private);
-	command_unbind("me", (SIGNAL_FUNC) cmd_me);
-	signal_remove("query destroyed", (SIGNAL_FUNC) sig_query_destroyed);
+	signal_remove("server sendmsg", (SIGNAL_FUNC)sig_server_sendmsg);
+	signal_remove("message private", (SIGNAL_FUNC)sig_message_private);
+	command_unbind("me", (SIGNAL_FUNC)cmd_me);
+	signal_remove("query destroyed", (SIGNAL_FUNC)sig_query_destroyed);
 
-	command_unbind("otr", (SIGNAL_FUNC) cmd_otr);
+	command_unbind("otr", (SIGNAL_FUNC)cmd_otr);
 
-	command_unbind("quit", (SIGNAL_FUNC) cmd_quit);
+	command_unbind("quit", (SIGNAL_FUNC)cmd_quit);
 
-	signal_remove("setup changed", (SIGNAL_FUNC) read_settings);
+	signal_remove("setup changed", (SIGNAL_FUNC)read_settings);
 
 	statusbar_item_unregister("otr");
 
@@ -309,56 +314,57 @@ void otr_deinit(void)
 
 IRC_CTX *ircctx_by_peername(const char *peername, char *nick)
 {
-        GSList *tmp;
+	GSList *tmp;
 	char pname[256];
 	char *address;
 
-	strcpy(pname,peername);
+	strcpy(pname, peername);
 
-	address = strchr(pname,'@');
+	address = strchr(pname, '@');
 
 	if (!address)
 		return NULL;
 
 	*address = '\0';
-	strcpy(nick,pname);
+	strcpy(nick, pname);
 	*address++ = '@';
 
-        for (tmp = servers; tmp != NULL; tmp = tmp->next) {
-                SERVER_REC *server = tmp->data;
+	for (tmp = servers; tmp != NULL; tmp = tmp->next) {
+		SERVER_REC *server = tmp->data;
 
-                if (g_strcasecmp(server->connrec->address, address) == 0)
-                        return server;
-        }
+		if (g_strcasecmp(server->connrec->address, address) == 0)
+			return server;
+	}
 
-        return NULL;
+	return NULL;
 }
 
-char *lvlstring[] = { 
+char *lvlstring[] = {
 	"NOTICE",
 	"DEBUG"
 };
 
 
-void otr_log(IRC_CTX *server, const char *nick, 
-	     int level, const char *format, ...) {
+void otr_log(IRC_CTX *server, const char *nick,
+	     int level, const char *format, ...)
+{
 	va_list params;
-	va_start( params, format );
+	va_start(params, format);
 	char msg[LOGMAX], *s = msg;
 
-	if ((level==LVL_DEBUG)&&!debug)
+	if ((level == LVL_DEBUG) && !debug)
 		return;
 
-	s += sprintf(s,"%s","%9OTR%9");
+	s += sprintf(s, "%s", "%9OTR%9");
 
-	if (level!=LVL_NOTICE)	
-		s += sprintf(s,"(%s)",lvlstring[level]);
+	if (level != LVL_NOTICE)
+		s += sprintf(s, "(%s)", lvlstring[level]);
 
-	s += sprintf(s,": ");
+	s += sprintf(s, ": ");
 
-	if( vsnprintf( s, LOGMAX, format, params ) < 0 )
-		sprintf( s, "internal error parsing error string (BUG)" );
-	va_end( params );
+	if (vsnprintf(s, LOGMAX, format, params) < 0)
+		sprintf(s, "internal error parsing error string (BUG)");
+	va_end(params);
 
 	printtext(server, nick, MSGLEVEL_MSGS, msg);
 }

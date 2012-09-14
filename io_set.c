@@ -28,8 +28,10 @@ char set_policy_known[512] = IO_DEFAULT_POLICY_KNOWN;
 char set_ignore[512] = IO_DEFAULT_IGNORE;
 int set_finishonunload = TRUE;
 
-void cmd_set(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],
-	    char *target) {
+void cmd_set(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
+	     char *argv_eol[],
+	     char *target)
+{
 	char *setting, *value;
 
 	if (argc) {
@@ -38,25 +40,25 @@ void cmd_set(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *
 	}
 
 	if (!argc) {
-		otr_logst(MSGLEVEL_CRAP,"policy: %s\n"
+		otr_logst(MSGLEVEL_CRAP, "policy: %s\n"
 			  "policy_known: %s\nignore: %s\n"
 			  "finishonunload: %s\n",
-			  set_policy,set_policy_known,set_ignore,
+			  set_policy, set_policy_known, set_ignore,
 			  set_finishonunload ? "true" : "false");
-	} else if (strcmp(setting,"policy")==0) {
-		otr_setpolicies(ioustate,value,FALSE);
-		strcpy(set_policy,value);
-	} else if (strcmp(setting,"policy_known")==0) {
-		otr_setpolicies(ioustate,value,TRUE);
-		strcpy(set_policy_known,value);
-	} else if (strcmp(setting,"ignore")==0) {
+	} else if (strcmp(setting, "policy") == 0) {
+		otr_setpolicies(ioustate, value, FALSE);
+		strcpy(set_policy, value);
+	} else if (strcmp(setting, "policy_known") == 0) {
+		otr_setpolicies(ioustate, value, TRUE);
+		strcpy(set_policy_known, value);
+	} else if (strcmp(setting, "ignore") == 0) {
 #ifdef HAVE_GREGEX_H
 		if (regex_nickignore)
 			g_regex_unref(regex_nickignore);
-		regex_nickignore = g_regex_new(value,0,0,NULL);
-		strcpy(set_ignore,value);
+		regex_nickignore = g_regex_new(value, 0, 0, NULL);
+		strcpy(set_ignore, value);
 #endif
-	} else if (strcmp(setting,"finishonunload")==0) {
-		set_finishonunload = (strcasecmp(value,"true")==0);
+	} else if (strcmp(setting, "finishonunload") == 0) {
+		set_finishonunload = (strcasecmp(value, "true") == 0);
 	}
 }
