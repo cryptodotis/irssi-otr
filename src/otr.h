@@ -36,6 +36,8 @@
 
 #include "irssi_otr.h"
 
+extern OtrlMessageAppOps otr_ops;
+
 /* user state */
 
 typedef struct {
@@ -184,7 +186,7 @@ IRC_CTX *ircctx_by_peername(const char *peername, char *nick);
 
 /* init stuff */
 
-int otrlib_init();
+void otr_lib_init();
 void otrlib_deinit();
 void otr_initops();
 void otr_setpolicies(IOUSTATE *ioustate, const char *policies, int known);

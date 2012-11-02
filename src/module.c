@@ -212,9 +212,7 @@ void otr_init(void)
 
 	theme_register(formats);
 
-	if (otrlib_init()) {
-		return;
-	}
+	otr_lib_init();
 
 	ioustate = otr_init_user("one to rule them all");
 

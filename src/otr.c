@@ -1,34 +1,29 @@
 /*
  * Off-the-Record Messaging (OTR) modules for IRC
+ *
  * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
+ *               2012  David Goulet <dgoulet@ev0ke.net>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 2 of the License, or (at your option)
+ * any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 51
+ * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
 #include "otr.h"
 
 #include <gcrypt.h>
 
-extern OtrlMessageAppOps otr_ops;
-static int otrinited = FALSE;
-
-#ifdef TARGET_BITLBEE
-GHashTable *ioustates;
-#else
 IOUSTATE ioustate_uniq = { 0, 0, 0 };
-#endif
 
 #ifdef HAVE_GREGEX_H
 GRegex *regex_policies;
@@ -67,34 +62,15 @@ void otr_deinit_user(IOUSTATE *ioustate)
 /*
  * init otr lib.
  */
-int otrlib_init()
+void otr_lib_init()
 {
-	if (!otrinited) {
-		/* apparently used in pidgin-otr to
-		 * force gcrypt to /dev/urandom */
-		/*
-		   gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
-		   gcry_control(GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-		 */
-		OTRL_INIT;
-		otrinited = TRUE;
-	}
-
-#ifdef TARGET_BITLBEE
-	ioustates = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
-					  otr_deinit_user);
-#endif
-
-	otr_initops();
+	OTRL_INIT;
 
 #ifdef HAVE_GREGEX_H
-	regex_policies =
-		g_regex_new(
-			"([^,]+) (never|manual|handlews|opportunistic|always)"
-			"(,|$)", 0, 0, NULL);
+	regex_policies = g_regex_new(
+			"([^,]+) (never|manual|handlews|opportunistic|always)(,|$)",
+			0, 0, NULL);
 #endif
-
-	return 0;
 }
 
 /*

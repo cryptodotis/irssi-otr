@@ -19,15 +19,13 @@
 
 #include "otr.h"
 
-OtrlMessageAppOps otr_ops;
-
 OtrlPolicy IO_DEFAULT_OTR_POLICY =
 	OTRL_POLICY_MANUAL | OTRL_POLICY_WHITESPACE_START_AKE;
 
 /*
  * Return policy for given context based on the otr_policy /setting
  */
-OtrlPolicy ops_policy(void *opdata, ConnContext *context)
+static OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 {
 	struct co_info *coi = context->app_data;
 	char *server = strchr(context->accountname, '@') + 1;
@@ -76,8 +74,8 @@ OtrlPolicy ops_policy(void *opdata, ConnContext *context)
  * Since this can take more than an hour on some systems there isn't even
  * a point in trying...
  */
-void ops_create_privkey(void *opdata, const char *accountname,
-			const char *protocol)
+static void ops_create_privkey(void *opdata, const char *accountname,
+		const char *protocol)
 {
 	IRC_CTX *ircctx __attribute__((unused)) = opdata;
 
@@ -89,9 +87,8 @@ void ops_create_privkey(void *opdata, const char *accountname,
  * Deriving the server is currently a hack,
  * need to derive the server from accountname.
  */
-void ops_inject_msg(void *opdata, const char *accountname,
-		    const char *protocol, const char *recipient,
-		    const char *message)
+static void ops_inject_msg(void *opdata, const char *accountname,
+		const char *protocol, const char *recipient, const char *message)
 {
 	IRC_CTX *a_serv;
 	char *msgcopy = g_strdup(message);
@@ -114,10 +111,11 @@ void ops_inject_msg(void *opdata, const char *accountname,
 	g_free(msgcopy);
 }
 
+#if 0
 /*
  * OTR notification. Haven't seen one yet.
  */
-void ops_notify(void *opdata, OtrlNotifyLevel level, const char *accountname,
+static void ops_notify(void *opdata, OtrlNotifyLevel level, const char *accountname,
 		const char *protocol, const char *username,
 		const char *title, const char *primary,
 		const char *secondary)
@@ -134,6 +132,7 @@ void ops_notify(void *opdata, OtrlNotifyLevel level, const char *accountname,
 	otr_notice(server, username, TXT_OPS_NOTIFY,
 		   title, primary, secondary);
 }
+#endif /* disabled */
 
 #ifdef HAVE_GREGEX_H
 
@@ -154,14 +153,14 @@ const char *convert_otr_msg(const char *msg)
 
 	return msg;
 }
+#endif /* HAVE_GREGEX_H */
 
-#endif
-
+#if 0
 /*
  * OTR message. E.g. "following has been transmitted in clear: ...".
  * We're trying to kill the ugly HTML.
  */
-int ops_display_msg(void *opdata, const char *accountname,
+static int ops_display_msg(void *opdata, const char *accountname,
 		    const char *protocol, const char *username,
 		    const char *msg)
 {
@@ -185,11 +184,12 @@ int ops_display_msg(void *opdata, const char *accountname,
 
 	return 0;
 }
+#endif /* disabled */
 
 /*
  * Gone secure.
  */
-void ops_secure(void *opdata, ConnContext *context)
+static void ops_secure(void *opdata, ConnContext *context)
 {
 	struct co_info *coi = context->app_data;
 	char * trust = context->active_fingerprint->trust ? : "";
@@ -224,7 +224,7 @@ void ops_secure(void *opdata, ConnContext *context)
 /*
  * Gone insecure.
  */
-void ops_insecure(void *opdata, ConnContext *context)
+static void ops_insecure(void *opdata, ConnContext *context)
 {
 	struct co_info *coi = context->app_data;
 	otr_notice(coi->ircctx,
@@ -236,7 +236,7 @@ void ops_insecure(void *opdata, ConnContext *context)
 /*
  * Still secure? Need to find out what that means...
  */
-void ops_still_secure(void *opdata, ConnContext *context, int is_reply)
+static void ops_still_secure(void *opdata, ConnContext *context, int is_reply)
 {
 	struct co_info *coi = context->app_data;
 	otr_notice(coi->ircctx,
@@ -258,13 +258,12 @@ void ops_log(void *opdata, const char *message)
  * Unfortunately, we can't tell our peer which size to use.
  * (reminds me of MTU determination...)
  */
-int ops_max_msg(void *opdata, ConnContext *context)
+static int ops_max_msg(void *opdata, ConnContext *context)
 {
 	return OTR_MAX_MSG_SIZE;
 }
 
-#ifndef LIBOTR3
-void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
+static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 			  ConnContext *context, const char *message,
 			  gcry_error_t err)
 {
@@ -276,13 +275,12 @@ void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 		  TXT_OPS_HANDLE_MSG,
 		  otr_msg_event_txt[msg_event], message);
 }
-#endif
 
 /*
  * A context changed.
  * I believe this is not happening for the SMP expects.
  */
-void ops_up_ctx_list(void *opdata)
+static void ops_up_ctx_list(void *opdata)
 {
 	otr_status_change(opdata, NULL, IO_STC_CTX_UPDATE);
 }
@@ -290,14 +288,14 @@ void ops_up_ctx_list(void *opdata)
 /*
  * Save fingerprint changes.
  */
-void ops_writefps(void *data)
+static void ops_writefps(void *data)
 {
 	IRC_CTX *ircctx __attribute__((unused)) = data;
 
 	otr_writefps(IRCCTX_IO_US(ircctx));
 }
 
-int ops_is_logged_in(void *opdata, const char *accountname,
+static int ops_is_logged_in(void *opdata, const char *accountname,
 		     const char *protocol, const char *recipient)
 {
 	/*TODO register a handler for event 401 no such nick and set
@@ -306,8 +304,7 @@ int ops_is_logged_in(void *opdata, const char *accountname,
 	return TRUE;
 }
 
-#ifndef LIBOTR3
-void ops_create_instag(void *opdata, const char *accountname,
+static void ops_create_instag(void *opdata, const char *accountname,
 		       const char *protocol)
 {
 	otrl_instag_generate(IRCCTX_IO_US(
@@ -316,7 +313,7 @@ void ops_create_instag(void *opdata, const char *accountname,
 	otr_writeinstags(IRCCTX_IO_US(ircctx));
 }
 
-void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
+static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 		   ConnContext *context, unsigned short progress_percent,
 		   char *question)
 {
@@ -366,33 +363,32 @@ void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 	}
 }
 
-#endif
-
 /*
- * Initialize our OtrlMessageAppOps
+ * Assign OTR message operations.
  */
-void otr_initops()
-{
-	memset(&otr_ops, 0, sizeof(otr_ops));
-
-	otr_ops.policy = ops_policy;
-	otr_ops.create_privkey = ops_create_privkey;
-	otr_ops.inject_message = ops_inject_msg;
-	otr_ops.gone_secure = ops_secure;
-	otr_ops.gone_insecure = ops_insecure;
-	otr_ops.still_secure = ops_still_secure;
-	otr_ops.max_message_size = ops_max_msg;
-	otr_ops.update_context_list = ops_up_ctx_list;
-	otr_ops.write_fingerprints = ops_writefps;
-	otr_ops.is_logged_in = ops_is_logged_in;
-
-#ifdef LIBOTR3
-	otr_ops.notify = ops_notify;
-	otr_ops.display_otr_message = ops_display_msg;
-	otr_ops.log_message = ops_log;
-#else
-	otr_ops.handle_msg_event = ops_handle_msg_event;
-	otr_ops.create_instag = ops_create_instag;
-	otr_ops.handle_smp_event = ops_smp_event;
-#endif
-}
+OtrlMessageAppOps otr_ops = {
+	ops_policy,
+	ops_create_privkey,
+	ops_is_logged_in,
+	ops_inject_msg,
+	ops_up_ctx_list,
+	NULL, /* new_fingerprint */
+	ops_writefps,
+	ops_secure,
+	ops_insecure,
+	ops_still_secure,
+	ops_max_msg,
+	NULL, /* accoun_name */
+	NULL, /* account_name_free */
+	NULL, /* received_symkey */
+	NULL, /* otr_error_message */
+	NULL, /* otr_error_message_free */
+	NULL, /* resent_msg_prefix */
+	NULL, /* resent_msg_prefix_free */
+	ops_smp_event,
+	ops_handle_msg_event,
+	ops_create_instag,
+	NULL, /* convert_msg */
+	NULL, /* convert_free */
+	NULL, /* timer_control */
+};
