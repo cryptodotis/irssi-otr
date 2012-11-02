@@ -19,7 +19,7 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
-#include "otr.h"
+#include "key.h"
 
 #include <gcrypt.h>
 
@@ -41,14 +41,14 @@ IOUSTATE *otr_init_user(char *user)
 	instag_load(ioustate);
 #endif
 	key_load(ioustate);
-	fps_load(ioustate);
+	key_load_fingerprints(ioustate);
 
 	return ioustate;
 }
 
 void otr_deinit_user(IOUSTATE *ioustate)
 {
-	keygen_abort(ioustate, TRUE);
+	key_generation_abort(ioustate, TRUE);
 
 	if (ioustate->otr_state) {
 		otr_writefps(ioustate);

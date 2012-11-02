@@ -213,21 +213,6 @@ void otr_abort_auth(ConnContext *co, IRC_CTX *ircctx, const char *nick);
 struct ctxlist_ *otr_contexts(IOUSTATE *ioustate);
 void otr_finishall(IOUSTATE *ioustate);
 
-
-/* key/fingerprint stuff */
-
-void keygen_run(IOUSTATE *ioustate, const char *accname);
-void keygen_abort(IOUSTATE *ioustate, int ignoreidle);
-void key_load(IOUSTATE *ioustate);
-void fps_load(IOUSTATE *ioustate);
-void otr_writefps(IOUSTATE *ioustate);
-
-#ifndef LIBOTR3
-/* instance tags */
-void instag_load(IOUSTATE *ioustate);
-void otr_writeinstags(IOUSTATE *ioustate);
-#endif
-
 int extract_nick(char *nick, char *line);
 
 struct _cmds {

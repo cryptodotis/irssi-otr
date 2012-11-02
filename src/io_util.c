@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
-#include "otr.h"
+#include "key.h"
 
 char *otr_status_txt[] = {
 	"FINISHED",
@@ -165,9 +165,9 @@ void cmd_genkey(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
 {
 	if (argc) {
 		if (strcmp(argv[0], "abort") == 0)
-			keygen_abort(ioustate, FALSE);
+			key_generation_abort(ioustate, FALSE);
 		else if (strchr(argv[0], '@'))
-			keygen_run(ioustate, argv[0]);
+			key_generation_run(ioustate, argv[0]);
 		else
 			otr_noticest(TXT_KG_NEEDACC);
 	} else {

@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
-#include "otr.h"
+#include "key.h"
 
 OtrlPolicy IO_DEFAULT_OTR_POLICY =
 	OTRL_POLICY_MANUAL | OTRL_POLICY_WHITESPACE_START_AKE;
@@ -89,7 +89,7 @@ static void ops_create_privkey(void *opdata, const char *accountname,
 {
 	IRC_CTX *ircctx __attribute__((unused)) = opdata;
 
-	keygen_run(IRCCTX_IO_US(ircctx), accountname);
+	key_generation_run(IRCCTX_IO_US(ircctx), accountname);
 }
 
 /*
