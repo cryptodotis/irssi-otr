@@ -1,4 +1,0 @@
-#cmakedefine HAVE_STRSIGNAL
-#cmakedefine HAVE_GREGEX_H
-#cmakedefine LIBOTR3
-#define IRCOTR_VERSION "${IRCOTR_VERSION}"
