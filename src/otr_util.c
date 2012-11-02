@@ -746,7 +746,6 @@ char *otr_receive(IRC_CTX *ircctx, const char *msg, const char *from)
 	int ignore_message;
 	char *newmessage = NULL;
 	char accname[256];
-	char *lastmsg;
 	ConnContext *co;
 	struct co_info *coi;
 	OtrlTLV *tlvs;
@@ -769,13 +768,6 @@ char *otr_receive(IRC_CTX *ircctx, const char *msg, const char *from)
 		otr_debug(ircctx, from, TXT_RECEIVE_IGNORE_QUERY);
 		return NULL;
 	}
-
-	/* The server might have split lines that were too long
-	 * (bitlbee does that). The heuristic is simple: If we can find ?OTR:
-	 * in the message but it doesn't end with a ".", queue it and wait
-	 * for the rest.
-	 */
-	lastmsg = co->app_data;
 
 	if (coi->msgqueue) { /* already something in the queue */
 		strcpy(coi->msgqueue + strlen(coi->msgqueue), msg);
