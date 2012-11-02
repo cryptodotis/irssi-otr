@@ -265,7 +265,8 @@ IRC_CTX *ircctx_by_peername(const char *peername, char *nick)
         for (tmp = servers; tmp != NULL; tmp = tmp->next) {
                 SERVER_REC *server = tmp->data;
 
-                if (g_strcasecmp(server->connrec->address, address) == 0)
+                if (g_ascii_strncasecmp(server->connrec->address, address,
+							strlen(server->connrec->address)) == 0)
                         return server;
         }
 
