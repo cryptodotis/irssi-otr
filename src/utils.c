@@ -23,19 +23,6 @@
 #include "otr.h"
 #include "utils.h"
 
-#if 0
-#define LOGMAX 1024
-
-#define otr_logst(level, format, args...) \
-	otr_log(NULL, NULL, level, format, ## __VA_ARGS__)
-
-/* used by the logging functions below */
-extern int debug;
-
-void otr_log(IRC_CTX *server, const char *to, int level,
-		const char *format, ...);
-#endif
-
 void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
 		int *argcp)
 {
