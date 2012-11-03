@@ -23,11 +23,35 @@
 
 #include <gcrypt.h>
 
+static const char *otr_status_txt[] = {
+	"FINISHED",
+	"TRUST_MANUAL",
+	"TRUST_SMP",
+	"SMP_ABORT",
+	"SMP_STARTED",
+	"SMP_RESPONDED",
+	"SMP_INCOMING",
+	"SMP_FINALIZE",
+	"SMP_ABORTED",
+	"PEER_FINISHED",
+	"SMP_FAILED",
+	"SMP_SUCCESS",
+	"GONE_SECURE",
+	"GONE_INSECURE",
+	"CTX_UPDATE"
+};
+
 IOUSTATE ioustate_uniq = { 0, 0, 0 };
 
 #ifdef HAVE_GREGEX_H
 GRegex *regex_policies;
 #endif
+
+void otr_status_change(IRC_CTX *ircctx, const char *nick, int event)
+{
+	statusbar_items_redraw("otr");
+	signal_emit("otr event", 3, ircctx, nick, otr_status_txt[event]);
+}
 
 IOUSTATE *otr_init_user(char *user)
 {
@@ -790,4 +814,38 @@ void otr_setpolicies(IOUSTATE *ioustate, const char *policies, int known)
 	else
 		ioustate->plistunknown = plist;
 #endif
+}
+
+/*
+ * Get a format describing the OTR status of this conversation.
+ */
+int otr_getstatus_format(IRC_CTX *ircctx, const char *nick)
+{
+	int status = otr_getstatus(ircctx, nick);
+
+	if (status & (IO_ST_SMP_ONGOING)) {
+		/* we don't care about the trust level in that case */
+		status = status & IO_ST_SMP_ONGOING;
+	}
+
+	switch (status) {
+	case IO_ST_PLAINTEXT:
+		return TXT_ST_PLAINTEXT;
+	case IO_ST_FINISHED:
+		return TXT_ST_FINISHED;
+	case IO_ST_UNTRUSTED:
+		return TXT_ST_UNTRUSTED;
+	case IO_ST_SMP_INCOMING:
+		return TXT_ST_SMP_INCOMING;
+	case IO_ST_SMP_OUTGOING:
+		return TXT_ST_SMP_OUTGOING;
+	case IO_ST_SMP_FINALIZE:
+		return TXT_ST_SMP_FINALIZE;
+	case IO_ST_TRUST_MANUAL:
+		return TXT_ST_TRUST_MANUAL;
+	case IO_ST_TRUST_SMP:
+		return TXT_ST_TRUST_SMP;
+	default:
+		return TXT_ST_SMP_UNKNOWN;
+	}
 }

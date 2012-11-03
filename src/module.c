@@ -19,7 +19,9 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#include "cmd.h"
 #include "otr.h"
+#include "utils.h"
 
 static const char *lvlstring[] = {
 	"NOTICE",
@@ -132,7 +134,7 @@ static void cmd_otr(const char *data, void *server, WI_ITEM_REC *item)
 		goto end;
 	}
 
-	io_explode_args(data, &argv, &argv_eol, &argc);
+	utils_io_explode_args(data, &argv, &argv_eol, &argc);
 
 	if (query && query->server && query->server->connrec) {
 		cmd_generic(ioustate, query->server, argc, argv, argv_eol, query->name);
@@ -200,12 +202,6 @@ static void read_settings(void)
 
 	regex_nickignore = g_regex_new(settings_get_str("otr_ignore"), 0, 0, NULL);
 #endif
-}
-
-void otr_status_change(IRC_CTX *ircctx, const char *nick, int event)
-{
-	statusbar_items_redraw("otr");
-	signal_emit("otr event", 3, ircctx, nick, otr_status_txt[event]);
 }
 
 /*

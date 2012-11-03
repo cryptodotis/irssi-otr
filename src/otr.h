@@ -17,6 +17,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#ifndef IRSSI_OTR_OTR_H
+#define IRSSI_OTR_OTR_H
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -164,12 +167,6 @@ enum {
 	IO_STC_CTX_UPDATE
 };
 
-/* libotr4 handle_msg_event */
-extern char *otr_msg_event_txt[];
-
-/* the above as text for scripting */
-extern char *otr_status_txt[];
-
 /* policy list generated from /set otr_policy */
 
 struct plistentry {
@@ -218,20 +215,9 @@ void otr_finishall(IOUSTATE *ioustate);
 
 int extract_nick(char *nick, char *line);
 
-struct _cmds {
-	char *name;
-	void (*cmdfunc)(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
-			char *argv[], char *argv_eol[], char *target);
-};
-
-/* see io_util.c */
-#define CMDCOUNT 9
-extern struct _cmds cmds[];
-
-int cmd_generic(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
-		char *argv_eol[],
-		char *target);
 int otr_getstatus_format(IRC_CTX *ircctx, const char *nick);
 
-void io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
-		     int *argcp);
+void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
+		int *argcp);
+
+#endif /* IRSSI_OTR_OTR_H */
