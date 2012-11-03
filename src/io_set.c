@@ -16,7 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
-
+#if 0
 #include "otr.h"
 
 #ifdef HAVE_GREGEX_H
@@ -60,3 +60,4 @@ void cmd_set(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *
 		set_finishonunload = (strcasecmp(value,"true")==0);
 	}
 }
+#endif

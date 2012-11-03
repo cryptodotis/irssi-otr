@@ -144,7 +144,7 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 	char *dir = dirname(filenamedup);
 
 	if (kg_st.status != KEYGEN_NO) {
-		if (strcmp(accname, kg_st.accountname) != 0) {
+		if (strncmp(accname, kg_st.accountname, strlen(accname)) != 0) {
 			otr_noticest(TXT_KG_ABORTED_DUP, accname, kg_st.accountname);
 		}
 		g_free(filenamedup);

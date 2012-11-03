@@ -252,7 +252,7 @@ struct ctxlist_ *otr_contexts(IOUSTATE *ioustate)
 			fplist->fp = g_strdup(fp);
 			if (*trust == '\0') {
 				fplist->authby = NOAUTH;
-			} else if (strcmp(trust, "smp") == 0) {
+			} else if (strncmp(trust, "smp", strlen("smp")) == 0) {
 				fplist->authby = AUTHSMP;
 			} else {
 				fplist->authby = AUTHMAN;
@@ -310,8 +310,8 @@ int otr_getstatus(IRC_CTX *ircctx, const char *nick)
 		}
 
 		if (trust && (*trust != '\0'))
-			code |= strcmp(trust, "smp") == 0 ? IO_ST_TRUST_SMP :
-				IO_ST_TRUST_MANUAL;
+			code |= strncmp(trust, "smp", strlen("cmp")) == 0 ?
+				IO_ST_TRUST_SMP : IO_ST_TRUST_MANUAL;
 		else
 			code |= IO_ST_UNTRUSTED;
 
@@ -685,8 +685,8 @@ int otr_receive(IRC_CTX *ircctx, const char *msg, const char *from,
 	/* Really lame but I don't see how you could do this in a generic
 	 * way unless the IRC server would somehow mark continuation messages.
 	 */
-	if ((strcmp(msg, coi->better_msg_two) == 0) ||
-			(strcmp(msg, formats[TXT_OTR_BETTER_THREE].def) == 0)) {
+	if ((strncmp(msg, coi->better_msg_two, strlen(msg)) == 0) ||
+			(strncmp(msg, formats[TXT_OTR_BETTER_THREE].def, strlen(msg)) == 0)) {
 		otr_debug(ircctx, from, TXT_RECEIVE_IGNORE_QUERY);
 		goto error;
 	}

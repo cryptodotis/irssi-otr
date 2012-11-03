@@ -101,7 +101,7 @@ static void _cmd_genkey(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *arg
 		char *argv_eol[], char *target)
 {
 	if (argc) {
-		if (strcmp(argv[0], "abort") == 0) {
+		if (strncmp(argv[0], "abort", strlen("abort")) == 0) {
 			key_generation_abort(ioustate, FALSE);
 		} else if (strchr(argv[0], '@')) {
 			key_generation_run(ioustate, argv[0]);
