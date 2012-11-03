@@ -23,6 +23,11 @@
 #include "otr.h"
 #include "utils.h"
 
+static const char *lvlstring[] = {
+	"NOTICE",
+	"DEBUG"
+};
+
 void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
 		int *argcp)
 {
@@ -55,4 +60,30 @@ void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
 	*argvp = argv;
 	*argv_eolp = argv_eol;
 	*argcp = argc;
+}
+
+void otr_log(IRC_CTX *server, const char *nick, int lvl, const char *fmt, ...)
+{
+	va_list params;
+	va_start(params, fmt);
+	char msg[LOGMAX], *s = msg;
+
+	if ((lvl == LVL_DEBUG) && !debug) {
+		return;
+	}
+
+	s += sprintf(s, "%s", "%9OTR%9");
+
+	if (lvl != LVL_NOTICE) {
+		s += sprintf(s, "(%s)", lvlstring[lvl]);
+	}
+
+	s += sprintf(s, ": ");
+
+	if (vsnprintf(s, LOGMAX, fmt, params ) < 0) {
+		sprintf(s, "internal error parsing error string (BUG)");
+	}
+	va_end(params);
+
+	printtext(server, nick, MSGLEVEL_MSGS, msg);
 }

@@ -21,6 +21,19 @@
 #ifndef IRSSI_OTR_UTILS_H
 #define IRSSI_OTR_UTILS_H
 
+/*
+ * Max size of a log message.
+ */
+#define LOGMAX      1024
+
+#define LVL_NOTICE  0
+#define LVL_DEBUG   1
+
+#define otr_logst(level, fmt, ...) \
+	otr_log(NULL, NULL, level, fmt, ## __VA_ARGS__)
+
+void otr_log(IRC_CTX *server, const char *to, int lvl, const char *fmt, ...);
+
 void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
 		int *argcp);
 

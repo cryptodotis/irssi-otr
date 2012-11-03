@@ -23,11 +23,6 @@
 #include "otr.h"
 #include "utils.h"
 
-static const char *lvlstring[] = {
-	"NOTICE",
-	"DEBUG"
-};
-
 static const char *signal_args_otr_event[] = {
 	"iobject", "string", "string", "NULL" };
 
@@ -42,12 +37,6 @@ GRegex *regex_nickignore = NULL;
 void perl_signal_register(const char *signal, const char **args);
 
 static IOUSTATE *ioustate;
-
-void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg)
-{
-	ircctx->send_message(ircctx, recipient, msg,
-			GPOINTER_TO_INT(SEND_TARGET_NICK));
-}
 
 /*
  * Pipes all outgoing private messages through OTR
@@ -180,16 +169,6 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 			formatnum ? formats[formatnum].def : "", " ", FALSE);
 }
 
-void otr_query_create(SERVER_REC *server, const char *nick)
-{
-	if (!server || !nick || !settings_get_bool("otr_createqueries") ||
-			query_find(server, nick)) {
-		return;
-	}
-
-	irc_query_create(server->tag, nick, TRUE);
-}
-
 static void read_settings(void)
 {
 	otr_setpolicies(ioustate, settings_get_str("otr_policy"), FALSE);
@@ -202,6 +181,22 @@ static void read_settings(void)
 
 	regex_nickignore = g_regex_new(settings_get_str("otr_ignore"), 0, 0, NULL);
 #endif
+}
+
+void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg)
+{
+	ircctx->send_message(ircctx, recipient, msg,
+			GPOINTER_TO_INT(SEND_TARGET_NICK));
+}
+
+void otr_query_create(SERVER_REC *server, const char *nick)
+{
+	if (!server || !nick || !settings_get_bool("otr_createqueries") ||
+			query_find(server, nick)) {
+		return;
+	}
+
+	irc_query_create(server->tag, nick, TRUE);
 }
 
 /*
@@ -302,31 +297,4 @@ IRC_CTX *ircctx_by_peername(const char *peername, char *nick)
 
 error:
 	return NULL;
-}
-
-void otr_log(IRC_CTX *server, const char *nick, int level,
-		const char *format, ...)
-{
-	va_list params;
-	va_start( params, format );
-	char msg[LOGMAX], *s = msg;
-
-	if ((level == LVL_DEBUG) && !debug) {
-		return;
-	}
-
-	s += sprintf(s, "%s", "%9OTR%9");
-
-	if (level != LVL_NOTICE) {
-		s += sprintf(s, "(%s)", lvlstring[level]);
-	}
-
-	s += sprintf(s, ": ");
-
-	if (vsnprintf(s, LOGMAX, format, params ) < 0) {
-		sprintf(s, "internal error parsing error string (BUG)");
-	}
-	va_end(params);
-
-	printtext(server, nick, MSGLEVEL_MSGS, msg);
 }

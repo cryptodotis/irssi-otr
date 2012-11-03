@@ -38,7 +38,6 @@ static const char *otr_msg_event_txt[] = {
 	"RCVDMSG_FOR_OTHER_INSTANCE"
 };
 
-
 OtrlPolicy IO_DEFAULT_OTR_POLICY =
 	OTRL_POLICY_MANUAL | OTRL_POLICY_WHITESPACE_START_AKE;
 

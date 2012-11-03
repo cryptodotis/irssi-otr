@@ -38,6 +38,7 @@
 #include <glib/gstdio.h>
 
 #include "irssi_otr.h"
+#include "utils.h"
 
 extern OtrlMessageAppOps otr_ops;
 
@@ -53,19 +54,6 @@ typedef struct {
 /* there can be only one */
 extern IOUSTATE ioustate_uniq;
 #endif
-
-/* log stuff */
-
-#define LOGMAX 1024
-
-#define LVL_NOTICE  0
-#define LVL_DEBUG   1
-
-#define otr_logst(level, format, ...) \
-	otr_log(NULL, NULL, level, format, ## __VA_ARGS__)
-
-void otr_log(IRC_CTX *server, const char *to,
-	     int level, const char *format, ...);
 
 /* own */
 
