@@ -23,7 +23,7 @@
 
 #include <gcrypt.h>
 
-static const char *otr_status_txt[] = {
+static const char *statusbar_txt[] = {
 	"FINISHED",
 	"TRUST_MANUAL",
 	"TRUST_SMP",
@@ -46,12 +46,6 @@ IOUSTATE ioustate_uniq = { 0, 0, 0 };
 #ifdef HAVE_GREGEX_H
 GRegex *regex_policies;
 #endif
-
-void otr_status_change(IRC_CTX *ircctx, const char *nick, int event)
-{
-	statusbar_items_redraw("otr");
-	signal_emit("otr event", 3, ircctx, nick, otr_status_txt[event]);
-}
 
 IOUSTATE *otr_init_user(char *user)
 {
@@ -848,4 +842,14 @@ int otr_getstatus_format(IRC_CTX *ircctx, const char *nick)
 	default:
 		return TXT_ST_SMP_UNKNOWN;
 	}
+}
+
+/*
+ * Change status bar text for a given nickname.
+ */
+void otr_status_change(IRC_CTX *ircctx, const char *nick,
+		enum statusbar_event event)
+{
+	statusbar_items_redraw("otr");
+	signal_emit("otr event", 3, ircctx, nick, statusbar_txt[event]);
 }

@@ -149,7 +149,7 @@ enum {
 };
 
 /* given to otr_status_change */
-enum {
+enum statusbar_event {
 	IO_STC_FINISHED,
 	IO_STC_TRUST_MANUAL,
 	IO_STC_TRUST_SMP,
@@ -178,7 +178,9 @@ struct plistentry {
 extern int debug;
 
 void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg);
-void otr_status_change(IRC_CTX *ircctx, const char *nick, int event);
+void otr_status_change(IRC_CTX *ircctx, const char *nick,
+		enum statusbar_event event);
+
 IRC_CTX *ircctx_by_peername(const char *peername, char *nick);
 
 /* init stuff */
