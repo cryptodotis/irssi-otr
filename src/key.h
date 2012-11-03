@@ -27,7 +27,7 @@ void key_generation_abort(IOUSTATE *ioustate, int ignoreidle);
 void key_generation_run(IOUSTATE *ioustate, const char *accname);
 void key_load(IOUSTATE *ioustate);
 void key_load_fingerprints(IOUSTATE *ioustate);
-void otr_writefps(IOUSTATE *ioustate);
+void key_write_fingerprints(IOUSTATE *ioustate);
 void otr_writeinstags(IOUSTATE *ioustate);
 void instag_load(IOUSTATE *ioustate);
 

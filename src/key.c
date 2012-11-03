@@ -243,7 +243,7 @@ end:
 /*
  * Write fingerprints to file.
  */
-void otr_writefps(IOUSTATE *ioustate)
+void key_write_fingerprints(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
 	char *filename = g_strconcat(get_client_config_dir(), FPSFILE, NULL);

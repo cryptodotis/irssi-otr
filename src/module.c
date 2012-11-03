@@ -53,6 +53,7 @@ void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg)
 static void sig_server_sendmsg(SERVER_REC *server, const char *target,
 		const char *msg, void *target_type_p)
 {
+	int ret;
 	char *otrmsg;
 
 	if (GPOINTER_TO_INT(target_type_p) != SEND_TARGET_NICK) {
@@ -65,15 +66,17 @@ static void sig_server_sendmsg(SERVER_REC *server, const char *target,
 	}
 #endif
 
-	otrmsg = otr_send(server,msg,target);
-	if (otrmsg && (otrmsg != msg)) {
-		signal_continue(4, server, target, otrmsg, target_type_p);
-		otrl_message_free(otrmsg);
-	} else if (!otrmsg) {
+	/* Critical section. On error, message MUST NOT be sent */
+	ret = otr_send(server, msg, target, &otrmsg);
+	if (ret) {
 		signal_stop();
+		goto end;
 	}
 
+	signal_continue(4, server, target, otrmsg, target_type_p);
+
 end:
+	otrl_message_free(otrmsg);
 	return;
 }
 
@@ -83,7 +86,8 @@ end:
 static void sig_message_private(SERVER_REC *server, const char *msg,
 		const char *nick, const char *address)
 {
-	char *newmsg;
+	int ret;
+	char *new_msg;
 
 #ifdef HAVE_GREGEX_H
 	if (g_regex_match(regex_nickignore, nick, 0, NULL)) {
@@ -91,15 +95,16 @@ static void sig_message_private(SERVER_REC *server, const char *msg,
 	}
 #endif
 
-	newmsg = otr_receive(server,msg,nick);
-	if (newmsg && (newmsg != msg)) {
-		signal_continue(4, server, newmsg, nick, address);
-		otrl_message_free(newmsg);
-	} else if (!newmsg) {
+	ret = otr_receive(server, msg, nick, &new_msg);
+	if (ret) {
 		signal_stop();
+		goto end;
 	}
 
+	signal_continue(4, server, new_msg, nick, address);
+
 end:
+	otrl_message_free(new_msg);
 	return;
 }
 
@@ -263,9 +268,9 @@ void otr_deinit(void)
 		otr_finishall(ioustate);
 	}
 
-	otr_deinit_user(ioustate);
+	otr_free_user(ioustate);
 
-	otrlib_deinit();
+	otr_lib_uninit();
 
 	theme_unregister();
 }

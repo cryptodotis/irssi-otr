@@ -186,20 +186,23 @@ IRC_CTX *ircctx_by_peername(const char *peername, char *nick);
 
 /* init stuff */
 
-void otr_lib_init();
-void otrlib_deinit();
-void otr_initops();
-void otr_setpolicies(IOUSTATE *ioustate, const char *policies, int known);
 IOUSTATE *otr_init_user(char *user);
-void otr_deinit_user(IOUSTATE *ioustate);
+void otr_free_user(IOUSTATE *ioustate);
+
+void otr_lib_init();
+void otr_lib_uninit();
+
+void otr_setpolicies(IOUSTATE *ioustate, const char *policies, int known);
 
 /* basic send/receive/status stuff */
 
-char *otr_send(IRC_CTX *server, const char *msg, const char *to);
-char *otr_receive(IRC_CTX *server, const char *msg, const char *from);
+int otr_send(IRC_CTX *server, const char *msg, const char *to, char **otr_msg);
+int otr_receive(IRC_CTX *server, const char *msg, const char *from,
+		char **new_msg);
+
 int otr_getstatus(IRC_CTX *ircctx, const char *nick);
 ConnContext *otr_getcontext(const char *accname, const char *nick, int create,
-			    IRC_CTX *ircctx);
+		IRC_CTX *ircctx);
 
 /* user interaction */
 

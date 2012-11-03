@@ -33,7 +33,6 @@
 #include <src/core/settings.h>
 #include <src/irc/core/irc.h>
 #include <src/irc/core/irc-queries.h>
-
 #include <src/fe-text/statusbar-item.h>
 
 #define IRC_CTX SERVER_REC

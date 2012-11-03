@@ -284,7 +284,7 @@ static void ops_write_fingerprints(void *data)
 {
 	IRC_CTX *ircctx __attribute__((unused)) = data;
 
-	otr_writefps(IRCCTX_IO_US(ircctx));
+	key_write_fingerprints(IRCCTX_IO_US(ircctx));
 }
 
 static int ops_is_logged_in(void *opdata, const char *accountname,
