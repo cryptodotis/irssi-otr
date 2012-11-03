@@ -35,9 +35,8 @@ IOUSTATE *otr_init_user(char *user)
 
 	ioustate->otr_state = otrl_userstate_create();
 
-#ifndef LIBOTR3
 	instag_load(ioustate);
-#endif
+
 	/* Load keys and fingerprints. */
 	key_load(ioustate);
 	key_load_fingerprints(ioustate);

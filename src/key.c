@@ -147,6 +147,7 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 		if (strcmp(accname, kg_st.accountname) != 0) {
 			otr_noticest(TXT_KG_ABORTED_DUP, accname, kg_st.accountname);
 		}
+		g_free(filenamedup);
 		goto end;
 	}
 
@@ -154,7 +155,7 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 		if (g_mkdir(dir, S_IRWXU)) {
 			otr_noticest(TXT_KG_ABORTED_DIR, accname, dir, strerror(errno));
 			g_free(dir);
-			g_free(filename);
+			g_free(filenamedup);
 			goto end;
 		} else {
 			otr_noticest(TXT_KG_MKDIR, dir);
@@ -166,7 +167,6 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 	ret = pipe(fds);
 	if (ret < 0) {
 		otr_noticest(TXT_KG_PIPE, accname, strerror(errno));
-		g_free(filename);
 		goto end;
 	}
 
@@ -208,6 +208,7 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 	exit(EXIT_SUCCESS);
 
 end:
+	g_free(filename);
 	return;
 }
 
@@ -343,7 +344,6 @@ void instag_load(IOUSTATE *ioustate)
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		otr_noticest(TXT_INSTAG_NOT_FOUND);
-		g_free(filename);
 		goto end;
 	}
 
