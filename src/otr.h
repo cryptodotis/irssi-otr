@@ -20,27 +20,48 @@
 #ifndef IRSSI_OTR_OTR_H
 #define IRSSI_OTR_OTR_H
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-
-/* OTR */
-
+/* Libotr */
 #include <libotr/proto.h>
-#include <libotr/context.h>
 #include <libotr/message.h>
+#include <libotr/context.h>
 #include <libotr/privkey.h>
 
-/* glib */
-
-#include <glib.h>
-#include <glib/gprintf.h>
-#include <glib/gstdio.h>
-
+#include "io-config.h"
 #include "irssi_otr.h"
 #include "utils.h"
 
-extern OtrlMessageAppOps otr_ops;
+/* irssi module name */
+#define MODULE_NAME "otr"
+
+#include "otr-formats.h"
+
+/*
+ * XXX: Maybe this should be configurable?
+ */
+#define OTR_MAX_MSG_SIZE              400
+
+/* OTR protocol id */
+#define OTR_PROTOCOL_ID               "IRC"
+
+#define OTR_KEYFILE                   "/otr/otr.key"
+#define OTR_TMP_KEYFILE               "/otr/otr.key.tmp"
+#define OTR_FINGERPRINTS_FILE         "/otr/otr.fp"
+#define OTR_INSTAG_FILE               "/otr/otr.instag"
+
+/* some defaults */
+#define OTR_DEFAULT_POLICY \
+	"*@localhost opportunistic, *@im.* opportunistic, *serv@irc* never"
+
+#define OTR_DEFAULT_POLICY_KNOWN      "* always"
+#define OTR_DEFAULT_IGNORE            "xmlconsole[0-9]*"
+
+/* used as a prefix for /me messages.
+ * This makes it readable and sensible for
+ * people not on IRC (i.e. in case of a gateway
+ * like bitlbee)
+ */
+#define IRCACTIONMARK                 "/me "
+#define IRCACTIONMARKLEN              4
 
 /* user state */
 
@@ -49,48 +70,6 @@ typedef struct {
 	GSList *plistunknown;
 	GSList *plistknown;
 } IOUSTATE;
-
-#ifndef TARGET_BITLBEE
-/* there can be only one */
-extern IOUSTATE ioustate_uniq;
-#endif
-
-/* own */
-
-#include "io-config.h"
-
-/* irssi module name */
-#define MODULE_NAME "otr"
-
-#include "otr-formats.h"
-
-/*
- * maybe this should be configurable?
- * I believe bitlbee has something >500.
- */
-#define OTR_MAX_MSG_SIZE 400
-
-/* otr protocol id */
-#define PROTOCOLID "IRC"
-
-#define KEYFILE    "/otr/otr.key"
-#define TMPKEYFILE "/otr/otr.key.tmp"
-#define FPSFILE    "/otr/otr.fp"
-#define INSTAGFILE "/otr/otr.instag"
-
-/* some defaults */
-#define IO_DEFAULT_POLICY \
-	"*@localhost opportunistic,*bitlbee* opportunistic,*@im.* opportunistic, *serv@irc* never"
-#define IO_DEFAULT_POLICY_KNOWN "* always"
-#define IO_DEFAULT_IGNORE "xmlconsole[0-9]*"
-
-/* used as a prefix for /me messages.
- * This makes it readable and sensible for
- * people not on IRC (i.e. in case of a gateway
- * like bitlbee)
- */
-#define IRCACTIONMARK "/me "
-#define IRCACTIONMARKLEN 4
 
 /* one for each OTR context (=communication pair) */
 struct co_info {
@@ -122,7 +101,7 @@ struct ctxlist_ {
 };
 
 /* returned by otr_getstatus */
-enum {
+enum otr_status {
 	IO_ST_PLAINTEXT,
 	IO_ST_FINISHED,
 	IO_ST_SMP_INCOMING,
@@ -162,7 +141,11 @@ struct plistentry {
 	OtrlPolicy policy;
 };
 
-/* used by the logging functions below */
+/* there can be only one */
+extern IOUSTATE ioustate_uniq;
+
+extern OtrlMessageAppOps otr_ops;
+
 extern int debug;
 
 void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg);
@@ -197,17 +180,12 @@ void otr_trust(IRC_CTX *server, char *nick, const char *peername);
 void otr_finish(IRC_CTX *server, char *nick, const char *peername,
 		int inquery);
 void otr_auth(IRC_CTX *server, char *nick, const char *peername,
-	      const char *question, const char *secret);
+		const char *question, const char *secret);
 void otr_authabort(IRC_CTX *server, char *nick, const char *peername);
 void otr_abort_auth(ConnContext *co, IRC_CTX *ircctx, const char *nick);
 struct ctxlist_ *otr_contexts(IOUSTATE *ioustate);
 void otr_finishall(IOUSTATE *ioustate);
 
-int extract_nick(char *nick, char *line);
-
 int otr_getstatus_format(IRC_CTX *ircctx, const char *nick);
-
-void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
-		int *argcp);
 
 #endif /* IRSSI_OTR_OTR_H */

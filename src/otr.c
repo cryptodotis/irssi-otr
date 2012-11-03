@@ -152,7 +152,7 @@ ConnContext *otr_getcontext(const char *accname, const char *nick,
 		IRCCTX_IO_US(ircctx)->otr_state,
 		nick,
 		accname,
-		PROTOCOLID,
+		OTR_PROTOCOL_ID,
 #ifndef LIBOTR3
 		OTRL_INSTAG_BEST,
 #endif
@@ -184,7 +184,7 @@ int otr_send(IRC_CTX *ircctx, const char *msg, const char *to, char **otr_msg)
 	otr_logst(MSGLEVEL_CRAP, "%d: sending msg", time(NULL));
 
 	err = otrl_message_sending(IRCCTX_IO_US(ircctx)->otr_state, &otr_ops,
-		ircctx, accname, PROTOCOLID, to, OTRL_INSTAG_BEST, msg, NULL, otr_msg,
+		ircctx, accname, OTR_PROTOCOL_ID, to, OTRL_INSTAG_BEST, msg, NULL, otr_msg,
 		OTRL_FRAGMENT_SEND_ALL, &co, context_add_app_info, ircctx);
 	if (err) {
 		otr_notice(ircctx, to, TXT_SEND_FAILED, msg);
@@ -355,7 +355,7 @@ void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 	}
 
 	otrl_message_disconnect(IRCCTX_IO_US(ircctx)->otr_state, &otr_ops, ircctx,
-			accname, PROTOCOLID, nick, co->their_instance);
+			accname, OTR_PROTOCOL_ID, nick, co->their_instance);
 
 	otr_status_change(ircctx, nick, IO_STC_FINISHED);
 
@@ -375,7 +375,7 @@ void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
 
 	/* write the finished into the master as well */
 	co = otrl_context_find(IRCCTX_IO_US(ircctx)->otr_state, nick, accname,
-		PROTOCOLID, OTRL_INSTAG_MASTER, FALSE, NULL, NULL, NULL);
+		OTR_PROTOCOL_ID, OTRL_INSTAG_MASTER, FALSE, NULL, NULL, NULL);
 	if (co) {
 		coi = co->app_data;
 	}
@@ -398,7 +398,7 @@ void otr_finishall(IOUSTATE *ioustate)
 		}
 
 		otrl_message_disconnect(ioustate->otr_state, &otr_ops, coi->ircctx,
-					context->accountname, PROTOCOLID, context->username,
+					context->accountname, OTR_PROTOCOL_ID, context->username,
 					context->their_instance);
 		otr_status_change(coi->ircctx, context->username, IO_STC_FINISHED);
 
@@ -722,7 +722,7 @@ int otr_receive(IRC_CTX *ircctx, const char *msg, const char *from,
 	otr_logst(MSGLEVEL_CRAP, "%d: receiving...", time(NULL));
 
 	ret = otrl_message_receiving(IRCCTX_IO_US(ircctx)->otr_state,
-		&otr_ops, ircctx, accname, PROTOCOLID, from, msg, new_msg, &tlvs,
+		&otr_ops, ircctx, accname, OTR_PROTOCOL_ID, from, msg, new_msg, &tlvs,
 		&co, context_add_app_info, ircctx);
 	if (ret) {
 		otr_debug(ircctx, from, TXT_RECEIVE_IGNORE, strlen(msg), accname, from,

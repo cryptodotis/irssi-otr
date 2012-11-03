@@ -19,6 +19,10 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#include <glib.h>
+#include <glib/gprintf.h>
+#include <glib/gstdio.h>
+
 #include "cmd.h"
 #include "otr.h"
 #include "utils.h"
@@ -219,9 +223,9 @@ void otr_init(void)
 	command_bind("otr", NULL, (SIGNAL_FUNC) cmd_otr);
 	command_bind_first("quit", NULL, (SIGNAL_FUNC) cmd_quit);
 
-	settings_add_str("otr", "otr_policy", IO_DEFAULT_POLICY);
-	settings_add_str("otr", "otr_policy_known", IO_DEFAULT_POLICY_KNOWN);
-	settings_add_str("otr", "otr_ignore", IO_DEFAULT_IGNORE);
+	settings_add_str("otr", "otr_policy", OTR_DEFAULT_POLICY);
+	settings_add_str("otr", "otr_policy_known", OTR_DEFAULT_POLICY_KNOWN);
+	settings_add_str("otr", "otr_ignore", OTR_DEFAULT_IGNORE);
 	settings_add_bool("otr", "otr_finishonunload", TRUE);
 	settings_add_bool("otr", "otr_createqueries", TRUE);
 

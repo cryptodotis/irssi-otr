@@ -23,9 +23,9 @@
 extern GRegex *regex_nickignore;
 #endif
 
-char set_policy[512] = IO_DEFAULT_POLICY;
-char set_policy_known[512] = IO_DEFAULT_POLICY_KNOWN;
-char set_ignore[512] = IO_DEFAULT_IGNORE;
+char set_policy[512] = OTR_DEFAULT_POLICY;
+char set_policy_known[512] = OTR_DEFAULT_POLICY_KNOWN;
+char set_ignore[512] = OTR_DEFAULT_IGNORE;
 int set_finishonunload = TRUE;
 
 void cmd_set(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[], char *argv_eol[],

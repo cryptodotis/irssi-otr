@@ -242,7 +242,7 @@ static void ops_secure(void *opdata, ConnContext *context)
 
 	otr_notice(coi->ircctx, context->username, TXT_OPS_FPCOMP,
 			otrl_privkey_fingerprint(IRCCTX_IO_US(coi->ircctx)->otr_state,
-				ownfp, context->accountname, PROTOCOLID), context->username,
+				ownfp, context->accountname, OTR_PROTOCOL_ID), context->username,
 			peerfp);
 
 end:

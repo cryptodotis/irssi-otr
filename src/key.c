@@ -18,7 +18,7 @@
  */
 
 #define _GNU_SOURCE
-
+#include <glib/gstdio.h>
 #include <libgen.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -94,8 +94,8 @@ static gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 {
 	gcry_error_t err;
 	const char *clconfdir = get_client_config_dir();
-	char *filename = g_strconcat(clconfdir, KEYFILE, NULL);
-	char *tmpfilename = g_strconcat(clconfdir, TMPKEYFILE, NULL);
+	char *filename = g_strconcat(clconfdir, OTR_KEYFILE, NULL);
+	char *tmpfilename = g_strconcat(clconfdir, OTR_TMP_KEYFILE, NULL);
 
 	read(g_io_channel_unix_get_fd(kg_st.ch[0]), &err, sizeof(err));
 
@@ -139,7 +139,7 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 	gcry_error_t err;
 	int ret;
 	int fds[2];
-	char *filename = g_strconcat(get_client_config_dir(), TMPKEYFILE, NULL);
+	char *filename = g_strconcat(get_client_config_dir(), OTR_TMP_KEYFILE, NULL);
 	char *filenamedup = g_strdup(filename);
 	char *dir = dirname(filenamedup);
 
@@ -175,7 +175,7 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 
 	kg_st.accountname = g_strdup(accname);
 	kg_st.ioustate = ioustate;
-	kg_st.protocol = PROTOCOLID;
+	kg_st.protocol = OTR_PROTOCOL_ID;
 	kg_st.started = time(NULL);
 
 	if ((ret = fork())) {
@@ -200,7 +200,7 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 	/* child */
 
 	err = otrl_privkey_generate(ioustate->otr_state, filename, accname,
-			PROTOCOLID);
+			OTR_PROTOCOL_ID);
 	(void) write(fds[1], &err, sizeof(err));
 
 	g_free(filename);
@@ -247,7 +247,7 @@ end:
 void key_write_fingerprints(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(), FPSFILE, NULL);
+	char *filename = g_strconcat(get_client_config_dir(), OTR_FINGERPRINTS_FILE, NULL);
 
 	err = otrl_privkey_write_fingerprints(ioustate->otr_state, filename);
 	if (err == GPG_ERR_NO_ERROR) {
@@ -267,7 +267,7 @@ void key_write_fingerprints(IOUSTATE *ioustate)
 void otr_writeinstags(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(), INSTAGFILE, NULL);
+	char *filename = g_strconcat(get_client_config_dir(), OTR_INSTAG_FILE, NULL);
 
 	err = otrl_instag_write(ioustate->otr_state, filename);
 	if (err == GPG_ERR_NO_ERROR) {
@@ -287,7 +287,7 @@ void otr_writeinstags(IOUSTATE *ioustate)
 void key_load(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(), KEYFILE, NULL);
+	char *filename = g_strconcat(get_client_config_dir(), OTR_KEYFILE, NULL);
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		otr_noticest(TXT_KEY_NOT_FOUND);
@@ -313,7 +313,7 @@ end:
 void key_load_fingerprints(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(), FPSFILE, NULL);
+	char *filename = g_strconcat(get_client_config_dir(), OTR_FINGERPRINTS_FILE, NULL);
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		otr_noticest(TXT_FP_NOT_FOUND);
 		goto end;
@@ -340,7 +340,7 @@ end:
 void instag_load(IOUSTATE *ioustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(), INSTAGFILE, NULL);
+	char *filename = g_strconcat(get_client_config_dir(), OTR_INSTAG_FILE, NULL);
 
 	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
 		otr_noticest(TXT_INSTAG_NOT_FOUND);
