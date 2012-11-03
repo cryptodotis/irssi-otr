@@ -1,0 +1,85 @@
+Quick start:  Do "/load otr"  (irssi syntax), write  "?OTR?" to your  OTR buddy,
+wait until the now ongoing key  generation finishes and write "?OTR?" again. You
+should "go secure".
+
+Key generation happens in a separate  process and its duration mainly depends on
+the available entropy. On  my desktop it takes about 6  Minutes, about 2 Minutes
+if I run  "du /" in parallel  and on an idle  server system it can  even take an
+hour.
+
+The  default  OTR  policy  of  irc-otr  is  now  something  between  manual  and
+opportunistic. Manual  means you have to  start it yourself by  issuing "?OTR?",
+opportunistic means  both peers send  some magic  whitespace and start  OTR once
+they receive this whitespace from the other side. irc-otr uses a mode in between
+where we are not sending whitespace as an announcement (as in opportunistic) but
+we still  handle whitespace if  we see  it from the  other side (I'm  calling it
+handlews). Therefore if your peer  uses opportunistic the handshake should still
+start automatically once he writes something.
+
+You can  now set the  OTR policy  per peer via  the otr_policy /setting.  It's a
+comma separated  list of "<nick>@<server> <policy>"  pairs where <nick>@<server>
+is interpreted as a glob pattern, i.e. you can use wildcard "*" and joker "?" as
+you would  in a shell.  The policy  can be one  of never, manual,  handlews (the
+default),  opportunistic, and  always. Be  aware that  the opportunistic  policy
+fails with  some IRC  servers since  they strip off  the whitespace.  The always
+policy has  the nice side effect  that the first  line you type will  already be
+encrypted.
+
+If  a  fingerprint can  be  found  for someone,  i.e.  someone  you had  an  OTR
+conversation  with  before,  then  the otr_policy_known  setting  applies  after
+otr_policy. It has the same syntax. The  default is "* always", i.e. enforce OTR
+with anyone you've used OTR with before.
+
+Should you finish an OTR session via  "/otr finish" and should the active policy
+be always  or opportunistic then  it will be  temporarily set back  to handlews.
+Otherwise OTR would start again right away  which is probably not what you want.
+This is however reset once you close the query window.
+
+To make  sure that you are  actually talking to your  buddy, you can agree  on a
+secret somehow  and then one does  "/otr auth <secret>". Shortly  afterwards the
+other  one will  be  asked to  do  the  same and  you're  done. The  traditional
+alternative, comparing  fingerprints over a secure  line, can also be  used. Use
+"/otr trust" once you're sure they match.
+
+I also  strongly recommend to do  "/statusbar window add otr"  (irssi syntax) so
+you're informed about what's going on.
+
+In "<client config dir>/otr/otr.{key,fp}" you'll  find the fingerprints and your
+private keys(should you at any point be interested).
+
+Commands:
+
+/otr genkey nick@irc.server.com 
+	Manually generate a key for the given account(also done on demand)
+/otr auth [<nick>@<server>] <secret>
+	Initiate or respond to an authentication challenge
+/otr authabort [<nick>@<server>] 
+	Abort any ongoing authentication
+/otr trust [<nick>@<server>]
+	Trust the fingerprint of the user in the current window.
+	You should only do this after comparing fingerprints over a secure line
+/otr debug
+	Switch debug mode on/off
+/otr contexts
+	List all OTR contexts along with their fingerprints and status
+/otr finish [<nick>@<server>]
+	Finish an OTR conversation
+/otr version
+	Display irc-otr version. Might be a git commit
+
+Settings:
+
+otr_policy
+	Comma-separated list of "<nick>@<server> <policy>" pairs. See comments
+	above.
+otr_policy_known
+	Same syntax as otr_policy. Only applied where a fingerprint is
+	available.
+otr_ignore
+	Conversations with nicks that match this regular expression completely
+	bypass libotr. It is very unlikely that you need to touch this setting,
+	just use the OTR policy never to prevent OTR sessions with some nicks.
+otr_finishonunload
+	If true running OTR sessions are finished on /unload and /quit.
+otr_createqueries
+	If true queries are automatically created for OTR log messages.
