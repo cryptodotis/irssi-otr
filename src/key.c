@@ -179,7 +179,6 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 	kg_st.started = time(NULL);
 
 	if ((ret = fork())) {
-		g_free(filename);
 		if (ret == -1) {
 			otr_noticest(TXT_KG_FORK, accname, strerror(errno));
 			goto end;
@@ -260,7 +259,6 @@ void key_write_fingerprints(IOUSTATE *ioustate)
 	g_free(filename);
 }
 
-#ifndef LIBOTR3
 /*
  * Write instance tags to file.
  */
@@ -279,7 +277,6 @@ void otr_writeinstags(IOUSTATE *ioustate)
 
 	g_free(filename);
 }
-#endif
 
 /*
  * Load private keys.
@@ -333,7 +330,6 @@ end:
 	return;
 }
 
-#ifndef LIBOTR3
 /*
  * Load instance tags.
  */
@@ -359,4 +355,3 @@ end:
 	g_free(filename);
 	return;
 }
-#endif

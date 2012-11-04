@@ -68,7 +68,13 @@ static void sig_server_sendmsg(SERVER_REC *server, const char *target,
 		goto end;
 	}
 
-	signal_continue(4, server, target, otrmsg, target_type_p);
+	if (!otrmsg) {
+		/* Send original message */
+		signal_continue(4, server, target, msg, target_type_p);
+	} else {
+		/* Send encrypted message */
+		signal_continue(4, server, target, otrmsg, target_type_p);
+	}
 
 end:
 	otrl_message_free(otrmsg);
@@ -82,7 +88,7 @@ static void sig_message_private(SERVER_REC *server, const char *msg,
 		const char *nick, const char *address)
 {
 	int ret;
-	char *new_msg;
+	char *new_msg = NULL;
 
 #ifdef HAVE_GREGEX_H
 	if (g_regex_match(regex_nickignore, nick, 0, NULL)) {
@@ -96,7 +102,13 @@ static void sig_message_private(SERVER_REC *server, const char *msg,
 		goto end;
 	}
 
-	signal_continue(4, server, new_msg, nick, address);
+	if (!new_msg) {
+		/* This message was not OTR */
+		signal_continue(4, server, msg, nick, address);
+	} else {
+		/* OTR received message */
+		signal_continue(4, server, new_msg, nick, address);
+	}
 
 end:
 	otrl_message_free(new_msg);
