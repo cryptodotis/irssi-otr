@@ -36,5 +36,6 @@ void otr_log(IRC_CTX *server, const char *to, int lvl, const char *fmt, ...);
 
 void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
 		int *argcp);
+int utils_io_extract_smp(const char *data, char **question, char **secret);
 
 #endif /* IRSSI_OTR_UTILS_H */

@@ -26,10 +26,10 @@
 struct irssi_commands {
 	const char *name;
 	void (*func)(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
-			char *argv_eol[], char *target);
+			char *argv_eol[], char *target, const char *orig_args);
 };
 
 int cmd_generic(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
-		char *argv_eol[], char *target);
+		char *argv_eol[], char *target, const char *orig_args);
 
 #endif /* IRSSI_OTR_CMD_H */

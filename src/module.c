@@ -142,9 +142,10 @@ static void cmd_otr(const char *data, void *server, WI_ITEM_REC *item)
 	utils_io_explode_args(data, &argv, &argv_eol, &argc);
 
 	if (query && query->server && query->server->connrec) {
-		cmd_generic(ioustate, query->server, argc, argv, argv_eol, query->name);
+		cmd_generic(ioustate, query->server, argc, argv, argv_eol, query->name,
+				data);
 	} else {
-		cmd_generic(ioustate, NULL, argc, argv, argv_eol, NULL);
+		cmd_generic(ioustate, NULL, argc, argv, argv_eol, NULL, data);
 	}
 
 	statusbar_items_redraw("otr");
