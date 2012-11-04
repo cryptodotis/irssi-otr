@@ -152,8 +152,6 @@ static void _auth(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
 		secret = argv_eol[0];
 	}
 
-	otr_logst(MSGLEVEL_CRAP, "q: '%s', s: '%s'\n", question, secret);
-
 	otr_auth(ircctx, target, accountname, question, secret);
 
 	free(question);
