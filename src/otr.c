@@ -727,6 +727,7 @@ int otr_receive(IRC_CTX *ircctx, const char *msg, const char *from,
 	if (ret) {
 		otr_debug(ircctx, from, TXT_RECEIVE_IGNORE, strlen(msg), accname, from,
 				msg);
+		goto error;
 	} else {
 		if (*new_msg) {
 			otr_debug(ircctx, from, TXT_RECEIVE_CONVERTED);
