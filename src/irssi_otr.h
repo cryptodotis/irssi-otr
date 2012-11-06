@@ -80,3 +80,6 @@ void otr_query_create(IRC_CTX *ircctx, const char *nick);
 	if (debug) { \
 		otr_query_create(ircctx,nick); \
 		printformat(ircctx,nick,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__); } }
+
+#define IRSSI_WARN(irssi_ctx, username, fmt, ...) \
+	printtext(irssi_ctx, username, MSGLEVEL_HILIGHT, fmt, ## __VA_ARGS__);

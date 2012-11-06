@@ -284,6 +284,44 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 	IRC_CTX *server = opdata;
 	char *username = context->username;
 
+	switch (msg_event) {
+	case OTRL_MSGEVENT_NONE:
+		break;
+	case OTRL_MSGEVENT_ENCRYPTION_REQUIRED:
+		IRSSI_WARN(server, username, "Encryption is required");
+		break;
+	case OTRL_MSGEVENT_ENCRYPTION_ERROR:
+		break;
+	case OTRL_MSGEVENT_CONNECTION_ENDED:
+		break;
+	case OTRL_MSGEVENT_SETUP_ERROR:
+		break;
+	case OTRL_MSGEVENT_MSG_REFLECTED:
+		break;
+	case OTRL_MSGEVENT_MSG_RESENT:
+		break;
+	case OTRL_MSGEVENT_RCVDMSG_NOT_IN_PRIVATE:
+		break;
+	case OTRL_MSGEVENT_RCVDMSG_UNREADABLE:
+		break;
+	case OTRL_MSGEVENT_RCVDMSG_MALFORMED:
+		break;
+	case OTRL_MSGEVENT_LOG_HEARTBEAT_RCVD:
+		break;
+	case OTRL_MSGEVENT_LOG_HEARTBEAT_SENT:
+		break;
+	case OTRL_MSGEVENT_RCVDMSG_GENERAL_ERR:
+		break;
+	case OTRL_MSGEVENT_RCVDMSG_UNENCRYPTED:
+		IRSSI_WARN(server, username,
+				"Following message was NOT encrypted: [%s]", message);
+		break;
+	case OTRL_MSGEVENT_RCVDMSG_UNRECOGNIZED:
+		break;
+	case OTRL_MSGEVENT_RCVDMSG_FOR_OTHER_INSTANCE:
+		break;
+	}
+
 	otr_debug(server, username, TXT_OPS_HANDLE_MSG,
 			otr_msg_event_txt[msg_event], message);
 }

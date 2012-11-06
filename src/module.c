@@ -49,7 +49,7 @@ static void sig_server_sendmsg(SERVER_REC *server, const char *target,
 		const char *msg, void *target_type_p)
 {
 	int ret;
-	char *otrmsg;
+	char *otrmsg = NULL;
 
 	if (GPOINTER_TO_INT(target_type_p) != SEND_TARGET_NICK) {
 		goto end;
