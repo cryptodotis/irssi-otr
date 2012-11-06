@@ -88,3 +88,9 @@ void otr_query_create(IRC_CTX *ircctx, const char *nick);
 	printtext(irssi, username, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__);
 #define IRSSI_WARN(irssi, username, fmt, ...) \
 	printtext(irssi, username, MSGLEVEL_HILIGHT, fmt, ## __VA_ARGS__);
+#define IRSSI_DEBUG(irssi, username, fmt, ...) \
+	do {                                                                    \
+		if (debug) {                                                        \
+			printtext(irssi, username, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__); \
+		}                                                                   \
+	} while (0)
