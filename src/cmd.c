@@ -222,9 +222,23 @@ static void _cmd_init(IOUSTATE *ioustate, SERVER_REC *irssi, int argc,
 {
 	char *msg;
 
+	/* No server object, just ignore the request */
+	if (!irssi) {
+		goto end;
+	}
+
+	if (!target) {
+		IRSSI_WARN(irssi, irssi->nick, "%9OTR:%9 Use /otr init only in a "
+				"private message window.");
+		goto end;
+	}
+
 	msg = otrl_proto_default_query_msg(target, OTRL_POLICY_DEFAULT);
 	irc_send_message(irssi, target, msg ? msg : "?OTRv23?");
 	free(msg);
+
+end:
+	return;
 }
 
 static struct irssi_commands cmds[] = {
