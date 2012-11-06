@@ -108,14 +108,14 @@ FORMAT_REC formats[] = {
 		{ NULL, "Statusbar", 0 }
 	,
 		{ "st_plaintext", "{sb plaintext}", 0},
-		{ "st_untrusted", "{sb %rOTR(not auth'ed)%n}", 0},
-		{ "st_trust_smp", "{sb %gOTR%n}", 0},
-		{ "st_trust_manual", "{sb %gOTR%n}", 0},
+		{ "st_untrusted", "{sb %GOTR%n (%runverified%n)}", 0},
+		{ "st_trust_smp", "{sb %GOTR%n}", 0},
+		{ "st_trust_manual", "{sb %GOTR%n}", 0},
 		{ "st_smp_incoming", "{sb {hilight incoming auth request...}}", 0},
 		{ "st_smp_outgoing", "{sb {hilight awaiting auth reply...}}", 0},
 		{ "st_smp_finalize", "{sb {hilight finalizing auth...}}", 0},
 		{ "st_smp_unknown", "{sb {hilight unknown auth state!}}", 0},
-		{ "st_finished", "{sb finished}", 0},
+		{ "st_finished", "{sb %yfinished%n}", 0},
 		{ "st_unknown", "{sb {hilight state unknown (BUG!)}}", 0},
 		{ NULL, NULL, 0 }
 };

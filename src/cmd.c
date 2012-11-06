@@ -217,10 +217,21 @@ static void _cmd_contexts(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
 	}
 }
 
+static void _cmd_init(IOUSTATE *ioustate, SERVER_REC *irssi, int argc,
+		char *argv[], char *argv_eol[], char *target, const char *orig_args)
+{
+	char *msg;
+
+	msg = otrl_proto_default_query_msg(target, OTRL_POLICY_DEFAULT);
+	irc_send_message(irssi, target, msg ? msg : "?OTRv23?");
+	free(msg);
+}
+
 static struct irssi_commands cmds[] = {
 	{ "version", _cmd_version },
 	{ "debug", _cmd_debug },
 	{ "help", _cmd_help },
+	{ "init", _cmd_init },
 	{ "finish", _cmd_finish },
 	{ "trust", _cmd_trust },
 	{ "authabort", _cmd_authabort },
