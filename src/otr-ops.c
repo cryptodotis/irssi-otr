@@ -17,6 +17,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#include <assert.h>
+
 #include "key.h"
 
 static const char *otr_msg_event_txt[] = {
@@ -47,17 +49,16 @@ OtrlPolicy IO_DEFAULT_OTR_POLICY =
 static OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 {
 	int ret;
-	struct co_info *coi = context->app_data;
+	struct irssi_otr_context *ioc = context->app_data;
 	char *server = strchr(context->accountname, '@') + 1;
 	OtrlPolicy op = IO_DEFAULT_OTR_POLICY;
 	GSList *pl;
 	char fullname[1024];
-	IOUSTATE *ioustate = IRCCTX_IO_US(coi->ircctx);
+	IOUSTATE *ioustate = IRSSI_IO_US(ioc->irssi);
 
 	ret = snprintf(fullname, sizeof(fullname), "%s@%s", context->username,
 			server);
 	if (ret < 0) {
-		perror("snprintf ops policy");
 		/* Return default policy */
 		goto error;
 	}
@@ -87,7 +88,7 @@ static OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 		} while ((pl = g_slist_next(pl)));
 	}
 
-	if (coi && coi->finished &&
+	if (ioc && context->msgstate == OTRL_MSGSTATE_FINISHED &&
 			(op == OTRL_POLICY_OPPORTUNISTIC || op == OTRL_POLICY_ALWAYS)) {
 		op = OTRL_POLICY_MANUAL | OTRL_POLICY_WHITESPACE_START_AKE;
 	}
@@ -106,9 +107,9 @@ error:
 static void ops_create_privkey(void *opdata, const char *accountname,
 		const char *protocol)
 {
-	IRC_CTX *ircctx __attribute__((unused)) = opdata;
+	IRC_CTX *irssi __attribute__((unused)) = opdata;
 
-	key_generation_run(IRCCTX_IO_US(ircctx), accountname);
+	key_generation_run(IRSSI_IO_US(irssi), accountname);
 }
 
 /*
@@ -142,108 +143,47 @@ static void ops_inject_msg(void *opdata, const char *accountname,
 	g_free(msgcopy);
 }
 
-#if 0
-/*
- * OTR notification. Haven't seen one yet.
- */
-static void ops_notify(void *opdata, OtrlNotifyLevel level, const char *accountname,
-		const char *protocol, const char *username,
-		const char *title, const char *primary,
-		const char *secondary)
-{
-	ConnContext *co = otr_getcontext(accountname, username, FALSE, NULL);
-	IRC_CTX *server = opdata;
-	struct co_info *coi;
-	if (co) {
-		coi = co->app_data;
-		server = coi->ircctx;
-	} else
-		otr_notice(server, username, TXT_OPS_NOTIFY_BUG);
-
-	otr_notice(server, username, TXT_OPS_NOTIFY,
-		   title, primary, secondary);
-}
-#endif /* disabled */
-
-#if 0
-#ifdef HAVE_GREGEX_H
-/* This is kind of messy. */
-const char *convert_otr_msg(const char *msg)
-{
-	GRegex *regex_bold = g_regex_new("</?i([ /][^>]*)?>", 0, 0, NULL);
-	GRegex *regex_del = g_regex_new("</?b([ /][^>]*)?>", 0, 0, NULL);
-	gchar *msgnohtml = g_regex_replace_literal(regex_del, msg, -1, 0, "", 0,
-			NULL);
-
-	msg = g_regex_replace_literal(regex_bold, msgnohtml, -1, 0, "*", 0, NULL);
-
-	g_free(msgnohtml);
-	g_regex_unref(regex_del);
-	g_regex_unref(regex_bold);
-
-	return msg;
-}
-#endif /* HAVE_GREGEX_H */
-
-/*
- * OTR message. E.g. "following has been transmitted in clear: ...".
- * We're trying to kill the ugly HTML.
- */
-static int ops_display_msg(void *opdata, const char *accountname,
-		    const char *protocol, const char *username,
-		    const char *msg)
-{
-	ConnContext *co = otr_getcontext(accountname, username, FALSE, opdata);
-	IRC_CTX *server = opdata;
-	struct co_info *coi;
-
-	if (co) {
-		coi = co->app_data;
-		server = coi->ircctx;
-	} else
-		otr_notice(server, username, TXT_OPS_DISPLAY_BUG);
-
-#ifdef HAVE_GREGEX_H
-	msg = convert_otr_msg(msg);
-	otr_notice(server, username, TXT_OPS_DISPLAY, msg);
-	g_free((char*)msg);
-#else
-	otr_notice(server, username, TXT_OPS_DISPLAY, msg);
-#endif
-
-	return 0;
-}
-#endif /* disabled */
-
 /*
  * Gone secure.
  */
 static void ops_secure(void *opdata, ConnContext *context)
 {
-	struct co_info *coi = context->app_data;
-	char * trust = context->active_fingerprint->trust ? : "";
-	char ownfp[45], peerfp[45];
+	int ret;
+	struct irssi_otr_context *ioc;
+	char ownfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
+	char peerfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
 
-	otr_notice(coi->ircctx, context->username, TXT_OPS_SEC);
-	otr_status_change(coi->ircctx, context->username, IO_STC_GONE_SECURE);
+	assert(context);
+	/* This should *really* not happened */
+	assert(context->msgstate == OTRL_MSGSTATE_FINISHED);
 
-	//TODO: pull master context
-	coi->finished = FALSE;
+	ioc = context->app_data;
 
-	if (*trust != '\0') {
+	IRSSI_NOTICE(ioc->irssi, context->username, "%9OTR%9: Gone %9secure%9");
+	otr_status_change(ioc->irssi, context->username, IO_STC_GONE_SECURE);
+
+	ret = otrl_context_is_fingerprint_trusted(context->active_fingerprint);
+	if (ret) {
+		/* Secure and trusted */
 		goto end;
 	}
 
-	/*
-	 * Not authenticated. Let's print out the fingerprints for comparison.
-	 */
+	/* Not authenticated. Let's print out the fingerprints for comparison. */
 	otrl_privkey_hash_to_human(peerfp,
 			context->active_fingerprint->fingerprint);
+	otrl_privkey_fingerprint(ioustate_uniq.otr_state, ownfp,
+			context->accountname, OTR_PROTOCOL_ID);
 
-	otr_notice(coi->ircctx, context->username, TXT_OPS_FPCOMP,
-			otrl_privkey_fingerprint(IRCCTX_IO_US(coi->ircctx)->otr_state,
-				ownfp, context->accountname, OTR_PROTOCOL_ID), context->username,
-			peerfp);
+	IRSSI_NOTICE(ioc->irssi, context->username, "%9OTR%9: Your peer is not "
+			"authenticated. To make sure you're talking to the right guy you can "
+			"either agree on a secret and use the authentication described in "
+			"%9/otr auth%9, or, recommended, use %9/otr authq [QUESTION] SECRET%9 "
+			"or use the traditional way and compare fingerprints "
+			"over a secure line (e.g. telephone) and subsequently enter %9/otr "
+			"trust%9.");
+
+	IRSSI_NOTICE("Your fingerprint is: %s.\n%s fingerprint is: %s", ownfp,
+			context->username, peerfp);
 
 end:
 	return;
@@ -254,9 +194,9 @@ end:
  */
 static void ops_insecure(void *opdata, ConnContext *context)
 {
-	struct co_info *coi = context->app_data;
-	otr_notice(coi->ircctx, context->username, TXT_OPS_INSEC);
-	otr_status_change(coi->ircctx, context->username, IO_STC_GONE_INSECURE);
+	struct irssi_otr_context *ioc = context->app_data;
+	otr_notice(ioc->irssi, context->username, TXT_OPS_INSEC);
+	otr_status_change(ioc->irssi, context->username, IO_STC_GONE_INSECURE);
 }
 
 /*
@@ -264,8 +204,8 @@ static void ops_insecure(void *opdata, ConnContext *context)
  */
 static void ops_still_secure(void *opdata, ConnContext *context, int is_reply)
 {
-	struct co_info *coi = context->app_data;
-	otr_notice(coi->ircctx, context->username,
+	struct irssi_otr_context *ioc = context->app_data;
+	otr_notice(ioc->irssi, context->username,
 			is_reply ?  TXT_OPS_STILL_REPLY : TXT_OPS_STILL_NO_REPLY);
 }
 
@@ -339,9 +279,9 @@ static void ops_up_ctx_list(void *opdata)
  */
 static void ops_write_fingerprints(void *data)
 {
-	IRC_CTX *ircctx __attribute__((unused)) = data;
+	IRC_CTX *irssi __attribute__((unused)) = data;
 
-	key_write_fingerprints(IRCCTX_IO_US(ircctx));
+	key_write_fingerprints(IRSSI_IO_US(irssi));
 }
 
 static int ops_is_logged_in(void *opdata, const char *accountname,
@@ -356,49 +296,48 @@ static int ops_is_logged_in(void *opdata, const char *accountname,
 static void ops_create_instag(void *opdata, const char *accountname,
 		const char *protocol)
 {
-	otrl_instag_generate(IRCCTX_IO_US(ircctx)->otr_state, "/dev/null",
+	otrl_instag_generate(IRSSI_IO_US(irssi)->otr_state, "/dev/null",
 			accountname, protocol);
-	otr_writeinstags(IRCCTX_IO_US(ircctx));
+	otr_writeinstags(IRSSI_IO_US(irssi));
 }
 
 static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 		ConnContext *context, unsigned short progress_percent, char *question)
 {
-	IRC_CTX *ircctx = (IRC_CTX *) opdata;
+	IRC_CTX *irssi = (IRC_CTX *) opdata;
 	const char *from = context->username;
-	struct co_info *coi = context->app_data;
+	struct irssi_otr_context *ioc = context->app_data;
 
-	coi->received_smp_init =
+	ioc->received_smp_init =
 		(smp_event == OTRL_SMPEVENT_ASK_FOR_SECRET) ||
 		(smp_event == OTRL_SMPEVENT_ASK_FOR_ANSWER);
 
 	switch (smp_event) {
 	case OTRL_SMPEVENT_ASK_FOR_SECRET:
-		otr_notice(ircctx, from, TXT_AUTH_PEER, from);
-		otr_status_change(ircctx, from, IO_STC_SMP_INCOMING);
+		otr_notice(irssi, from, TXT_AUTH_PEER, from);
+		otr_status_change(irssi, from, IO_STC_SMP_INCOMING);
 		break;
 	case OTRL_SMPEVENT_ASK_FOR_ANSWER:
-		otr_notice(ircctx, from, TXT_AUTH_PEER_QA, from, question);
-		otr_status_change(ircctx, from, IO_STC_SMP_INCOMING);
+		otr_notice(irssi, from, TXT_AUTH_PEER_QA, from, question);
+		otr_status_change(irssi, from, IO_STC_SMP_INCOMING);
 		break;
 	case OTRL_SMPEVENT_IN_PROGRESS:
-		otr_notice(ircctx, from, TXT_AUTH_PEER_REPLIED, from);
-		otr_status_change(ircctx, from, IO_STC_SMP_FINALIZE);
+		otr_notice(irssi, from, TXT_AUTH_PEER_REPLIED, from);
+		otr_status_change(irssi, from, IO_STC_SMP_FINALIZE);
 		break;
 	case OTRL_SMPEVENT_SUCCESS:
-		otr_notice(ircctx, from, TXT_AUTH_SUCCESSFUL);
-		otr_status_change(ircctx, from, IO_STC_SMP_SUCCESS);
+		otr_notice(irssi, from, TXT_AUTH_SUCCESSFUL);
+		otr_status_change(irssi, from, IO_STC_SMP_SUCCESS);
 		break;
 	case OTRL_SMPEVENT_ABORT:
-		otr_abort_auth(context, ircctx, from);
-		otr_status_change(ircctx, from, IO_STC_SMP_ABORTED);
+		otr_abort_auth(context, irssi, from);
+		otr_status_change(irssi, from, IO_STC_SMP_ABORTED);
 		break;
 	case OTRL_SMPEVENT_FAILURE:
 	case OTRL_SMPEVENT_CHEATED:
 	case OTRL_SMPEVENT_ERROR:
-		otr_notice(ircctx, from, TXT_AUTH_FAILED);
-		coi->smp_failed = TRUE;
-		otr_status_change(ircctx, from, IO_STC_SMP_FAILED);
+		otr_notice(irssi, from, TXT_AUTH_FAILED);
+		otr_status_change(irssi, from, IO_STC_SMP_FAILED);
 		break;
 	default:
 		otr_logst(MSGLEVEL_CRAP, "Received unknown SMP event");

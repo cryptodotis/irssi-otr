@@ -105,34 +105,29 @@ void otr_lib_uninit()
  */
 static void context_free_app_info(void *data)
 {
-	struct co_info *coi = data;
-	if (coi->msgqueue) {
-		g_free(coi->msgqueue);
-	}
-	if (coi->ircctx) {
-		IRCCTX_FREE(coi->ircctx);
+	struct irssi_otr_context *ioc = data;
+	if (ioc->irssi) {
+		IRSSI_FREE(ioc->irssi);
 	}
 }
 
 /*
- * Add app data to context. See struct co_info for details.
+ * Add app data to context. See struct irssi_otr_context for details.
  */
 static void context_add_app_info(void *data, ConnContext *co)
 {
-	IRC_CTX *ircctx = IRCCTX_DUP(data);
-	struct co_info *coi;
+	IRC_CTX *irssi = IRSSI_DUP(data);
+	struct irssi_otr_context *ioc;
 
-	coi = g_malloc0(sizeof(struct co_info));
-	if (coi == NULL) {
+	ioc = g_malloc0(sizeof(struct irssi_otr_context));
+	if (ioc == NULL) {
 		goto end;
 	}
 
-	co->app_data = coi;
+	co->app_data = ioc;
 	co->app_data_free = context_free_app_info;
 
-	coi->ircctx = ircctx;
-	snprintf(coi->better_msg_two, sizeof(coi->better_msg_two),
-			formats[TXT_OTR_BETTER_TWO].def, co->accountname);
+	ioc->irssi = irssi;
 
 end:
 	return;
@@ -144,7 +139,7 @@ end:
 static ConnContext *get_otrl_context(const char *accname, const char *nick,
 		int create, IRC_CTX *irssi_ctx)
 {
-	ConnContext *ctx = otrl_context_find(IRCCTX_IO_US(irssi_ctx)->otr_state,
+	ConnContext *ctx = otrl_context_find(IRSSI_IO_US(irssi_ctx)->otr_state,
 			nick, accname, OTR_PROTOCOL_ID, OTRL_INSTAG_BEST, create, NULL,
 			context_add_app_info, irssi_ctx);
 
@@ -156,20 +151,20 @@ static ConnContext *get_otrl_context(const char *accname, const char *nick,
  *
  * Return 0 if the message was successfully handled or else a negative value.
  */
-int otr_send(IRC_CTX *ircctx, const char *msg, const char *to, char **otr_msg)
+int otr_send(IRC_CTX *irssi, const char *msg, const char *to, char **otr_msg)
 {
 	gcry_error_t err;
 	char accname[256];
 
-	IRCCTX_ACCNAME(accname, ircctx);
+	IRSSI_ACCNAME(accname, irssi);
 
 	otr_logst(MSGLEVEL_CRAP, "%d: sending msg", time(NULL));
 
-	err = otrl_message_sending(IRCCTX_IO_US(ircctx)->otr_state, &otr_ops,
-		ircctx, accname, OTR_PROTOCOL_ID, to, OTRL_INSTAG_BEST, msg, NULL, otr_msg,
-		OTRL_FRAGMENT_SEND_ALL_BUT_LAST, NULL, context_add_app_info, ircctx);
+	err = otrl_message_sending(IRSSI_IO_US(irssi)->otr_state, &otr_ops,
+		irssi, accname, OTR_PROTOCOL_ID, to, OTRL_INSTAG_BEST, msg, NULL, otr_msg,
+		OTRL_FRAGMENT_SEND_ALL_BUT_LAST, NULL, context_add_app_info, irssi);
 	if (err) {
-		otr_notice(ircctx, to, TXT_SEND_FAILED, msg);
+		otr_notice(irssi, to, TXT_SEND_FAILED, msg);
 		goto error;
 	}
 
@@ -250,21 +245,18 @@ struct ctxlist_ *otr_contexts(IOUSTATE *ioustate)
 /*
  * Get the OTR status of this conversation.
  */
-int otr_getstatus(IRC_CTX *ircctx, const char *nick)
+int otr_getstatus(IRC_CTX *irssi, const char *nick)
 {
 	int ret, code = 0;
 	ConnContext *ctx;
 	char accname[128];
-	struct co_info *coi;
 
-	IRCCTX_ACCNAME(accname, ircctx);
+	IRSSI_ACCNAME(accname, irssi);
 
-	if (!(ctx = get_otrl_context(accname, nick, FALSE, ircctx))) {
+	if (!(ctx = get_otrl_context(accname, nick, FALSE, irssi))) {
 		code = IO_ST_PLAINTEXT;
 		goto end;
 	}
-
-	coi = ctx->app_data;
 
 	switch (ctx->msgstate) {
 	case OTRL_MSGSTATE_PLAINTEXT:
@@ -276,9 +268,7 @@ int otr_getstatus(IRC_CTX *ircctx, const char *nick)
 
 		switch (ex) {
 		case OTRL_SMP_EXPECT1:
-			if (coi->received_smp_init) {
-				code = IO_ST_SMP_INCOMING;
-			}
+			code = IO_ST_SMP_INCOMING;
 			break;
 		case OTRL_SMP_EXPECT2:
 			code = IO_ST_SMP_OUTGOING;
@@ -314,54 +304,38 @@ end:
 /*
  * Finish the conversation.
  */
-void otr_finish(IRC_CTX *ircctx, char *nick, const char *peername, int inquery)
+void otr_finish(IRC_CTX *irssi, char *nick, const char *peername, int inquery)
 {
 	ConnContext *co;
 	char accname[128];
-	struct co_info *coi;
 	char nickbuf[128];
 
 	if (peername) {
 		nick = nickbuf;
-		ircctx = ircctx_by_peername(peername, nick);
-		if (!ircctx) {
+		irssi = ircctx_by_peername(peername, nick);
+		if (!irssi) {
 			goto end;
 		}
 	}
 
-	IRCCTX_ACCNAME(accname, ircctx);
+	IRSSI_ACCNAME(accname, irssi);
 
-	if (!(co = get_otrl_context(accname, nick, FALSE, ircctx))) {
+	if (!(co = get_otrl_context(accname, nick, FALSE, irssi))) {
 		if (inquery) {
 			otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
 		}
 		goto end;
 	}
 
-	otrl_message_disconnect(IRCCTX_IO_US(ircctx)->otr_state, &otr_ops, ircctx,
+	otrl_message_disconnect(IRSSI_IO_US(irssi)->otr_state, &otr_ops, irssi,
 			accname, OTR_PROTOCOL_ID, nick, co->their_instance);
 
-	otr_status_change(ircctx, nick, IO_STC_FINISHED);
+	otr_status_change(irssi, nick, IO_STC_FINISHED);
 
 	if (inquery) {
-		otr_info(ircctx, nick, TXT_CMD_FINISH, nick, IRCCTX_ADDR(ircctx));
+		otr_info(irssi, nick, TXT_CMD_FINISH, nick, IRSSI_CONN_ADDR(irssi));
 	} else {
-		otr_infost(TXT_CMD_FINISH, nick, IRCCTX_ADDR(ircctx));
-	}
-
-	coi = co->app_data;
-
-	/* finish if /otr finish has been issued. Reset if
-	 * we're called cause the query window has been closed. */
-	if (coi) {
-		coi->finished = inquery;
-	}
-
-	/* write the finished into the master as well */
-	co = otrl_context_find(IRCCTX_IO_US(ircctx)->otr_state, nick, accname,
-		OTR_PROTOCOL_ID, OTRL_INSTAG_MASTER, FALSE, NULL, NULL, NULL);
-	if (co) {
-		coi = co->app_data;
+		otr_infost(TXT_CMD_FINISH, nick, IRSSI_CONN_ADDR(irssi));
 	}
 
 end:
@@ -375,19 +349,19 @@ void otr_finishall(IOUSTATE *ioustate)
 
 	for (context = ioustate->otr_state->context_root; context;
 			context = context->next) {
-		struct co_info *coi = context->app_data;
+		struct irssi_otr_context *ioc = context->app_data;
 
 		if (context->msgstate != OTRL_MSGSTATE_ENCRYPTED) {
 			continue;
 		}
 
-		otrl_message_disconnect(ioustate->otr_state, &otr_ops, coi->ircctx,
+		otrl_message_disconnect(ioustate->otr_state, &otr_ops, ioc->irssi,
 					context->accountname, OTR_PROTOCOL_ID, context->username,
 					context->their_instance);
-		otr_status_change(coi->ircctx, context->username, IO_STC_FINISHED);
+		otr_status_change(ioc->irssi, context->username, IO_STC_FINISHED);
 
 		otr_infost(TXT_CMD_FINISH, context->username,
-				IRCCTX_ADDR(coi->ircctx));
+				IRSSI_CONN_ADDR(ioc->irssi));
 		finished++;
 	}
 
@@ -399,35 +373,30 @@ void otr_finishall(IOUSTATE *ioustate)
 /*
  * Trust our peer.
  */
-void otr_trust(IRC_CTX *ircctx, char *nick, const char *peername)
+void otr_trust(IRC_CTX *irssi, char *nick, const char *peername)
 {
 	ConnContext *co;
 	char accname[128];
-	struct co_info *coi;
 	char nickbuf[128];
 
 	if (peername) {
 		nick = nickbuf;
-		ircctx = ircctx_by_peername(peername, nick);
-		if (!ircctx) {
+		irssi = ircctx_by_peername(peername, nick);
+		if (!irssi) {
 			goto end;
 		}
 	}
 
-	IRCCTX_ACCNAME(accname, ircctx);
+	IRSSI_ACCNAME(accname, irssi);
 
-	if (!(co = get_otrl_context(accname, nick, FALSE, ircctx))) {
+	if (!(co = get_otrl_context(accname, nick, FALSE, irssi))) {
 		otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
 		goto end;
 	}
 
 	otrl_context_set_trust(co->active_fingerprint, "manual");
-	otr_status_change(ircctx, nick, IO_STC_TRUST_MANUAL);
-
-	coi = co->app_data;
-	coi->smp_failed = FALSE;
-
-	otr_notice(ircctx, nick, TXT_FP_TRUST, nick);
+	otr_status_change(irssi, nick, IO_STC_TRUST_MANUAL);
+	otr_notice(irssi, nick, TXT_FP_TRUST, nick);
 
 end:
 	return;
@@ -436,27 +405,21 @@ end:
 /*
  * Abort any ongoing SMP authentication.
  */
-void otr_abort_auth(ConnContext *co, IRC_CTX *ircctx, const char *nick)
+void otr_abort_auth(ConnContext *co, IRC_CTX *irssi, const char *nick)
 {
-	struct co_info *coi;
-
-	coi = co->app_data;
-
-	coi->received_smp_init = FALSE;
-
-	otr_notice(ircctx, nick,
+	otr_notice(irssi, nick,
 			co->smstate->nextExpected != OTRL_SMP_EXPECT1 ?
 			TXT_AUTH_ABORTED_ONGOING : TXT_AUTH_ABORTED);
 
-	otrl_message_abort_smp(IRCCTX_IO_US(ircctx)->otr_state, &otr_ops,
-			ircctx, co);
-	otr_status_change(ircctx, nick, IO_STC_SMP_ABORT);
+	otrl_message_abort_smp(IRSSI_IO_US(irssi)->otr_state, &otr_ops,
+			irssi, co);
+	otr_status_change(irssi, nick, IO_STC_SMP_ABORT);
 }
 
 /*
  * implements /otr authabort
  */
-void otr_authabort(IRC_CTX *ircctx, char *nick, const char *peername)
+void otr_authabort(IRC_CTX *irssi, char *nick, const char *peername)
 {
 	ConnContext *co;
 	char accname[128];
@@ -464,20 +427,20 @@ void otr_authabort(IRC_CTX *ircctx, char *nick, const char *peername)
 
 	if (peername) {
 		nick = nickbuf;
-		ircctx = ircctx_by_peername(peername, nick);
-		if (!ircctx) {
+		irssi = ircctx_by_peername(peername, nick);
+		if (!irssi) {
 			goto end;
 		}
 	}
 
-	IRCCTX_ACCNAME(accname, ircctx);
+	IRSSI_ACCNAME(accname, irssi);
 
-	if (!(co = get_otrl_context(accname, nick, FALSE, ircctx))) {
+	if (!(co = get_otrl_context(accname, nick, FALSE, irssi))) {
 		otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
 		goto end;
 	}
 
-	otr_abort_auth(co, ircctx, nick);
+	otr_abort_auth(co, irssi, nick);
 
 end:
 	return;
@@ -486,70 +449,68 @@ end:
 /*
  * Initiate or respond to SMP authentication.
  */
-void otr_auth(IRC_CTX *ircctx, char *nick, const char *peername,
+void otr_auth(IRC_CTX *irssi, char *nick, const char *peername,
 		const char *question, const char *secret)
 {
 	ConnContext *co;
+	struct irssi_otr_context *ioc;
 	char accname[128];
-	struct co_info *coi;
 	char nickbuf[128];
 
 	if (peername) {
 		nick = nickbuf;
-		ircctx = ircctx_by_peername(peername, nick);
-		if (!ircctx) {
+		irssi = ircctx_by_peername(peername, nick);
+		if (!irssi) {
 			goto end;
 		}
 	}
 
-	IRCCTX_ACCNAME(accname, ircctx);
+	IRSSI_ACCNAME(accname, irssi);
 
-	if (!(co = get_otrl_context(accname, nick, FALSE, ircctx))) {
+	if (!(co = get_otrl_context(accname, nick, FALSE, irssi))) {
 		otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
 		goto end;
 	}
 
 	if (co->msgstate != OTRL_MSGSTATE_ENCRYPTED) {
-		otr_notice(ircctx, nick, TXT_AUTH_NEEDENC);
+		otr_notice(irssi, nick, TXT_AUTH_NEEDENC);
 		goto end;
 	}
 
-	coi = co->app_data;
+	ioc = co->app_data;
 
 	/* Aborting an ongoing auth */
 	if (co->smstate->nextExpected != OTRL_SMP_EXPECT1) {
-		otr_abort_auth(co, ircctx, nick);
+		otr_abort_auth(co, irssi, nick);
 	}
-
-	coi->smp_failed = FALSE;
 
 	/* reset trust level */
 	if (co->active_fingerprint) {
 		char *trust = co->active_fingerprint->trust;
 		if (trust && (*trust != '\0')) {
 			otrl_context_set_trust(co->active_fingerprint, "");
-			key_write_fingerprints(IRCCTX_IO_US(ircctx));
+			key_write_fingerprints(IRSSI_IO_US(irssi));
 		}
 	}
 
-	if (!coi->received_smp_init) {
+	if (!ioc->received_smp_init) {
 		if (question) {
-			otrl_message_initiate_smp_q(IRCCTX_IO_US(ircctx)->otr_state,
-				&otr_ops, ircctx, co, question, (unsigned char *) secret,
+			otrl_message_initiate_smp_q(IRSSI_IO_US(irssi)->otr_state,
+				&otr_ops, irssi, co, question, (unsigned char *) secret,
 				strlen(secret));
 		} else {
-			otrl_message_initiate_smp(IRCCTX_IO_US(ircctx)->otr_state,
-				&otr_ops, ircctx, co, (unsigned char *) secret,
+			otrl_message_initiate_smp(IRSSI_IO_US(irssi)->otr_state,
+				&otr_ops, irssi, co, (unsigned char *) secret,
 				strlen(secret));
 		}
-		otr_status_change(ircctx, nick, IO_STC_SMP_STARTED);
+		otr_status_change(irssi, nick, IO_STC_SMP_STARTED);
 	} else {
-		otrl_message_respond_smp(IRCCTX_IO_US(ircctx)->otr_state, &otr_ops,
-			ircctx, co, (unsigned char *) secret, strlen(secret));
-		otr_status_change(ircctx, nick, IO_STC_SMP_RESPONDED);
+		otrl_message_respond_smp(IRSSI_IO_US(irssi)->otr_state, &otr_ops,
+			irssi, co, (unsigned char *) secret, strlen(secret));
+		otr_status_change(irssi, nick, IO_STC_SMP_RESPONDED);
 	}
 
-	otr_notice(ircctx, nick, coi->received_smp_init ?  TXT_AUTH_RESPONDING :
+	otr_notice(irssi, nick, ioc->received_smp_init ?  TXT_AUTH_RESPONDING :
 			TXT_AUTH_INITIATED);
 
 end:
@@ -561,33 +522,33 @@ end:
  *
  * Returns 0 if its an OTR protocol message or else negative value.
  */
-int otr_receive(IRC_CTX *ircctx, const char *msg, const char *from,
+int otr_receive(IRC_CTX *irssi, const char *msg, const char *from,
 		char **new_msg)
 {
 	int ret = -1;
 	char accname[256];
 	OtrlTLV *tlvs;
 
-	IRCCTX_ACCNAME(accname, ircctx);
+	IRSSI_ACCNAME(accname, irssi);
 
 	otr_logst(MSGLEVEL_CRAP, "%d: receiving...", time(NULL));
 
-	ret = otrl_message_receiving(IRCCTX_IO_US(ircctx)->otr_state,
-		&otr_ops, ircctx, accname, OTR_PROTOCOL_ID, from, msg, new_msg, &tlvs,
-		NULL, context_add_app_info, ircctx);
+	ret = otrl_message_receiving(IRSSI_IO_US(irssi)->otr_state,
+		&otr_ops, irssi, accname, OTR_PROTOCOL_ID, from, msg, new_msg, &tlvs,
+		NULL, context_add_app_info, irssi);
 	if (ret) {
-		otr_debug(ircctx, from, TXT_RECEIVE_IGNORE, strlen(msg), accname, from,
+		otr_debug(irssi, from, TXT_RECEIVE_IGNORE, strlen(msg), accname, from,
 				msg);
 	} else {
 		if (*new_msg) {
-			otr_debug(ircctx, from, TXT_RECEIVE_CONVERTED);
+			otr_debug(irssi, from, TXT_RECEIVE_CONVERTED);
 		}
 	}
 
 	OtrlTLV *tlv = otrl_tlv_find(tlvs, OTRL_TLV_DISCONNECTED);
 	if (tlv) {
-		otr_status_change(ircctx, from, IO_STC_PEER_FINISHED);
-		otr_notice(ircctx, from, TXT_PEER_FINISHED, from);
+		otr_status_change(irssi, from, IO_STC_PEER_FINISHED);
+		otr_notice(irssi, from, TXT_PEER_FINISHED, from);
 	}
 
 	otrl_tlv_free(tlvs);
@@ -661,9 +622,9 @@ void otr_setpolicies(IOUSTATE *ioustate, const char *policies, int known)
 /*
  * Get a format describing the OTR status of this conversation.
  */
-int otr_getstatus_format(IRC_CTX *ircctx, const char *nick)
+int otr_getstatus_format(IRC_CTX *irssi, const char *nick)
 {
-	int status = otr_getstatus(ircctx, nick);
+	int status = otr_getstatus(irssi, nick);
 
 	if (status & (IO_ST_SMP_ONGOING)) {
 		/* we don't care about the trust level in that case */
@@ -695,9 +656,9 @@ int otr_getstatus_format(IRC_CTX *ircctx, const char *nick)
 /*
  * Change status bar text for a given nickname.
  */
-void otr_status_change(IRC_CTX *ircctx, const char *nick,
+void otr_status_change(IRC_CTX *irssi, const char *nick,
 		enum statusbar_event event)
 {
 	statusbar_items_redraw("otr");
-	signal_emit("otr event", 3, ircctx, nick, statusbar_txt[event]);
+	signal_emit("otr event", 3, irssi, nick, statusbar_txt[event]);
 }

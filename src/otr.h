@@ -72,16 +72,9 @@ typedef struct {
 } IOUSTATE;
 
 /* one for each OTR context (=communication pair) */
-struct co_info {
-	char *msgqueue;                 /* holds partially reconstructed base64
-	                                   messages */
-	IRC_CTX *ircctx;                /* irssi server object for this peer */
-	int received_smp_init;          /* received SMP init msg */
-	int smp_failed;                 /* last SMP failed */
-	char better_msg_two[256];       /* what the second line of the "better"
-	                                   default query msg should like. Eat it
-	                                   up when it comes in */
-	int finished;                   /* true after you've /otr finished */
+struct irssi_otr_context {
+	SERVER_REC *irssi;              /* Irssi server object for this peer */
+	unsigned int received_smp_init; /* Do the SMP auth was received ? */
 };
 
 /* these are returned by /otr contexts */

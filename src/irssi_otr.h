@@ -39,16 +39,16 @@
 
 #define get_client_config_dir get_irssi_dir
 
-static IRC_CTX *IRCCTX_DUP(IRC_CTX *ircctx) __attribute__ ((unused));
+static IRC_CTX *IRSSI_DUP(IRC_CTX *ircctx) __attribute__ ((unused));
 
-static IRC_CTX *IRCCTX_DUP(IRC_CTX *ircctx) {
+static IRC_CTX *IRSSI_DUP(IRC_CTX *ircctx) {
 	server_ref(ircctx);
 	return ircctx;
 }
 
-static IRC_CTX *IRCCTX_FREE(IRC_CTX *ircctx) __attribute__ ((unused));
+static IRC_CTX *IRSSI_FREE(IRC_CTX *ircctx) __attribute__ ((unused));
 
-static IRC_CTX *IRCCTX_FREE(IRC_CTX *ircctx)
+static IRC_CTX *IRSSI_FREE(IRC_CTX *ircctx)
 {
 	server_unref(ircctx);
 	return ircctx;
@@ -56,30 +56,35 @@ static IRC_CTX *IRCCTX_FREE(IRC_CTX *ircctx)
 
 void otr_query_create(IRC_CTX *ircctx, const char *nick);
 
-#define IRCCTX_ADDR(ircctx) ircctx->connrec->address
-#define IRCCTX_NICK(ircctx) ircctx->nick
-#define IRCCTX_ACCNAME(accname,ircctx) sprintf(accname, "%s@%s", ircctx->nick, ircctx->connrec->address)
-#define IRCCTX_IO_US(ircctx) (&ioustate_uniq)
+#define IRSSI_CONN_ADDR(i) i->connrec->address
+#define IRSSI_NICK(i) i->nick
+#define IRSSI_ACCNAME(accname, i) sprintf(accname, "%s@%s", i->nick, IRSSI_CONN_ADDR(i))
+#define IRSSI_IO_US(i) (&ioustate_uniq)
 #define IO_CREATE_US(user) (&ioustate_uniq)
 
 #define otr_noticest(formatnum,...) \
 	printformat(NULL,NULL,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__)
 
-#define otr_notice(ircctx,nick,formatnum,...) { \
-	otr_query_create(ircctx,nick); \
-	printformat(ircctx,nick,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__);}
+#define otr_notice(irssi, nick, formatnum, ...) { \
+	otr_query_create(irssi, nick); \
+	printformat(irssi, nick, MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__);}
 
 #define otr_infost(formatnum,...) \
 	printformat(NULL,NULL,MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__)
 
-#define otr_info(server,nick,formatnum,...) { \
-	otr_query_create(ircctx,nick); \
-	printformat(ircctx,nick,MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__);}
+#define otr_info(server, nick, formatnum, ...) { \
+	otr_query_create(server, nick); \
+	printformat(server, nick, MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__);}
 
-#define otr_debug(ircctx,nick,formatnum,...) { \
+#define otr_debug(irssi, nick, formatnum, ...) { \
 	if (debug) { \
-		otr_query_create(ircctx,nick); \
-		printformat(ircctx,nick,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__); } }
+		otr_query_create(irssi, nick); \
+		printformat(irssi, nick, MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__); } }
 
-#define IRSSI_WARN(irssi_ctx, username, fmt, ...) \
-	printtext(irssi_ctx, username, MSGLEVEL_HILIGHT, fmt, ## __VA_ARGS__);
+/*
+ * Irssi macros for printing text to console.
+ */
+#define IRSSI_NOTICE(irssi, username, fmt, ...) \
+	printtext(irssi, username, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__);
+#define IRSSI_WARN(irssi, username, fmt, ...) \
+	printtext(irssi, username, MSGLEVEL_HILIGHT, fmt, ## __VA_ARGS__);
