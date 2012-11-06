@@ -265,10 +265,13 @@ int otr_getstatus(IRC_CTX *irssi, const char *nick)
 	case OTRL_MSGSTATE_ENCRYPTED:
 	{
 		int ex = ctx->smstate->nextExpected;
+		struct irssi_otr_context *ioc = ctx->app_data;
 
 		switch (ex) {
 		case OTRL_SMP_EXPECT1:
-			code = IO_ST_SMP_INCOMING;
+			if (ioc->received_smp_init) {
+				code = IO_ST_SMP_INCOMING;
+			}
 			break;
 		case OTRL_SMP_EXPECT2:
 			code = IO_ST_SMP_OUTGOING;

@@ -155,7 +155,7 @@ static void ops_secure(void *opdata, ConnContext *context)
 
 	assert(context);
 	/* This should *really* not happened */
-	assert(context->msgstate == OTRL_MSGSTATE_FINISHED);
+	assert(context->msgstate == OTRL_MSGSTATE_ENCRYPTED);
 
 	ioc = context->app_data;
 
@@ -182,7 +182,9 @@ static void ops_secure(void *opdata, ConnContext *context)
 			"over a secure line (e.g. telephone) and subsequently enter %9/otr "
 			"trust%9.");
 
-	IRSSI_NOTICE("Your fingerprint is: %s.\n%s fingerprint is: %s", ownfp,
+	IRSSI_NOTICE(ioc->irssi, context->username,
+			"%9OTR%9: Your fingerprint is: %y%s\%n.\n"
+			"%9OTR%9: %9%s's%9 fingerprint is: %r%s\%n", ownfp,
 			context->username, peerfp);
 
 end:

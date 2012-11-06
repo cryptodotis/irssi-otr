@@ -249,7 +249,7 @@ void otr_init(void)
 	statusbar_item_register("otr", NULL, otr_statusbar);
 	statusbar_items_redraw("window");
 
-	perl_signal_register("otr event",signal_args_otr_event);
+	perl_signal_register("otr event", signal_args_otr_event);
 }
 
 /*
