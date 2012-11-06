@@ -21,25 +21,6 @@
 
 #include "key.h"
 
-static const char *otr_msg_event_txt[] = {
-	"NONE",
-	"ENCRYPTION_REQUIRED",
-	"ENCRYPTION_ERROR",
-	"CONNECTION_ENDED",
-	"SETUP_ERROR",
-	"MSG_REFLECTED",
-	"MSG_RESENT",
-	"RCVDMSG_NOT_IN_PRIVATE",
-	"RCVDMSG_UNREADABLE",
-	"RCVDMSG_MALFORMED",
-	"LOG_HEARTBEAT_RCVD",
-	"LOG_HEARTBEAT_SENT",
-	"RCVDMSG_GENERAL_ERR",
-	"RCVDMSG_UNENCRYPTED",
-	"RCVDMSG_UNRECOGNIZED",
-	"RCVDMSG_FOR_OTHER_INSTANCE"
-};
-
 OtrlPolicy IO_DEFAULT_OTR_POLICY =
 	OTRL_POLICY_MANUAL | OTRL_POLICY_WHITESPACE_START_AKE;
 
@@ -300,9 +281,6 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 				"a different instance.", username);
 		break;
 	}
-
-	otr_debug(server, username, TXT_OPS_HANDLE_MSG,
-			otr_msg_event_txt[msg_event], message);
 }
 
 /*
