@@ -40,7 +40,10 @@ GRegex *regex_nickignore = NULL;
  * install perl/perl-signals.h which is where this definition comes from? */
 void perl_signal_register(const char *signal, const char **args);
 
-static IOUSTATE *ioustate;
+/*
+ * Global state for the user.
+ */
+struct otr_user_state *user_state_global;
 
 /*
  * Pipes all outgoing private messages through OTR
@@ -142,10 +145,10 @@ static void cmd_otr(const char *data, void *server, WI_ITEM_REC *item)
 	utils_io_explode_args(data, &argv, &argv_eol, &argc);
 
 	if (query && query->server && query->server->connrec) {
-		cmd_generic(ioustate, query->server, argc, argv, argv_eol, query->name,
-				data);
+		cmd_generic(user_state_global, query->server, argc, argv, argv_eol,
+				query->name, data);
 	} else {
-		cmd_generic(ioustate, NULL, argc, argv, argv_eol, NULL, data);
+		cmd_generic(user_state_global, NULL, argc, argv, argv_eol, NULL, data);
 	}
 
 	statusbar_items_redraw("otr");
@@ -165,7 +168,7 @@ end:
 static void cmd_quit(const char *data, void *server, WI_ITEM_REC *item)
 {
 	if (settings_get_bool("otr_finishonunload")) {
-		otr_finishall(ioustate);
+		otr_finishall(user_state_global);
 	}
 }
 
@@ -188,8 +191,8 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 
 static void read_settings(void)
 {
-	otr_setpolicies(ioustate, settings_get_str("otr_policy"), FALSE);
-	otr_setpolicies(ioustate, settings_get_str("otr_policy_known"), TRUE);
+	otr_setpolicies(user_state_global, settings_get_str("otr_policy"), FALSE);
+	otr_setpolicies(user_state_global, settings_get_str("otr_policy_known"), TRUE);
 
 #ifdef HAVE_GREGEX_H
 	if (regex_nickignore) {
@@ -200,10 +203,14 @@ static void read_settings(void)
 #endif
 }
 
-void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg)
+void irssi_send_message(SERVER_REC *irssi, const char *recipient,
+		const char *msg)
 {
-	ircctx->send_message(ircctx, recipient, msg,
-			GPOINTER_TO_INT(SEND_TARGET_NICK));
+	/* XXX: Maybe an assert here. Code flow error? */
+	if (irssi) {
+		irssi->send_message(irssi, recipient, msg,
+				GPOINTER_TO_INT(SEND_TARGET_NICK));
+	}
 }
 
 void otr_query_create(SERVER_REC *server, const char *nick)
@@ -227,7 +234,14 @@ void otr_init(void)
 
 	otr_lib_init();
 
-	ioustate = otr_init_user("one to rule them all");
+	/*
+	 * Username does not really matter here since well... we got only one :).
+	 */
+	user_state_global = otr_init_user("one to rule them all");
+	if (!user_state_global) {
+		IRSSI_MSG("Unable to allocate user global state");
+		return;
+	}
 
 	signal_add_first("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
 	signal_add_first("message private", (SIGNAL_FUNC) sig_message_private);
@@ -273,17 +287,17 @@ void otr_deinit(void)
 	statusbar_item_unregister("otr");
 
 	if (settings_get_bool("otr_finishonunload")) {
-		otr_finishall(ioustate);
+		otr_finishall(user_state_global);
 	}
 
-	otr_free_user(ioustate);
+	otr_free_user(user_state_global);
 
 	otr_lib_uninit();
 
 	theme_unregister();
 }
 
-IRC_CTX *ircctx_by_peername(const char *peername, char *nick)
+SERVER_REC *find_irssi_ctx_by_peername(const char *peername, char *nick)
 {
 	GSList *tmp;
 	char pname[256];

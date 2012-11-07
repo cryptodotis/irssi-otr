@@ -59,8 +59,6 @@ void otr_query_create(IRC_CTX *ircctx, const char *nick);
 #define IRSSI_CONN_ADDR(i) i->connrec->address
 #define IRSSI_NICK(i) i->nick
 #define IRSSI_ACCNAME(accname, i) sprintf(accname, "%s@%s", i->nick, IRSSI_CONN_ADDR(i))
-#define IRSSI_IO_US(i) (&ioustate_uniq)
-#define IO_CREATE_US(user) (&ioustate_uniq)
 
 #define otr_noticest(formatnum,...) \
 	printformat(NULL,NULL,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__)
@@ -84,13 +82,21 @@ void otr_query_create(IRC_CTX *ircctx, const char *nick);
 /*
  * Irssi macros for printing text to console.
  */
-#define IRSSI_NOTICE(irssi, username, fmt, ...) \
-	printtext(irssi, username, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__);
-#define IRSSI_WARN(irssi, username, fmt, ...) \
-	printtext(irssi, username, MSGLEVEL_HILIGHT, fmt, ## __VA_ARGS__);
-#define IRSSI_DEBUG(irssi, username, fmt, ...) \
+#define IRSSI_MSG(fmt, ...)                                                 \
+	do {                                                                    \
+		printtext(NULL, NULL, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__);          \
+	} while (0)
+#define IRSSI_NOTICE(irssi, username, fmt, ...)                             \
+	do {                                                                    \
+		printtext(irssi, username, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__);     \
+	} while (0)
+#define IRSSI_WARN(irssi, username, fmt, ...)                               \
+	do {                                                                    \
+		printtext(irssi, username, MSGLEVEL_HILIGHT, fmt, ## __VA_ARGS__);  \
+	} while (0)
+#define IRSSI_DEBUG(fmt, ...) \
 	do {                                                                    \
 		if (debug) {                                                        \
-			printtext(irssi, username, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__); \
+			printtext(NULL, NULL, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__); \
 		}                                                                   \
 	} while (0)

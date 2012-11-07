@@ -24,7 +24,7 @@
 /*
  * /otr debug
  */
-static void _cmd_debug(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
+static void _cmd_debug(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
 		char *argv_eol[], char *target, const char *orig_args)
 {
 	debug = !debug;
@@ -34,7 +34,7 @@ static void _cmd_debug(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv
 /*
  * /otr version 
  */
-static void _cmd_version(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
+static void _cmd_version(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
 		char *argv_eol[], char *target, const char *orig_args)
 {
 	otr_noticest(TXT_CMD_VERSION, IRCOTR_VERSION);
@@ -43,7 +43,7 @@ static void _cmd_version(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *ar
 /*
  * /otr help 
  */
-static void _cmd_help(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
+static void _cmd_help(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
 		char *argv_eol[], char *target, const char *orig_args)
 {
 	otr_log(ircctx, target, MSGLEVEL_CRAP, otr_help);
@@ -52,7 +52,7 @@ static void _cmd_help(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[
 /*
  * /otr finish 
  */
-static void _cmd_finish(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
+static void _cmd_finish(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
 		char *argv_eol[], char *target, const char *orig_args)
 {
 	if (argc) {
@@ -67,7 +67,7 @@ static void _cmd_finish(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *arg
 /*
  * /otr trust
  */
-static void _cmd_trust(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
+static void _cmd_trust(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
 		char *argv_eol[], char *target, const char *orig_args)
 {
 	if (argc) {
@@ -82,7 +82,7 @@ static void _cmd_trust(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv
 /*
  * /otr authabort
  */
-static void _cmd_authabort(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
+static void _cmd_authabort(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc,
 		char *argv[], char *argv_eol[], char *target, const char *orig_args)
 {
 	if (argc) {
@@ -97,7 +97,7 @@ static void _cmd_authabort(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
 /*
  * /otr genkey
  */
-static void _cmd_genkey(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
+static void _cmd_genkey(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
 		char *argv_eol[], char *target, const char *orig_args)
 {
 	if (argc) {
@@ -116,7 +116,7 @@ static void _cmd_genkey(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *arg
 /*
  * Generic internal function for /otr auth command.
  */
-static void _auth(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
+static void _auth(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc,
 		char *argv[], char *argv_eol[], char *target, int qanda,
 		const char *orig_args)
 {
@@ -166,7 +166,7 @@ end:
 /*
  * /otr authq (Authentication with a question)
  */
-static void _cmd_authq(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
+static void _cmd_authq(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc,
 		char *argv[], char *argv_eol[], char *target, const char *orig_args)
 {
 	_auth(ioustate, ircctx, argc, argv, argv_eol, target, TRUE, orig_args);
@@ -175,7 +175,7 @@ static void _cmd_authq(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
 /*
  * /otr auth
  */
-static void _cmd_auth(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
+static void _cmd_auth(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
 		char *argv_eol[], char *target, const char *orig_args)
 {
 	_auth(ioustate, ircctx, argc, argv, argv_eol, target, FALSE, orig_args);
@@ -184,7 +184,7 @@ static void _cmd_auth(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[
 /*
  * /otr contexts
  */
-static void _cmd_contexts(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
+static void _cmd_contexts(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc,
 		char *argv[], char *argv_eol[], char *target, const char *orig_args)
 {
 	struct ctxlist_ *ctxlist = otr_contexts(ioustate), *ctxnext = ctxlist;
@@ -217,7 +217,7 @@ static void _cmd_contexts(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc,
 	}
 }
 
-static void _cmd_init(IOUSTATE *ioustate, SERVER_REC *irssi, int argc,
+static void _cmd_init(struct otr_user_state *ioustate, SERVER_REC *irssi, int argc,
 		char *argv[], char *argv_eol[], char *target, const char *orig_args)
 {
 	char *msg;
@@ -234,7 +234,7 @@ static void _cmd_init(IOUSTATE *ioustate, SERVER_REC *irssi, int argc,
 	}
 
 	msg = otrl_proto_default_query_msg(target, OTRL_POLICY_DEFAULT);
-	irc_send_message(irssi, target, msg ? msg : "?OTRv23?");
+	irssi_send_message(irssi, target, msg ? msg : "?OTRv23?");
 	free(msg);
 
 end:
@@ -262,7 +262,7 @@ static struct irssi_commands cmds[] = {
  *
  * Return TRUE if command exist and is executed else FALSE.
  */
-int cmd_generic(IOUSTATE *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
+int cmd_generic(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc, char *argv[],
 		char *argv_eol[], char *target, const char *orig_args)
 {
 	char *cmd;

@@ -18,12 +18,14 @@
  */
 
 #define _GNU_SOURCE
+#include <assert.h>
 #include <glib/gstdio.h>
 #include <libgen.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/poll.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "key.h"
 
@@ -36,9 +38,22 @@ static struct {
 	guint cpid;
 	guint cwid;
 	pid_t pid;
-	IOUSTATE *ioustate;
+	struct otr_user_state *ustate;
 } kg_st = { .status = KEYGEN_NO };
 
+static char *file_path_build(const char *path)
+{
+	char *filename = NULL;
+
+	if (!path) {
+		path = "";
+	}
+
+	/* Either NULL or the filename is returned here which is valid. */
+	(void) asprintf(&filename, "%s%s", get_client_config_dir(), path);
+
+	return filename;
+}
 
 static void keygen_childwatch(GPid pid, gint status, gpointer data)
 {
@@ -79,7 +94,7 @@ static void keygen_childwatch(GPid pid, gint status, gpointer data)
 		otr_noticest(TXT_KG_POLLERR, kg_st.accountname, strerror(errno));
 	}
 
-	key_generation_abort(kg_st.ioustate, FALSE);
+	key_generation_abort(kg_st.ustate, FALSE);
 
 end:
 	return;
@@ -114,7 +129,7 @@ static gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 				time(NULL) - kg_st.started);
 		rename(tmpfilename, filename);
 		//otrl_privkey_forget_all(otr_state); <-- done by lib
-		key_load(kg_st.ioustate);
+		key_load(kg_st.ustate);
 	}
 
 	g_source_remove(kg_st.cwid);
@@ -134,14 +149,10 @@ static gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
  * will rewrite the key file, we shouldn't change anything till it's done and
  * we've reloaded the keys.
  */
-void key_generation_run(IOUSTATE *ioustate, const char *accname)
-{
-	gcry_error_t err;
-	int ret;
-	int fds[2];
-	char *filename = g_strconcat(get_client_config_dir(), OTR_TMP_KEYFILE, NULL);
-	char *filenamedup = g_strdup(filename);
-	char *dir = dirname(filenamedup);
+void key_generation_run(struct otr_user_state *ustate, const char *accname) { gcry_error_t
+	err; int ret; int fds[2]; char *filename =
+		g_strconcat(get_client_config_dir(), OTR_TMP_KEYFILE, NULL); char
+		*filenamedup = g_strdup(filename); char *dir = dirname(filenamedup);
 
 	if (kg_st.status != KEYGEN_NO) {
 		if (strncmp(accname, kg_st.accountname, strlen(accname)) != 0) {
@@ -174,7 +185,7 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 	kg_st.ch[1] = g_io_channel_unix_new(fds[1]);
 
 	kg_st.accountname = g_strdup(accname);
-	kg_st.ioustate = ioustate;
+	kg_st.ustate = ustate;
 	kg_st.protocol = OTR_PROTOCOL_ID;
 	kg_st.started = time(NULL);
 
@@ -198,7 +209,7 @@ void key_generation_run(IOUSTATE *ioustate, const char *accname)
 
 	/* child */
 
-	err = otrl_privkey_generate(ioustate->otr_state, filename, accname,
+	err = otrl_privkey_generate(ustate->otr_state, filename, accname,
 			OTR_PROTOCOL_ID);
 	(void) write(fds[1], &err, sizeof(err));
 
@@ -214,7 +225,7 @@ end:
 /*
  * Abort ongoing key generation.
  */
-void key_generation_abort(IOUSTATE *ioustate, int ignoreidle)
+void key_generation_abort(struct otr_user_state *ustate, int ignoreidle)
 {
 	if (kg_st.status != KEYGEN_RUNNING) {
 		if (!ignoreidle) {
@@ -243,115 +254,128 @@ end:
 /*
  * Write fingerprints to file.
  */
-void key_write_fingerprints(IOUSTATE *ioustate)
+void key_write_fingerprints(struct otr_user_state *ustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(), OTR_FINGERPRINTS_FILE, NULL);
+	char *filename;
 
-	err = otrl_privkey_write_fingerprints(ioustate->otr_state, filename);
-	if (err == GPG_ERR_NO_ERROR) {
-		otr_noticest(TXT_FP_SAVED);
-	} else {
-		otr_noticest(TXT_FP_SAVE_ERROR, gcry_strerror(err),
-				gcry_strsource(err));
+	assert(ustate);
+
+	filename = file_path_build(OTR_FINGERPRINTS_FILE);
+	if (!filename) {
+		goto error_filename;
 	}
 
-	g_free(filename);
+	err = otrl_privkey_write_fingerprints(ustate->otr_state, filename);
+	if (err == GPG_ERR_NO_ERROR) {
+		IRSSI_DEBUG("%9OTR%9: Fingerprints saved to %9%s%9", filename);
+	} else {
+		IRSSI_DEBUG("%9OTR%9: Error writing fingerprints: %d (%d)",
+				gcry_strerror(err), gcry_strsource(err));
+	}
+
+	free(filename);
+error_filename:
+	return;
 }
 
 /*
  * Write instance tags to file.
  */
-void otr_writeinstags(IOUSTATE *ioustate)
+void otr_writeinstags(struct otr_user_state *ustate)
 {
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(), OTR_INSTAG_FILE, NULL);
+	char *filename;
 
-	err = otrl_instag_write(ioustate->otr_state, filename);
-	if (err == GPG_ERR_NO_ERROR) {
-		otr_noticest(TXT_INSTAG_SAVED);
-	} else {
-		otr_noticest(TXT_INSTAG_SAVE_ERROR, gcry_strerror(err),
-				gcry_strsource(err));
+	assert(ustate);
+
+	filename = file_path_build(OTR_INSTAG_FILE);
+	if (!filename) {
+		goto error_filename;
 	}
 
-	g_free(filename);
+	err = otrl_instag_write(ustate->otr_state, filename);
+	if (err == GPG_ERR_NO_ERROR) {
+		IRSSI_DEBUG("%9OTR%9: Instance tags saved in %9%s%9", filename);
+	} else {
+		IRSSI_DEBUG("%9OTR%9: Error saving instance tags: %d (%d)",
+				gcry_strerror(err), gcry_strsource(err));
+	}
+
+	free(filename);
+error_filename:
+	return;
 }
 
 /*
  * Load private keys.
  */
-void key_load(IOUSTATE *ioustate)
+void key_load(struct otr_user_state *ustate)
 {
+	int ret;
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(), OTR_KEYFILE, NULL);
+	char *filename;
 
-	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		otr_noticest(TXT_KEY_NOT_FOUND);
+	assert(ustate);
+
+	filename = file_path_build(OTR_KEYFILE);
+	if (!filename) {
+		goto error_filename;
+	}
+
+	ret = access(filename, F_OK);
+	if (ret < 0) {
+		IRSSI_DEBUG("%9OTR%9: No private keys found in %9%s%9", filename);
 		goto end;
 	}
 
-	err = otrl_privkey_read(ioustate->otr_state, filename);
+	err = otrl_privkey_read(ustate->otr_state, filename);
 	if (err == GPG_ERR_NO_ERROR) {
-		otr_noticest(TXT_KEY_LOADED);
+		IRSSI_DEBUG("%9OTR%9: Private keys loaded from %9%s%9", filename);
 	} else {
-		otr_noticest(TXT_KEY_LOAD_ERROR, gcry_strerror(err),
-				gcry_strsource(err));
+		IRSSI_DEBUG("%9OTR%9: Error loading private keys: %d (%d)",
+				gcry_strerror(err), gcry_strsource(err));
 	}
 
 end:
-	g_free(filename);
+	free(filename);
+error_filename:
 	return;
 }
 
 /*
  * Load fingerprints.
  */
-void key_load_fingerprints(IOUSTATE *ioustate)
+void key_load_fingerprints(struct otr_user_state *ustate)
 {
+	int ret;
 	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(), OTR_FINGERPRINTS_FILE, NULL);
-	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		otr_noticest(TXT_FP_NOT_FOUND);
+	char *filename;
+
+	assert(ustate);
+
+	filename = file_path_build(OTR_FINGERPRINTS_FILE);
+	if (!filename) {
+		goto error_filename;
+	}
+
+	ret = access(filename, F_OK);
+	if (ret < 0) {
+		IRSSI_DEBUG("%9OTR%9: No fingerprints found in %9%s%9", filename);
 		goto end;
 	}
 
-	err = otrl_privkey_read_fingerprints(ioustate->otr_state, filename, NULL,
-				NULL);
+	err = otrl_privkey_read_fingerprints(ustate->otr_state, filename, NULL,
+			NULL);
 	if (err == GPG_ERR_NO_ERROR) {
-		otr_noticest(TXT_FP_LOADED);
+		IRSSI_DEBUG("%9OTR%9: Fingerprints loaded from %9%s%9", filename);
 	} else {
-		otr_noticest(TXT_FP_LOAD_ERROR, gcry_strerror(err),
-				gcry_strsource(err));
+		IRSSI_DEBUG("%9OTR%9: Error loading fingerprints: %d (%d)",
+				gcry_strerror(err), gcry_strsource(err));
 	}
 
 end:
-	g_free(filename);
-	return;
-}
-
-/*
- * Load instance tags.
- */
-void instag_load(IOUSTATE *ioustate)
-{
-	gcry_error_t err;
-	char *filename = g_strconcat(get_client_config_dir(), OTR_INSTAG_FILE, NULL);
-
-	if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-		otr_noticest(TXT_INSTAG_NOT_FOUND);
-		goto end;
-	}
-
-	err = otrl_instag_read(ioustate->otr_state, filename);
-	if (err == GPG_ERR_NO_ERROR) {
-		otr_noticest(TXT_INSTAG_LOADED);
-	} else {
-		otr_noticest(TXT_INSTAG_LOAD_ERROR, gcry_strerror(err),
-				gcry_strsource(err));
-	}
-
-end:
-	g_free(filename);
+	free(filename);
+error_filename:
 	return;
 }

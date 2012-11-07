@@ -63,18 +63,23 @@
 #define IRCACTIONMARK                 "/me "
 #define IRCACTIONMARKLEN              4
 
-/* user state */
+/*
+ * Memory allocation zeroed. Really useful!
+ */
+#define zmalloc(x) calloc(1, x)
 
-typedef struct {
+/* Irssi otr user state */
+struct otr_user_state {
 	OtrlUserState otr_state;
-	GSList *plistunknown;
-	GSList *plistknown;
-} IOUSTATE;
+	GSList *policy_unknown_list;
+	GSList *policy_known_list;
+};
 
-/* one for each OTR context (=communication pair) */
-struct irssi_otr_context {
-	SERVER_REC *irssi;              /* Irssi server object for this peer */
-	unsigned int received_smp_init; /* Do the SMP auth was received ? */
+/*
+ * Peer OTR internal context.
+ */
+struct otr_peer_context {
+	int received_smp_init;
 };
 
 /* these are returned by /otr contexts */
@@ -95,36 +100,34 @@ struct ctxlist_ {
 
 /* returned by otr_getstatus */
 enum otr_status {
-	IO_ST_PLAINTEXT,
-	IO_ST_FINISHED,
-	IO_ST_SMP_INCOMING,
-	IO_ST_SMP_OUTGOING,
-	IO_ST_SMP_FINALIZE,
-	IO_ST_UNKNOWN,
-	IO_ST_UNTRUSTED=32,
-	IO_ST_TRUST_MANUAL=64,
-	IO_ST_TRUST_SMP=128,
-	IO_ST_SMP_ONGOING=
-		IO_ST_SMP_INCOMING | IO_ST_SMP_OUTGOING | IO_ST_SMP_FINALIZE
+	IO_ST_PLAINTEXT        = 0,
+	IO_ST_FINISHED         = 1,
+	IO_ST_SMP_INCOMING     = 2,
+	IO_ST_SMP_OUTGOING     = 3,
+	IO_ST_SMP_FINALIZE     = 4,
+	IO_ST_UNKNOWN          = 5,
+	IO_ST_UNTRUSTED        = 6,
+	IO_ST_TRUST_MANUAL     = 7,
+	IO_ST_TRUST_SMP        = 8,
 };
 
 /* given to otr_status_change */
-enum statusbar_event {
-	IO_STC_FINISHED,
-	IO_STC_TRUST_MANUAL,
-	IO_STC_TRUST_SMP,
-	IO_STC_SMP_ABORT,
-	IO_STC_SMP_STARTED,
-	IO_STC_SMP_RESPONDED,
-	IO_STC_SMP_INCOMING,
-	IO_STC_SMP_FINALIZE,
-	IO_STC_SMP_ABORTED,
-	IO_STC_PEER_FINISHED,
-	IO_STC_SMP_FAILED,
-	IO_STC_SMP_SUCCESS,
-	IO_STC_GONE_SECURE,
-	IO_STC_GONE_INSECURE,
-	IO_STC_CTX_UPDATE
+enum otr_status_event {
+	OTR_STATUS_FINISHED,
+	OTR_STATUS_TRUST_MANUAL,
+	OTR_STATUS_TRUST_SMP,
+	OTR_STATUS_SMP_ABORT,
+	OTR_STATUS_SMP_STARTED,
+	OTR_STATUS_SMP_RESPONDED,
+	OTR_STATUS_SMP_INCOMING,
+	OTR_STATUS_SMP_FINALIZE,
+	OTR_STATUS_SMP_ABORTED,
+	OTR_STATUS_PEER_FINISHED,
+	OTR_STATUS_SMP_FAILED,
+	OTR_STATUS_SMP_SUCCESS,
+	OTR_STATUS_GONE_SECURE,
+	OTR_STATUS_GONE_INSECURE,
+	OTR_STATUS_CTX_UPDATE
 };
 
 /* policy list generated from /set otr_policy */
@@ -135,50 +138,56 @@ struct plistentry {
 };
 
 /* there can be only one */
-extern IOUSTATE ioustate_uniq;
+extern struct otr_user_state *user_state_global;
 
+/* Libotr ops functions */
 extern OtrlMessageAppOps otr_ops;
 
+/* Active debug or not */
 extern int debug;
 
-void irc_send_message(IRC_CTX *ircctx, const char *recipient, char *msg);
-void otr_status_change(IRC_CTX *ircctx, const char *nick,
-		enum statusbar_event event);
+void irssi_send_message(SERVER_REC *irssi, const char *recipient,
+		const char *message);
+void otr_status_change(SERVER_REC *irssi, const char *nick,
+		enum otr_status_event event);
 
-IRC_CTX *ircctx_by_peername(const char *peername, char *nick);
+SERVER_REC *find_irssi_ctx_by_peername(const char *peername, char *nick);
 
 /* init stuff */
 
-IOUSTATE *otr_init_user(char *user);
-void otr_free_user(IOUSTATE *ioustate);
+struct otr_user_state *otr_init_user(const char *user);
+void otr_free_user(struct otr_user_state *ustate);
 
 void otr_lib_init();
 void otr_lib_uninit();
 
-void otr_setpolicies(IOUSTATE *ioustate, const char *policies, int known);
+void otr_setpolicies(struct otr_user_state *ustate, const char *policies,
+		int known);
 
 /* basic send/receive/status stuff */
 
-int otr_send(IRC_CTX *server, const char *msg, const char *to, char **otr_msg);
-int otr_receive(IRC_CTX *server, const char *msg, const char *from,
-		char **new_msg);
+int otr_send(SERVER_REC *irssi, const char *msg, const char *to,
+		char **otr_msg);
+int otr_receive(SERVER_REC *irssi, const char *msg,
+		const char *from, char **new_msg);
 
-int otr_getstatus(IRC_CTX *ircctx, const char *nick);
-ConnContext *otr_getcontext(const char *accname, const char *nick, int create,
-		IRC_CTX *ircctx);
+int otr_getstatus(SERVER_REC *irssi, const char *nick);
 
 /* user interaction */
 
-void otr_trust(IRC_CTX *server, char *nick, const char *peername);
-void otr_finish(IRC_CTX *server, char *nick, const char *peername,
-		int inquery);
-void otr_auth(IRC_CTX *server, char *nick, const char *peername,
+void otr_trust(SERVER_REC *irssi, char *nick,
+		const char *peername);
+void otr_finish(SERVER_REC *irssi, char *nick,
+		const char *peername, int inquery);
+void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 		const char *question, const char *secret);
-void otr_authabort(IRC_CTX *server, char *nick, const char *peername);
-void otr_abort_auth(ConnContext *co, IRC_CTX *ircctx, const char *nick);
-struct ctxlist_ *otr_contexts(IOUSTATE *ioustate);
-void otr_finishall(IOUSTATE *ioustate);
+void otr_authabort(SERVER_REC *irssi, char *nick,
+		const char *peername);
+void otr_abort_auth(ConnContext *co, SERVER_REC *irssi,
+		const char *nick);
+struct ctxlist_ *otr_contexts(struct otr_user_state *ustate);
+void otr_finishall(struct otr_user_state *ustate);
 
-int otr_getstatus_format(IRC_CTX *ircctx, const char *nick);
+int otr_getstatus_format(SERVER_REC *irssi, const char *nick);
 
 #endif /* IRSSI_OTR_OTR_H */
