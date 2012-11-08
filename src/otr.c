@@ -500,15 +500,20 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 		goto end;
 	}
 
-	ctx = get_otrl_context(accname, nick, FALSE, irssi);
+	ctx = get_otrl_context(accname, nick, 0, irssi);
 	if (!ctx) {
 		otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
 		goto end;
 	}
 
 	opc = ctx->app_data;
-	/* Shoud NOT happen */
-	assert(opc);
+	if (!opc) {
+		opc = otr_create_peer_context();
+		if (!opc) {
+			goto end;
+		}
+		ctx->app_data = opc;
+	}
 
 	if (ctx->msgstate != OTRL_MSGSTATE_ENCRYPTED) {
 		otr_notice(irssi, nick, TXT_AUTH_NEEDENC);

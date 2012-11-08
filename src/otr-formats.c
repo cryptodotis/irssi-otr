@@ -81,8 +81,8 @@ FORMAT_REC formats[] = {
 		{ "auth_peer_replied", "%9OTR%9: $0 replied to our auth request...", 1, { 0 }},
 		{ "auth_peer_wrong_smp3", "%9OTR%9: $0 sent a wrong authentication message (SMP3).", 1, { 0 }},
 		{ "auth_peer_wrong_smp4", "%9OTR%9: $0 sent a wrong authentication message (SMP4).", 1, { 0 }},
-		{ "auth_successful", "%9OTR%9: Authentication successful!", 0},
-		{ "auth_failed", "%9OTR%9: Authentication failed!", 0},
+		{ "auth_successful", "%9OTR%9: %GAuthentication successful!%n", 0},
+		{ "auth_failed", "%9OTR%9: %RAuthentication failed!%n", 0},
 		{ "auth_needenc", "%9OTR%9: You need to establish an OTR session before you can authenticate.", 0},
 		{ NULL, "Commands", 0 }
 	,
