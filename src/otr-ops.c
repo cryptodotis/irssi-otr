@@ -311,14 +311,13 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 	const char *from = context->username;
 	struct otr_peer_context *opc = context->app_data;
 
-	if (!opc) {
-		IRSSI_DEBUG("%9OTR%9: SMP event cb. Unable to find peer context");
-		opc = otr_create_peer_context();
-		if (!opc) {
-			goto end;
-		}
-		context->app_data = opc;
-	}
+	/*
+	 * Without a peer context, we can't update the status bar. Code flow error
+	 * if none is found. This context is created automatically by an otrl_*
+	 * call or if non existent when returned from
+	 * otrl_message_sending/receiving.
+	 */
+	assert(opc);
 
 	opc->smp_event = smp_event;
 
@@ -353,9 +352,6 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 		otr_logst(MSGLEVEL_CRAP, "Received unknown SMP event");
 		break;
 	}
-
-end:
-	return;
 }
 
 /*

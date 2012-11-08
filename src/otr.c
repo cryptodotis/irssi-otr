@@ -106,6 +106,8 @@ static void destroy_peer_context_cb(void *data)
 	if (opc) {
 		free(opc);
 	}
+
+	IRSSI_DEBUG("%9OTR%9: Peer context freed");
 }
 
 static void add_peer_context_cb(void *data, ConnContext *context)
@@ -119,6 +121,8 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 
 	context->app_data = opc;
 	context->app_data_free = destroy_peer_context_cb;
+
+	IRSSI_MSG("%9OTR%9: Peer context created for %s", context->username);
 }
 
 /*
@@ -215,6 +219,7 @@ int otr_send(SERVER_REC *irssi, const char *msg, const char *to, char **otr_msg)
 {
 	gcry_error_t err;
 	char *accname = NULL;
+	ConnContext *ctx = NULL;
 
 	assert(irssi);
 
@@ -227,13 +232,18 @@ int otr_send(SERVER_REC *irssi, const char *msg, const char *to, char **otr_msg)
 
 	err = otrl_message_sending(user_state_global->otr_state, &otr_ops,
 		irssi, accname, OTR_PROTOCOL_ID, to, OTRL_INSTAG_BEST, msg, NULL, otr_msg,
-		OTRL_FRAGMENT_SEND_ALL_BUT_LAST, NULL, add_peer_context_cb, NULL);
+		OTRL_FRAGMENT_SEND_ALL_BUT_LAST, &ctx, add_peer_context_cb, NULL);
 	if (err) {
 		IRSSI_NOTICE(irssi, to, "%9OTR:%9 Send failed.");
 		goto error;
 	}
 
 	IRSSI_DEBUG("%9OTR%9: Message sent...");
+
+	/* Add peer context to OTR context if non exists */
+	if (ctx && !ctx->app_data) {
+		add_peer_context_cb(NULL, ctx);
+	}
 
 	free(accname);
 	return 0;
@@ -507,16 +517,13 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 	}
 
 	opc = ctx->app_data;
-	if (!opc) {
-		opc = otr_create_peer_context();
-		if (!opc) {
-			goto end;
-		}
-		ctx->app_data = opc;
-	}
+	/* Again, code flow error. */
+	assert(opc);
 
 	if (ctx->msgstate != OTRL_MSGSTATE_ENCRYPTED) {
-		otr_notice(irssi, nick, TXT_AUTH_NEEDENC);
+		IRSSI_NOTICE(irssi, nick,
+				"%9OTR%9: You need to establish an OTR session before you "
+				"can authenticate.");
 		goto end;
 	}
 
@@ -569,6 +576,7 @@ int otr_receive(SERVER_REC *irssi, const char *msg, const char *from,
 	int ret = -1;
 	char *accname = NULL;
 	OtrlTLV *tlvs;
+	ConnContext *ctx;
 
 	accname = create_account_name(irssi);
 	if (!accname) {
@@ -579,16 +587,22 @@ int otr_receive(SERVER_REC *irssi, const char *msg, const char *from,
 
 	ret = otrl_message_receiving(user_state_global->otr_state,
 		&otr_ops, irssi, accname, OTR_PROTOCOL_ID, from, msg, new_msg, &tlvs,
-		NULL, add_peer_context_cb, NULL);
+		&ctx, add_peer_context_cb, NULL);
 	if (ret) {
 		IRSSI_DEBUG("%9OTR%9: Ignoring message of length %d from %s to %s.\n"
-				"[%s]", strlen(msg), from, accname, msg);
+				"%9OTR%9: %s", strlen(msg), from, accname, msg);
 	} else {
 		if (*new_msg) {
 			IRSSI_DEBUG("%9OTR%9: Converted received message.");
 		}
 	}
 
+	/* Add peer context to OTR context if non exists */
+	if (ctx && !ctx->app_data) {
+		add_peer_context_cb(NULL, ctx);
+	}
+
+	/* Check for disconnected message */
 	OtrlTLV *tlv = otrl_tlv_find(tlvs, OTRL_TLV_DISCONNECTED);
 	if (tlv) {
 		otr_status_change(irssi, from, OTR_STATUS_PEER_FINISHED);

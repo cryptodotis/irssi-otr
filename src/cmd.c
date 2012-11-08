@@ -223,14 +223,8 @@ static void _cmd_init(struct otr_user_state *ustate, SERVER_REC *irssi, int argc
 	char *msg;
 
 	/* No server object, just ignore the request */
-	if (!irssi) {
+	if (!irssi || !target) {
 		otr_noticest(TXT_CMD_QNOTFOUND);
-		goto end;
-	}
-
-	if (!target) {
-		IRSSI_WARN(irssi, irssi->nick, "%9OTR:%9 Use /otr init only in a "
-				"private message window.");
 		goto end;
 	}
 
