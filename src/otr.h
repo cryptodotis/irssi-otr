@@ -79,7 +79,7 @@ struct otr_user_state {
  * Peer OTR internal context.
  */
 struct otr_peer_context {
-	int received_smp_init;
+	OtrlSMPEvent smp_event;
 };
 
 /* these are returned by /otr contexts */

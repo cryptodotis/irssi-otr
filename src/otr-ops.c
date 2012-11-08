@@ -156,7 +156,7 @@ static void ops_insecure(void *opdata, ConnContext *context)
 {
 	SERVER_REC *irssi = opdata;
 
-	otr_notice(irssi, context->username, TXT_OPS_INSEC);
+	IRSSI_NOTICE(irssi, context->username, "%9OTR%9: Gone %rinsecure%r");
 	otr_status_change(irssi, context->username, OTR_STATUS_GONE_INSECURE);
 }
 
@@ -247,8 +247,13 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 		IRSSI_WARN(server, username, "%9OTR:%9 OTR Error: %s.", message);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_UNENCRYPTED:
-		IRSSI_WARN(server, username, "%9OTR:%9 The following message from "
-				"%9%s%9 was NOT encrypted: [%s]", username, message);
+		if (context->msgstate == OTRL_MSGSTATE_PLAINTEXT) {
+			/* Relay message if in a plaintext state */
+			irssi_send_message(server, username, message);
+		} else {
+			IRSSI_WARN(server, username, "%9OTR:%9 The following message from "
+					"%9%s%9 was NOT encrypted: [%s]", username, message);
+		}
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_UNRECOGNIZED:
 		IRSSI_WARN(server, username, "%9OTR:%9 Unrecognized OTR message "
@@ -262,7 +267,7 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 }
 
 /*
- * A context changed. I believe this is not happening for the SMP expects.
+ * A context changed.
  */
 static void ops_up_ctx_list(void *opdata)
 {
@@ -299,13 +304,14 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 {
 	SERVER_REC *irssi = opdata;
 	const char *from = context->username;
+	struct otr_peer_context *opc = context->app_data;
 
-	if (context->app_data) {
-		struct otr_peer_context *opc = context->app_data;
-		opc->received_smp_init =
-			(smp_event == OTRL_SMPEVENT_ASK_FOR_SECRET) ||
-			(smp_event == OTRL_SMPEVENT_ASK_FOR_ANSWER);
+	if (!opc) {
+		IRSSI_DEBUG("%9OTR%9: SMP event cb. Unable to find peer context");
+		goto end;
 	}
+
+	opc->smp_event = smp_event;
 
 	switch (smp_event) {
 	case OTRL_SMPEVENT_ASK_FOR_SECRET:
@@ -338,6 +344,9 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 		otr_logst(MSGLEVEL_CRAP, "Received unknown SMP event");
 		break;
 	}
+
+end:
+	return;
 }
 
 /*

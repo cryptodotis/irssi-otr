@@ -224,6 +224,7 @@ static void _cmd_init(struct otr_user_state *ioustate, SERVER_REC *irssi, int ar
 
 	/* No server object, just ignore the request */
 	if (!irssi) {
+		otr_noticest(TXT_CMD_QNOTFOUND);
 		goto end;
 	}
 
