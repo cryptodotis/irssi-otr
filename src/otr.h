@@ -189,5 +189,6 @@ struct ctxlist_ *otr_contexts(struct otr_user_state *ustate);
 void otr_finishall(struct otr_user_state *ustate);
 
 int otr_getstatus_format(SERVER_REC *irssi, const char *nick);
+struct otr_peer_context *otr_create_peer_context(void);
 
 #endif /* IRSSI_OTR_OTR_H */

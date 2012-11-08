@@ -20,6 +20,7 @@
 #include <assert.h>
 
 #include "key.h"
+#include "module.h"
 
 OtrlPolicy IO_DEFAULT_OTR_POLICY =
 	OTRL_POLICY_MANUAL | OTRL_POLICY_WHITESPACE_START_AKE;
@@ -91,9 +92,6 @@ static void ops_create_privkey(void *opdata, const char *accountname,
 
 /*
  * Inject OTR message.
- *
- * Deriving the server is currently a hack, need to derive the server from
- * accountname.
  */
 static void ops_inject_msg(void *opdata, const char *accountname,
 		const char *protocol, const char *recipient, const char *message)
@@ -221,8 +219,8 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 				"reflecting your messages back at you.");
 		break;
 	case OTRL_MSGEVENT_MSG_RESENT:
-		IRSSI_NOTICE(server, username, "%9OTR:%9 The last message to %s was "
-				"resent.", username);
+		IRSSI_NOTICE(server, username, "%9OTR:%9 The last message to %9%s%9 "
+				"was resent: %s", username, message);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_NOT_IN_PRIVATE:
 		IRSSI_WARN(server, username, "%9OTR:%9 The encrypted message received "
@@ -247,13 +245,20 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 		IRSSI_WARN(server, username, "%9OTR:%9 OTR Error: %s.", message);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_UNENCRYPTED:
-		if (context->msgstate == OTRL_MSGSTATE_PLAINTEXT) {
-			/* Relay message if in a plaintext state */
-			irssi_send_message(server, username, message);
-		} else {
-			IRSSI_WARN(server, username, "%9OTR:%9 The following message from "
-					"%9%s%9 was NOT encrypted: [%s]", username, message);
-		}
+		IRSSI_NOTICE(server, username,
+				"%9OTR:%9 The following message from %9%s%9 was NOT "
+				"encrypted: [%s]", username, message);
+		/*
+		 * This is a hack I found to send the message in a private window of
+		 * the username without creating an infinite loop since the 'message
+		 * private' signal is hijacked in this module. If someone is able to
+		 * clean this up with a more elegant solution, by all means PLEASE
+		 * submit a patch or email me a better way.
+		 */
+		signal_remove("message private", (SIGNAL_FUNC) sig_message_private);
+		signal_emit("message private", 4, server, message, username,
+				IRSSI_CONN_ADDR(server));
+		signal_add_first("message private", (SIGNAL_FUNC) sig_message_private);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_UNRECOGNIZED:
 		IRSSI_WARN(server, username, "%9OTR:%9 Unrecognized OTR message "
@@ -308,7 +313,11 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 
 	if (!opc) {
 		IRSSI_DEBUG("%9OTR%9: SMP event cb. Unable to find peer context");
-		goto end;
+		opc = otr_create_peer_context();
+		if (!opc) {
+			goto end;
+		}
+		context->app_data = opc;
 	}
 
 	opc->smp_event = smp_event;

@@ -87,7 +87,7 @@ end:
 /*
  * Pipes all incoming private messages through OTR
  */
-static void sig_message_private(SERVER_REC *server, const char *msg,
+void sig_message_private(SERVER_REC *server, const char *msg,
 		const char *nick, const char *address)
 {
 	int ret;

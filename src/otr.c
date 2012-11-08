@@ -112,7 +112,7 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 {
 	struct otr_peer_context *opc;
 
-	opc = zmalloc(sizeof(*opc));
+	opc = otr_create_peer_context();
 	if (!opc) {
 		return;
 	}
@@ -132,6 +132,13 @@ static ConnContext *get_otrl_context(const char *accname, const char *nick,
 			add_peer_context_cb, NULL);
 
 	return ctx;
+}
+
+struct otr_peer_context *otr_create_peer_context(void)
+{
+	struct otr_peer_context *opc;
+
+	return zmalloc(sizeof(*opc));
 }
 
 /*
@@ -165,7 +172,6 @@ void otr_free_user(struct otr_user_state *ustate)
 	key_generation_abort(ustate, TRUE);
 
 	if (ustate->otr_state) {
-		key_write_fingerprints(ustate);
 		otrl_userstate_free(ustate->otr_state);
 		ustate->otr_state = NULL;
 	}
@@ -523,7 +529,7 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 		}
 	}
 
-	if (opc->smp_event == OTRL_SMPEVENT_ASK_FOR_ANSWER) {
+	if (opc->smp_event == OTRL_SMPEVENT_ASK_FOR_SECRET) {
 		otrl_message_respond_smp(user_state_global->otr_state, &otr_ops,
 				irssi, ctx, (unsigned char *) secret, strlen(secret));
 		otr_status_change(irssi, nick, OTR_STATUS_SMP_RESPONDED);
@@ -543,6 +549,7 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 	}
 
 end:
+	free(accname);
 	return;
 }
 
