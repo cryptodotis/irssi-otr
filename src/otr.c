@@ -541,7 +541,7 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 		}
 	}
 
-	if (opc->smp_event == OTRL_SMPEVENT_ASK_FOR_SECRET) {
+	if (opc->ask_secret) {
 		otrl_message_respond_smp(user_state_global->otr_state, &otr_ops,
 				irssi, ctx, (unsigned char *) secret, strlen(secret));
 		otr_status_change(irssi, nick, OTR_STATUS_SMP_RESPONDED);
@@ -559,6 +559,8 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 		otr_status_change(irssi, nick, OTR_STATUS_SMP_STARTED);
 		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Initiated authentication...");
 	}
+
+	opc->ask_secret = 0;
 
 end:
 	free(accname);
@@ -606,7 +608,7 @@ int otr_receive(SERVER_REC *irssi, const char *msg, const char *from,
 	OtrlTLV *tlv = otrl_tlv_find(tlvs, OTRL_TLV_DISCONNECTED);
 	if (tlv) {
 		otr_status_change(irssi, from, OTR_STATUS_PEER_FINISHED);
-		IRSSI_NOTICE(irssi, from, "%9OTR%9: %s has finished the OTR "
+		IRSSI_NOTICE(irssi, from, "%9OTR%9: %9%s%9 has finished the OTR "
 				"conversation. If you want to continue talking enter "
 				"%9/otr finish%9 for plaintext or %9/otr init%9 to restart.",
 				from);

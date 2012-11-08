@@ -282,7 +282,7 @@ error_filename:
 /*
  * Write instance tags to file.
  */
-void otr_writeinstags(struct otr_user_state *ustate)
+void key_write_instags(struct otr_user_state *ustate)
 {
 	gcry_error_t err;
 	char *filename;

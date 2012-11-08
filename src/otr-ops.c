@@ -133,10 +133,11 @@ static void ops_secure(void *opdata, ConnContext *context)
 
 	IRSSI_NOTICE(irssi, context->username, "%9OTR%9: Your peer is not "
 			"authenticated. To make sure you're talking to the right guy you can "
-			"either agree on a secret and use the authentication described in "
-			"%9/otr auth%9, or, recommended, use %9/otr authq [QUESTION] SECRET%9 "
-			"or use the traditional way and compare fingerprints "
-			"(e.g. telephone) and subsequently enter %9/otr trust%9.");
+			"either agree on a secret and use the authentication command "
+			"%9/otr auth%9 or %9/otr authq [QUESTION] SECRET%9. You can also "
+			"use the traditional way and compare fingerprints "
+			"(e.g. telephone or GPG-signed mail) and subsequently enter "
+			"%9/otr trust%9.");
 
 	IRSSI_NOTICE(irssi, context->username,
 			"%9OTR%9: Your fingerprint is: %y%s\%n.\n"
@@ -156,17 +157,6 @@ static void ops_insecure(void *opdata, ConnContext *context)
 
 	IRSSI_NOTICE(irssi, context->username, "%9OTR%9: Gone %rinsecure%r");
 	otr_status_change(irssi, context->username, OTR_STATUS_GONE_INSECURE);
-}
-
-/*
- * Still secure? Need to find out what that means...
- */
-static void ops_still_secure(void *opdata, ConnContext *context, int is_reply)
-{
-	SERVER_REC *irssi = opdata;
-
-	otr_notice(irssi, context->username,
-			is_reply ?  TXT_OPS_STILL_REPLY : TXT_OPS_STILL_NO_REPLY);
 }
 
 /*
@@ -247,7 +237,7 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 	case OTRL_MSGEVENT_RCVDMSG_UNENCRYPTED:
 		IRSSI_NOTICE(server, username,
 				"%9OTR:%9 The following message from %9%s%9 was NOT "
-				"encrypted: [%s]", username, message);
+				"encrypted.", username);
 		/*
 		 * This is a hack I found to send the message in a private window of
 		 * the username without creating an infinite loop since the 'message
@@ -290,10 +280,21 @@ static void ops_write_fingerprints(void *data)
 static int ops_is_logged_in(void *opdata, const char *accountname,
 		const char *protocol, const char *recipient)
 {
-	/*TODO register a handler for event 401 no such nick and set
-	 * a variable offline=TRUE. Reset it to false in otr_receive and
-	 * otr_send */
-	return TRUE;
+	int ret;
+	SERVER_REC *irssi = opdata;
+
+	if (irssi) {
+		/* Logged in */
+		ret = 1;
+	} else {
+		/* Not */
+		ret = 0;
+	}
+
+	IRSSI_DEBUG("%9OTR%9: User %s %s logged in", accountname,
+			(ret == 0) ? "not" : "");
+
+	return ret;
 }
 
 static void ops_create_instag(void *opdata, const char *accountname,
@@ -301,7 +302,7 @@ static void ops_create_instag(void *opdata, const char *accountname,
 {
 	otrl_instag_generate(user_state_global->otr_state, "/dev/null",
 			accountname, protocol);
-	otr_writeinstags(user_state_global);
+	key_write_instags(user_state_global);
 }
 
 static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
@@ -323,19 +324,26 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 
 	switch (smp_event) {
 	case OTRL_SMPEVENT_ASK_FOR_SECRET:
-		otr_notice(irssi, from, TXT_AUTH_PEER, from);
+		IRSSI_NOTICE(irssi, from, "%9OTR%9: %9%s%9 wants to authenticate. "
+				"Type %9/otr auth <SECRET>%9 to complete.", from);
+		opc->ask_secret = 1;
 		otr_status_change(irssi, from, OTR_STATUS_SMP_INCOMING);
 		break;
 	case OTRL_SMPEVENT_ASK_FOR_ANSWER:
-		otr_notice(irssi, from, TXT_AUTH_PEER_QA, from, question);
+		IRSSI_NOTICE(irssi, from, "%9OTR%9: %9%s%9 wants to authenticate and "
+				"asked this question: %9%s%9\n"
+				"%9OTR%9: Type %9/otr auth <SECRET>%9 to complete.", from,
+				question);
+		opc->ask_secret = 1;
 		otr_status_change(irssi, from, OTR_STATUS_SMP_INCOMING);
 		break;
 	case OTRL_SMPEVENT_IN_PROGRESS:
-		otr_notice(irssi, from, TXT_AUTH_PEER_REPLIED, from);
+		IRSSI_NOTICE(irssi, from, "%9OTR%9: %9%s%9 replied to our auth request",
+				from);
 		otr_status_change(irssi, from, OTR_STATUS_SMP_FINALIZE);
 		break;
 	case OTRL_SMPEVENT_SUCCESS:
-		otr_notice(irssi, from, TXT_AUTH_SUCCESSFUL);
+		IRSSI_NOTICE(irssi, from, "%9OTR%9: %GAuthentication successful%n");
 		otr_status_change(irssi, from, OTR_STATUS_SMP_SUCCESS);
 		break;
 	case OTRL_SMPEVENT_ABORT:
@@ -345,11 +353,12 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 	case OTRL_SMPEVENT_FAILURE:
 	case OTRL_SMPEVENT_CHEATED:
 	case OTRL_SMPEVENT_ERROR:
-		otr_notice(irssi, from, TXT_AUTH_FAILED);
+		IRSSI_NOTICE(irssi, from, "%9OTR%9: %RAuthentication failed%n");
 		otr_status_change(irssi, from, OTR_STATUS_SMP_FAILED);
 		break;
 	default:
-		otr_logst(MSGLEVEL_CRAP, "Received unknown SMP event");
+		IRSSI_NOTICE(irssi, from, "%9OTR%9: Received unknown SMP event. "
+			"Ignoring");
 		break;
 	}
 }
@@ -367,7 +376,7 @@ OtrlMessageAppOps otr_ops = {
 	ops_write_fingerprints,
 	ops_secure,
 	ops_insecure,
-	ops_still_secure,
+	NULL, /* still_secure */
 	ops_max_msg,
 	NULL, /* accoun_name */
 	NULL, /* account_name_free */

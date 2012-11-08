@@ -80,6 +80,7 @@ struct otr_user_state {
  */
 struct otr_peer_context {
 	OtrlSMPEvent smp_event;
+	unsigned int ask_secret;
 };
 
 /* these are returned by /otr contexts */

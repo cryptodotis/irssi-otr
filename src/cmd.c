@@ -228,6 +228,8 @@ static void _cmd_init(struct otr_user_state *ustate, SERVER_REC *irssi, int argc
 		goto end;
 	}
 
+	IRSSI_NOTICE(irssi, target, "%9OTR%9: Initiating OTR session...");
+
 	msg = otrl_proto_default_query_msg(target, OTRL_POLICY_DEFAULT);
 	irssi_send_message(irssi, target, msg ? msg : "?OTRv23?");
 	free(msg);

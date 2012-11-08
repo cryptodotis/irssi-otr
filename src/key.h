@@ -28,6 +28,6 @@ void key_generation_run(struct otr_user_state *ustate, const char *accname);
 void key_load(struct otr_user_state *ustate);
 void key_load_fingerprints(struct otr_user_state *ustate);
 void key_write_fingerprints(struct otr_user_state *ustate);
-void otr_writeinstags(struct otr_user_state *ustate);
+void key_write_instags(struct otr_user_state *ustate);
 
 #endif /* IRSSI_OTR_KEY_H */
