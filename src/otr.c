@@ -406,6 +406,7 @@ void otr_trust(SERVER_REC *irssi, char *nick, const char *peername)
 	char *accname = NULL;
 	char nickbuf[128];
 	char peerfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
+	struct otr_peer_context *opc;
 
 	if (peername) {
 		nick = nickbuf;
@@ -425,10 +426,13 @@ void otr_trust(SERVER_REC *irssi, char *nick, const char *peername)
 		goto end;
 	}
 
-	otrl_context_set_trust(ctx->active_fingerprint, "manual");
+	opc = ctx->app_data;
+	assert(opc);
+
+	otrl_context_set_trust(opc->active_fingerprint, "manual");
 	otr_status_change(irssi, nick, OTR_STATUS_TRUST_MANUAL);
 
-	otrl_privkey_hash_to_human(peerfp, ctx->active_fingerprint->fingerprint);
+	otrl_privkey_hash_to_human(peerfp, opc->active_fingerprint->fingerprint);
 
 	IRSSI_NOTICE(irssi, nick, "%9OTR%9: Trusting fingerprint from %9%s%9:\n"
 			"%9OTR%9: %g%s%n", nick, peerfp);
