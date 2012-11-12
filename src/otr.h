@@ -79,8 +79,16 @@ struct otr_user_state {
  * Peer OTR internal context.
  */
 struct otr_peer_context {
+	/* The SMP event status. Used for the Irssi status bar. */
 	OtrlSMPEvent smp_event;
+	/* Did the SMP secret was asked so are we in a responder state? */
 	unsigned int ask_secret;
+	/*
+	 * The fingerprint of the private message OTR session. This is useful for
+	 * the forget command for which we can recover the fingerprint
+	 * automatically.
+	 */
+	Fingerprint *active_fingerprint;
 };
 
 /* these are returned by /otr contexts */
@@ -188,8 +196,14 @@ void otr_abort_auth(ConnContext *co, SERVER_REC *irssi,
 		const char *nick);
 struct ctxlist_ *otr_contexts(struct otr_user_state *ustate);
 void otr_finishall(struct otr_user_state *ustate);
+void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
+		struct otr_user_state *ustate);
 
 int otr_getstatus_format(SERVER_REC *irssi, const char *nick);
 struct otr_peer_context *otr_create_peer_context(void);
+ConnContext *otr_find_context(const char *accname, const char *nick,
+		int create, SERVER_REC *irssi);
+Fingerprint *otr_find_hash_fingerprint_from_human(const char *human_fp,
+		struct otr_user_state *ustate);
 
 #endif /* IRSSI_OTR_OTR_H */

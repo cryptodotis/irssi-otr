@@ -111,6 +111,7 @@ static void ops_secure(void *opdata, ConnContext *context)
 	char ownfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
 	char peerfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
 	SERVER_REC *irssi = opdata;
+	struct otr_peer_context *opc;
 
 	assert(context);
 	/* This should *really* not happened */
@@ -118,6 +119,9 @@ static void ops_secure(void *opdata, ConnContext *context)
 
 	IRSSI_NOTICE(irssi, context->username, "%9OTR%9: Gone %9secure%9");
 	otr_status_change(irssi, context->username, OTR_STATUS_GONE_SECURE);
+
+	opc = context->app_data;
+	opc->active_fingerprint = context->active_fingerprint;
 
 	ret = otrl_context_is_fingerprint_trusted(context->active_fingerprint);
 	if (ret) {

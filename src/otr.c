@@ -119,6 +119,7 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 		return;
 	}
 
+	context->active_fingerprint = context->active_fingerprint;
 	context->app_data = opc;
 	context->app_data_free = destroy_peer_context_cb;
 
@@ -128,7 +129,7 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 /*
  * Get a context from a pair.
  */
-static ConnContext *get_otrl_context(const char *accname, const char *nick,
+ConnContext *otr_find_context(const char *accname, const char *nick,
 		int create, SERVER_REC *irssi)
 {
 	ConnContext *ctx = otrl_context_find(user_state_global->otr_state,
@@ -259,9 +260,8 @@ struct ctxlist_ *otr_contexts(struct otr_user_state *ustate)
 	Fingerprint *fprint;
 	struct ctxlist_ *ctxlist = NULL, *ctxhead = NULL;
 	struct fplist_ *fplist, *fphead;
-	char fp[41];
+	char fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
 	char *trust;
-	int i;
 
 	for (context = ustate->otr_state->context_root; context;
 			context = context->next) {
@@ -300,9 +300,8 @@ struct ctxlist_ *otr_contexts(struct otr_user_state *ustate)
 
 			trust = fprint->trust ? : "";
 
-			for (i = 0; i < 20; ++i) {
-				sprintf(fp + i * 2, "%02x", fprint->fingerprint[i]);
-			}
+			otrl_privkey_hash_to_human(fp, fprint->fingerprint);
+
 			fplist->fp = g_strdup(fp);
 			if (*trust == '\0') {
 				fplist->authby = NOAUTH;
@@ -341,7 +340,7 @@ void otr_finish(SERVER_REC *irssi, char *nick, const char *peername, int inquery
 		goto end;
 	}
 
-	if (!(co = get_otrl_context(accname, nick, FALSE, irssi))) {
+	if (!(co = otr_find_context(accname, nick, FALSE, irssi))) {
 		if (inquery) {
 			otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
 		}
@@ -421,7 +420,7 @@ void otr_trust(SERVER_REC *irssi, char *nick, const char *peername)
 		goto end;
 	}
 
-	ctx = get_otrl_context(accname, nick, FALSE, irssi);
+	ctx = otr_find_context(accname, nick, FALSE, irssi);
 	if (!ctx) {
 		goto end;
 	}
@@ -474,7 +473,7 @@ void otr_authabort(SERVER_REC *irssi, char *nick, const char *peername)
 
 	IRSSI_ACCNAME(accname, irssi);
 
-	if (!(co = get_otrl_context(accname, nick, FALSE, irssi))) {
+	if (!(co = otr_find_context(accname, nick, FALSE, irssi))) {
 		otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
 		goto end;
 	}
@@ -510,7 +509,7 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 		goto end;
 	}
 
-	ctx = get_otrl_context(accname, nick, 0, irssi);
+	ctx = otr_find_context(accname, nick, 0, irssi);
 	if (!ctx) {
 		otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
 		goto end;
@@ -700,7 +699,7 @@ int otr_getstatus(SERVER_REC *irssi, const char *nick)
 		goto end;
 	}
 
-	ctx = get_otrl_context(accname, nick, FALSE, irssi);
+	ctx = otr_find_context(accname, nick, FALSE, irssi);
 	if (!ctx) {
 		code = IO_ST_PLAINTEXT;
 		goto end;
@@ -776,4 +775,107 @@ void otr_status_change(SERVER_REC *irssi, const char *nick,
 {
 	statusbar_items_redraw("otr");
 	signal_emit("otr event", 3, irssi, nick, statusbar_txt[event]);
+}
+
+/*
+ * Search for a OTR Fingerprint object from the given human readable string and
+ * return a pointer to the object if found else NULL.
+ */
+Fingerprint *otr_find_hash_fingerprint_from_human(const char *human_fp,
+		struct otr_user_state *ustate)
+{
+	char str_fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
+	Fingerprint *fp = NULL, *fp_iter = NULL;
+	ConnContext *context;
+
+	/* Loop on all context of the user state */
+	for (context = ustate->otr_state->context_root; context != NULL;
+			context = context->next) {
+		/* Loop on all fingerprint of the context */
+		for (fp_iter = context->fingerprint_root.next; fp_iter;
+				fp_iter = fp_iter->next) {
+			otrl_privkey_hash_to_human(str_fp, fp_iter->fingerprint);
+			/* Compare human fingerprint given in argument to the current. */
+			if (strncmp(str_fp, human_fp, sizeof(str_fp)) == 0) {
+				fp = otrl_context_find_fingerprint(context,
+						fp_iter->fingerprint, 0, NULL);
+				goto end;
+			}
+		}
+	}
+
+end:
+	return fp;
+}
+
+/*
+ * Forget a fingerprint.
+ *
+ * If str_fp is not NULL, it must be on the OTR human format like this:
+ * "487FFADA 5073FEDD C5AB5C14 5BB6C1FF 6D40D48A". If str_fp is NULL, get the
+ * context of the target nickname, check for the OTR peer context active
+ * fingerprint and forget this one if possible.
+ */
+void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
+		struct otr_user_state *ustate)
+{
+	char fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *accname = NULL;
+	Fingerprint *fp_forget;
+	ConnContext *ctx;
+	struct otr_peer_context *opc;
+
+	if (!irssi && !str_fp) {
+		IRSSI_NOTICE(NULL, nick, "%9OTR%9: Need a fingerprint!");
+		goto error;
+	}
+
+	/* No human string fingerprint given. */
+	if (!str_fp) {
+		accname = create_account_name(irssi);
+		if (!accname) {
+			goto error;
+		}
+
+		ctx = otr_find_context(accname, nick, FALSE, irssi);
+		if (!ctx) {
+			goto error;
+		}
+
+		opc = ctx->app_data;
+		/* Always NEED a peer context or else code error. */
+		assert(opc);
+
+		fp_forget = opc->active_fingerprint;
+	} else {
+		fp_forget = otr_find_hash_fingerprint_from_human(str_fp, ustate);
+	}
+
+	IRSSI_DEBUG("%9OTR%9: Forgetting fingerprint: %s",
+			(str_fp != NULL) ? str_fp : fp);
+
+	if (fp_forget) {
+		/* Don't do anything if context is in encrypted state. */
+		if (fp_forget->context->msgstate == OTRL_MSGSTATE_ENCRYPTED) {
+			IRSSI_NOTICE(irssi, nick, "%9OTR%9: Fingerprint "
+					"context is still encrypted. Finish the OTR "
+					"session beforehands.");
+			goto end;
+		}
+
+		otrl_privkey_hash_to_human(fp, fp_forget->fingerprint);
+		/* Forget fp and context if it's the only one remaining. */
+		otrl_context_forget_fingerprint(fp_forget, 1);
+		/* Update fingerprints file. */
+		key_write_fingerprints(ustate);
+		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Fingerprint %y%s%n forgotten.",
+				fp);
+	} else {
+		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Fingerprint %y%s%n NOT found",
+				(str_fp != NULL) ? str_fp : fp);
+	}
+
+end:
+error:
+	free(accname);
+	return;
 }

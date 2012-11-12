@@ -4,20 +4,21 @@
  * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 2 of the License, or (at your option)
- * any later version.
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#include <assert.h>
 #include <string.h>
 
 #include "otr.h"
@@ -161,4 +162,49 @@ void otr_log(IRC_CTX *server, const char *nick, int lvl, const char *fmt, ...)
 	va_end(params);
 
 	printtext(server, nick, MSGLEVEL_MSGS, msg);
+}
+
+void utils_string_to_upper(char *string)
+{
+	int i = 0;
+	char c;
+
+	assert(string);
+
+	while (string[i]) {
+		c = string[i];
+		string[i] = toupper(c);
+		i++;
+	}
+}
+
+/*
+ * Convert a fingerprint string of this format contained in parts:
+ *      d81d8363 f6d6090a c2632a53 352dadfa fd296a87
+ * to a privkey hash_to_human format of libotr:
+ *      D81D8363 F6D6090A C2632A53 352DADFA FD296A87
+ *
+ * Stores the result in dst which is basically regroup the string and upper
+ * case it. The dst argument must be equal or larger than
+ * OTRL_PRIVKEY_FPRINT_HUMAN_LEN.
+ */
+void utils_hash_parts_to_readable_hash(const char **parts, char *dst)
+{
+	int ret;
+
+	/* Safety net. This is a code flow error. */
+	assert(parts && parts[0] && parts[1] && parts[2] && parts[3] && parts[4]);
+	assert(dst);
+
+	ret = snprintf(dst, OTRL_PRIVKEY_FPRINT_HUMAN_LEN, "%s %s %s %s %s",
+			parts[0], parts[1], parts[2], parts[3], parts[4]);
+	if (ret < 0) {
+		goto error;
+	}
+
+	/* In place upper case full string. */
+	utils_string_to_upper(dst);
+
+error:
+	return;
 }
