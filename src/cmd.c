@@ -221,10 +221,17 @@ static void _cmd_init(struct otr_user_state *ustate, SERVER_REC *irssi, int argc
 		char *argv[], char *argv_eol[], char *target, const char *orig_args)
 {
 	char *msg;
+	ConnContext *ctx;
 
 	/* No server object, just ignore the request */
 	if (!irssi || !target) {
 		otr_noticest(TXT_CMD_QNOTFOUND);
+		goto end;
+	}
+
+	ctx = otr_find_context(irssi, target, 0);
+	if (ctx && ctx->msgstate == OTRL_MSGSTATE_ENCRYPTED) {
+		IRSSI_NOTICE(irssi, target, "%9OTR%9: Already secure!");
 		goto end;
 	}
 
