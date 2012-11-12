@@ -263,6 +263,31 @@ error:
 	return;
 }
 
+static void _cmd_distrust(struct otr_user_state *ustate, SERVER_REC *irssi,
+		int argc, char *argv[], char *argv_eol[], char *target,
+		const char *orig_args)
+{
+	char str_fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *fp = NULL;
+
+	if (argc == 5) {
+		utils_hash_parts_to_readable_hash((const char **) argv, str_fp);
+		fp = str_fp;
+	} else if (!irssi || (irssi && argc != 0)) {
+		/* If no IRSSI or some arguments (not 5), bad command. */
+		IRSSI_NOTICE(irssi, target, "%9OTR%9: Usage %9/otr distrust [FP]%9 "
+				"where FP is the five part of the fingerprint listed by "
+				"%9/otr contexts%9 or do the command inside an OTR session "
+				"private message window");
+		goto error;
+	}
+
+	/* Trigger the forget action. */
+	otr_distrust(irssi, target, fp, ustate);
+
+error:
+	return;
+}
+
 static struct irssi_commands cmds[] = {
 	{ "version", _cmd_version },
 	{ "debug", _cmd_debug },
@@ -270,6 +295,7 @@ static struct irssi_commands cmds[] = {
 	{ "init", _cmd_init },
 	{ "finish", _cmd_finish },
 	{ "trust", _cmd_trust },
+	{ "distrust", _cmd_distrust },
 	{ "forget", _cmd_forget },
 	{ "authabort", _cmd_authabort },
 	{ "auth", _cmd_auth },

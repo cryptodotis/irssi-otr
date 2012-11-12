@@ -198,6 +198,8 @@ struct ctxlist_ *otr_contexts(struct otr_user_state *ustate);
 void otr_finishall(struct otr_user_state *ustate);
 void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 		struct otr_user_state *ustate);
+void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
+		struct otr_user_state *ustate);
 
 int otr_getstatus_format(SERVER_REC *irssi, const char *nick);
 struct otr_peer_context *otr_create_peer_context(void);

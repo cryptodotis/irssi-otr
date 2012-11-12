@@ -879,3 +879,73 @@ error:
 	free(accname);
 	return;
 }
+
+/*
+ * Distrust a fingerprint.
+ *
+ * If str_fp is not NULL, it must be on the OTR human format like this:
+ * "487FFADA 5073FEDD C5AB5C14 5BB6C1FF 6D40D48A". If str_fp is NULL, get the
+ * context of the target nickname, check for the OTR peer context active
+ * fingerprint and distrust it.
+ */
+void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
+		struct otr_user_state *ustate)
+{
+	int ret;
+	char fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *accname = NULL;
+	Fingerprint *fp_distrust;
+	ConnContext *ctx;
+	struct otr_peer_context *opc;
+
+	if (!irssi && !str_fp) {
+		IRSSI_NOTICE(NULL, nick, "%9OTR%9: Need a fingerprint!");
+		goto error;
+	}
+
+	/* No human string fingerprint given. */
+	if (!str_fp) {
+		accname = create_account_name(irssi);
+		if (!accname) {
+			goto error;
+		}
+
+		ctx = otr_find_context(accname, nick, FALSE, irssi);
+		if (!ctx) {
+			goto error;
+		}
+
+		opc = ctx->app_data;
+		/* Always NEED a peer context or else code error. */
+		assert(opc);
+
+		fp_distrust = opc->active_fingerprint;
+	} else {
+		fp_distrust = otr_find_hash_fingerprint_from_human(str_fp, ustate);
+	}
+
+	IRSSI_DEBUG("%9OTR%9: Distrust fingerprint: %s",
+			(str_fp != NULL) ? str_fp : fp);
+
+	if (fp_distrust) {
+		ret = otrl_context_is_fingerprint_trusted(fp_distrust);
+		if (!ret) {
+			/* Fingerprint already not trusted. Do nothing. */
+			goto end;
+		}
+
+		otrl_privkey_hash_to_human(fp, fp_distrust->fingerprint);
+		otrl_context_set_trust(fp_distrust, "");
+		/* Update fingerprints file. */
+		key_write_fingerprints(ustate);
+		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Fingerprint %y%s%n distrusted.",
+				fp);
+	} else {
+		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Fingerprint %y%s%n NOT found",
+				(str_fp != NULL) ? str_fp : fp);
+	}
+
+end:
+error:
+	free(accname);
+	return;
+}
