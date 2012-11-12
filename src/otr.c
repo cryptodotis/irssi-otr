@@ -120,6 +120,7 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 	}
 
 	context->active_fingerprint = context->active_fingerprint;
+
 	context->app_data = opc;
 	context->app_data_free = destroy_peer_context_cb;
 
@@ -129,13 +130,26 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 /*
  * Get a context from a pair.
  */
-ConnContext *otr_find_context(const char *accname, const char *nick,
-		int create, SERVER_REC *irssi)
+ConnContext *otr_find_context(SERVER_REC *irssi, const char *nick, int create)
 {
-	ConnContext *ctx = otrl_context_find(user_state_global->otr_state,
-			nick, accname, OTR_PROTOCOL_ID, OTRL_INSTAG_BEST, create, NULL,
-			add_peer_context_cb, NULL);
+	char *accname = NULL;
+	ConnContext *ctx = NULL;
 
+	assert(irssi);
+	assert(nick);
+
+	accname = create_account_name(irssi);
+	if (!accname) {
+		goto error;
+	}
+
+	ctx = otrl_context_find(user_state_global->otr_state, nick, accname,
+			OTR_PROTOCOL_ID, OTRL_INSTAG_BEST, create, NULL,
+			add_peer_context_cb, irssi);
+
+	free(accname);
+
+error:
 	return ctx;
 }
 
@@ -233,7 +247,7 @@ int otr_send(SERVER_REC *irssi, const char *msg, const char *to, char **otr_msg)
 
 	err = otrl_message_sending(user_state_global->otr_state, &otr_ops,
 		irssi, accname, OTR_PROTOCOL_ID, to, OTRL_INSTAG_BEST, msg, NULL, otr_msg,
-		OTRL_FRAGMENT_SEND_ALL_BUT_LAST, &ctx, add_peer_context_cb, NULL);
+		OTRL_FRAGMENT_SEND_ALL_BUT_LAST, &ctx, add_peer_context_cb, irssi);
 	if (err) {
 		IRSSI_NOTICE(irssi, to, "%9OTR:%9 Send failed.");
 		goto error;
@@ -241,9 +255,9 @@ int otr_send(SERVER_REC *irssi, const char *msg, const char *to, char **otr_msg)
 
 	IRSSI_DEBUG("%9OTR%9: Message sent...");
 
-	/* Add peer context to OTR context if non exists */
+	/* Add peer context to OTR context if none exists. */
 	if (ctx && !ctx->app_data) {
-		add_peer_context_cb(NULL, ctx);
+		add_peer_context_cb(irssi, ctx);
 	}
 
 	free(accname);
@@ -324,7 +338,6 @@ struct ctxlist_ *otr_contexts(struct otr_user_state *ustate)
 void otr_finish(SERVER_REC *irssi, char *nick, const char *peername, int inquery)
 {
 	ConnContext *co;
-	char *accname = NULL;
 	char nickbuf[128];
 
 	if (peername) {
@@ -335,20 +348,12 @@ void otr_finish(SERVER_REC *irssi, char *nick, const char *peername, int inquery
 		}
 	}
 
-	accname = create_account_name(irssi);
-	if (!accname) {
-		goto end;
-	}
-
-	if (!(co = otr_find_context(accname, nick, FALSE, irssi))) {
-		if (inquery) {
-			otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
-		}
+	if (!(co = otr_find_context(irssi, nick, FALSE))) {
 		goto end;
 	}
 
 	otrl_message_disconnect(user_state_global->otr_state, &otr_ops, irssi,
-			accname, OTR_PROTOCOL_ID, nick, co->their_instance);
+			co->accountname, OTR_PROTOCOL_ID, nick, co->their_instance);
 
 	otr_status_change(irssi, nick, OTR_STATUS_FINISHED);
 
@@ -359,7 +364,6 @@ void otr_finish(SERVER_REC *irssi, char *nick, const char *peername, int inquery
 	}
 
 end:
-	free(accname);
 	return;
 }
 
@@ -403,7 +407,6 @@ void otr_finishall(struct otr_user_state *ustate)
 void otr_trust(SERVER_REC *irssi, char *nick, const char *peername)
 {
 	ConnContext *ctx;
-	char *accname = NULL;
 	char nickbuf[128];
 	char peerfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
 	struct otr_peer_context *opc;
@@ -416,12 +419,7 @@ void otr_trust(SERVER_REC *irssi, char *nick, const char *peername)
 		}
 	}
 
-	accname = create_account_name(irssi);
-	if (!accname) {
-		goto end;
-	}
-
-	ctx = otr_find_context(accname, nick, FALSE, irssi);
+	ctx = otr_find_context(irssi, nick, FALSE);
 	if (!ctx) {
 		goto end;
 	}
@@ -440,7 +438,6 @@ void otr_trust(SERVER_REC *irssi, char *nick, const char *peername)
 	key_write_fingerprints(user_state_global);
 
 end:
-	free(accname);
 	return;
 }
 
@@ -464,7 +461,6 @@ void otr_abort_auth(ConnContext *co, SERVER_REC *irssi, const char *nick)
 void otr_authabort(SERVER_REC *irssi, char *nick, const char *peername)
 {
 	ConnContext *co;
-	char accname[128];
 	char nickbuf[128];
 
 	if (peername) {
@@ -475,10 +471,8 @@ void otr_authabort(SERVER_REC *irssi, char *nick, const char *peername)
 		}
 	}
 
-	IRSSI_ACCNAME(accname, irssi);
-
-	if (!(co = otr_find_context(accname, nick, FALSE, irssi))) {
-		otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
+	if (!(co = otr_find_context(irssi, nick, FALSE))) {
+		otr_noticest(TXT_CTX_NOT_FOUND, co->accountname, nick);
 		goto end;
 	}
 
@@ -496,7 +490,6 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 {
 	int ret;
 	ConnContext *ctx;
-	char *accname = NULL;
 	char nickbuf[128];
 	struct otr_peer_context *opc;
 
@@ -508,14 +501,9 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 		}
 	}
 
-	accname = create_account_name(irssi);
-	if (!accname) {
-		goto end;
-	}
-
-	ctx = otr_find_context(accname, nick, 0, irssi);
+	ctx = otr_find_context(irssi, nick, 0);
 	if (!ctx) {
-		otr_noticest(TXT_CTX_NOT_FOUND, accname, nick);
+		otr_noticest(TXT_CTX_NOT_FOUND, ctx->accountname, nick);
 		goto end;
 	}
 
@@ -566,7 +554,6 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 	opc->ask_secret = 0;
 
 end:
-	free(accname);
 	return;
 }
 
@@ -592,7 +579,7 @@ int otr_receive(SERVER_REC *irssi, const char *msg, const char *from,
 
 	ret = otrl_message_receiving(user_state_global->otr_state,
 		&otr_ops, irssi, accname, OTR_PROTOCOL_ID, from, msg, new_msg, &tlvs,
-		&ctx, add_peer_context_cb, NULL);
+		&ctx, add_peer_context_cb, irssi);
 	if (ret) {
 		IRSSI_DEBUG("%9OTR%9: Ignoring message of length %d from %s to %s.\n"
 				"%9OTR%9: %s", strlen(msg), from, accname, msg);
@@ -604,7 +591,7 @@ int otr_receive(SERVER_REC *irssi, const char *msg, const char *from,
 
 	/* Add peer context to OTR context if non exists */
 	if (ctx && !ctx->app_data) {
-		add_peer_context_cb(NULL, ctx);
+		add_peer_context_cb(irssi, ctx);
 	}
 
 	/* Check for disconnected message */
@@ -694,16 +681,10 @@ int otr_getstatus(SERVER_REC *irssi, const char *nick)
 {
 	int ret, code = 0;
 	ConnContext *ctx = NULL;
-	char *accname = NULL;
 
 	assert(irssi);
 
-	accname = create_account_name(irssi);
-	if (!accname) {
-		goto end;
-	}
-
-	ctx = otr_find_context(accname, nick, FALSE, irssi);
+	ctx = otr_find_context(irssi, nick, FALSE);
 	if (!ctx) {
 		code = IO_ST_PLAINTEXT;
 		goto end;
@@ -823,7 +804,7 @@ end:
 void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 		struct otr_user_state *ustate)
 {
-	char fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *accname = NULL;
+	char fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
 	Fingerprint *fp_forget;
 	ConnContext *ctx;
 	struct otr_peer_context *opc;
@@ -835,12 +816,7 @@ void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 
 	/* No human string fingerprint given. */
 	if (!str_fp) {
-		accname = create_account_name(irssi);
-		if (!accname) {
-			goto error;
-		}
-
-		ctx = otr_find_context(accname, nick, FALSE, irssi);
+		ctx = otr_find_context(irssi, nick, FALSE);
 		if (!ctx) {
 			goto error;
 		}
@@ -880,7 +856,6 @@ void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 
 end:
 error:
-	free(accname);
 	return;
 }
 
@@ -896,7 +871,7 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		struct otr_user_state *ustate)
 {
 	int ret;
-	char fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *accname = NULL;
+	char fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
 	Fingerprint *fp_distrust;
 	ConnContext *ctx;
 	struct otr_peer_context *opc;
@@ -908,12 +883,7 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 
 	/* No human string fingerprint given. */
 	if (!str_fp) {
-		accname = create_account_name(irssi);
-		if (!accname) {
-			goto error;
-		}
-
-		ctx = otr_find_context(accname, nick, FALSE, irssi);
+		ctx = otr_find_context(irssi, nick, FALSE);
 		if (!ctx) {
 			goto error;
 		}
@@ -950,6 +920,5 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 
 end:
 error:
-	free(accname);
 	return;
 }

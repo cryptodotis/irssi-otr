@@ -203,8 +203,7 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 
 int otr_getstatus_format(SERVER_REC *irssi, const char *nick);
 struct otr_peer_context *otr_create_peer_context(void);
-ConnContext *otr_find_context(const char *accname, const char *nick,
-		int create, SERVER_REC *irssi);
+ConnContext *otr_find_context(SERVER_REC *irssi, const char *nick, int create);
 Fingerprint *otr_find_hash_fingerprint_from_human(const char *human_fp,
 		struct otr_user_state *ustate);
 
