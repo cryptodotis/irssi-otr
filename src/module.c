@@ -19,10 +19,12 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#define _GNU_SOURCE
 #include <assert.h>
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <glib/gstdio.h>
+#include <stdio.h>
 
 #include "cmd.h"
 #include "otr.h"
@@ -127,6 +129,61 @@ static void sig_query_destroyed(QUERY_REC *query)
 	if (query && query->server && query->server->connrec) {
 		otr_finish(query->server, query->name);
 	}
+}
+
+/*
+ * Handle /me IRC command.
+ */
+static void cmd_me(const char *data, IRC_SERVER_REC *server,
+		WI_ITEM_REC *item)
+{
+	int ret;
+	const char *target;
+	char *msg, *otrmsg = NULL;
+	QUERY_REC *query;
+
+	query = QUERY(item);
+
+	if (!query || !query->server) {
+		goto end;
+	}
+
+	CMD_IRC_SERVER(server);
+	if (!IS_IRC_QUERY(query)) {
+		goto end;
+	}
+
+	if (!server || !server->connected) {
+		cmd_return_error(CMDERR_NOT_CONNECTED);
+	}
+
+	target = window_item_get_target(item);
+
+	ret = asprintf(&msg, "/me %s", data);
+	if (ret < 0) {
+		goto end;
+	}
+
+	/* Critical section. On error, message MUST NOT be sent */
+	ret = otr_send(query->server, msg, target, &otrmsg);
+	free(msg);
+
+	if (!otrmsg) {
+		goto end;
+	}
+
+	signal_stop();
+
+	if (otrmsg) {
+		/* Send encrypted message */
+		irssi_send_message(SERVER(server), target, otrmsg);
+		otrl_message_free(otrmsg);
+	}
+
+	signal_emit("message irc own_action", 3, server, data, item->visible_name);
+
+end:
+	return;
 }
 
 /*
@@ -249,6 +306,7 @@ void otr_init(void)
 
 	command_bind("otr", NULL, (SIGNAL_FUNC) cmd_otr);
 	command_bind_first("quit", NULL, (SIGNAL_FUNC) cmd_quit);
+	command_bind_irc_first("me", NULL, (SIGNAL_FUNC) cmd_me);
 
 	settings_add_str("otr", "otr_policy", OTR_DEFAULT_POLICY);
 	settings_add_str("otr", "otr_policy_known", OTR_DEFAULT_POLICY_KNOWN);
@@ -281,6 +339,7 @@ void otr_deinit(void)
 
 	command_unbind("otr", (SIGNAL_FUNC) cmd_otr);
 	command_unbind("quit", (SIGNAL_FUNC) cmd_quit);
+	command_unbind("me", (SIGNAL_FUNC) cmd_me);
 
 	signal_remove("setup changed", (SIGNAL_FUNC) read_settings);
 

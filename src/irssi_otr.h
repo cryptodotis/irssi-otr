@@ -34,7 +34,9 @@
 #include <src/core/modules.h>
 #include <src/core/settings.h>
 #include <src/irc/core/irc.h>
+#include <src/irc/core/irc-commands.h>
 #include <src/irc/core/irc-queries.h>
+#include <src/irc/core/irc-servers.h>
 #include <src/fe-text/statusbar-item.h>
 
 #define get_client_config_dir get_irssi_dir
