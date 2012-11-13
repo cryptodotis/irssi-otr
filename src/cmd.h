@@ -25,12 +25,12 @@
 
 struct irssi_commands {
 	const char *name;
-	void (*func)(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc,
+	void (*func)(struct otr_user_state *ioustate, SERVER_REC *irssi, int argc,
 			char *argv[], char *argv_eol[], char *target,
 			const char *orig_args);
 };
 
-int cmd_generic(struct otr_user_state *ioustate, IRC_CTX *ircctx, int argc,
+int cmd_generic(struct otr_user_state *ioustate, SERVER_REC *irssi, int argc,
 		char *argv[], char *argv_eol[], char *target, const char *orig_args);
 
 #endif /* IRSSI_OTR_CMD_H */

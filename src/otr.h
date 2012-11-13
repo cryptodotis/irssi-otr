@@ -184,16 +184,11 @@ int otr_getstatus(SERVER_REC *irssi, const char *nick);
 
 /* user interaction */
 
-void otr_trust(SERVER_REC *irssi, char *nick,
-		const char *peername);
-void otr_finish(SERVER_REC *irssi, char *nick,
-		const char *peername, int inquery);
-void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
-		const char *question, const char *secret);
-void otr_authabort(SERVER_REC *irssi, char *nick,
-		const char *peername);
-void otr_abort_auth(ConnContext *co, SERVER_REC *irssi,
-		const char *nick);
+void otr_trust(SERVER_REC *irssi, char *nick);
+void otr_finish(SERVER_REC *irssi, char *nick);
+void otr_auth(SERVER_REC *irssi, char *nick, const char *question,
+		const char *secret);
+void otr_auth_abort(SERVER_REC *irssi, char *nick);
 struct ctxlist_ *otr_contexts(struct otr_user_state *ustate);
 void otr_finishall(struct otr_user_state *ustate);
 void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,

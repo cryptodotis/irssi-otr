@@ -81,15 +81,15 @@ static void instag_load(struct otr_user_state *ustate)
 
 	ret = access(filename, F_OK);
 	if (ret < 0) {
-		IRSSI_DEBUG("%9OTR%9: no instance tags found at %9%s%9", filename);
+		IRSSI_DEBUG("no instance tags found at %9%s%9", filename);
 		goto end;
 	}
 
 	err = otrl_instag_read(ustate->otr_state, filename);
 	if (err == GPG_ERR_NO_ERROR) {
-		IRSSI_DEBUG("%9OTR%9: Instance tags loaded from %9%s%9", filename);
+		IRSSI_DEBUG("Instance tags loaded from %9%s%9", filename);
 	} else {
-		IRSSI_DEBUG("%9OTR%9: Error loading instance tags: %d (%d)",
+		IRSSI_DEBUG("Error loading instance tags: %d (%d)",
 				gcry_strerror(err), gcry_strsource(err));
 	}
 
@@ -107,7 +107,7 @@ static void destroy_peer_context_cb(void *data)
 		free(opc);
 	}
 
-	IRSSI_DEBUG("%9OTR%9: Peer context freed");
+	IRSSI_DEBUG("Peer context freed");
 }
 
 static void add_peer_context_cb(void *data, ConnContext *context)
@@ -124,7 +124,7 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 	context->app_data = opc;
 	context->app_data_free = destroy_peer_context_cb;
 
-	IRSSI_MSG("%9OTR%9: Peer context created for %s", context->username);
+	IRSSI_MSG("Peer context created for %s", context->username);
 }
 
 /*
@@ -243,17 +243,17 @@ int otr_send(SERVER_REC *irssi, const char *msg, const char *to, char **otr_msg)
 		goto error;
 	}
 
-	IRSSI_DEBUG("%9OTR%9: Sending message...");
+	IRSSI_DEBUG("Sending message...");
 
 	err = otrl_message_sending(user_state_global->otr_state, &otr_ops,
 		irssi, accname, OTR_PROTOCOL_ID, to, OTRL_INSTAG_BEST, msg, NULL, otr_msg,
 		OTRL_FRAGMENT_SEND_ALL_BUT_LAST, &ctx, add_peer_context_cb, irssi);
 	if (err) {
-		IRSSI_NOTICE(irssi, to, "%9OTR:%9 Send failed.");
+		IRSSI_NOTICE(irssi, to, "Send failed.");
 		goto error;
 	}
 
-	IRSSI_DEBUG("%9OTR%9: Message sent...");
+	IRSSI_DEBUG("Message sent...");
 
 	/* Add peer context to OTR context if none exists. */
 	if (ctx && !ctx->app_data) {
@@ -335,33 +335,26 @@ struct ctxlist_ *otr_contexts(struct otr_user_state *ustate)
 /*
  * Finish the conversation.
  */
-void otr_finish(SERVER_REC *irssi, char *nick, const char *peername, int inquery)
+void otr_finish(SERVER_REC *irssi, char *nick)
 {
-	ConnContext *co;
-	char nickbuf[128];
+	ConnContext *ctx;
 
-	if (peername) {
-		nick = nickbuf;
-		irssi = find_irssi_ctx_by_peername(peername, nick);
-		if (!irssi) {
-			goto end;
-		}
-	}
+	assert(irssi);
+	assert(nick);
 
-	if (!(co = otr_find_context(irssi, nick, FALSE))) {
+	ctx = otr_find_context(irssi, nick, FALSE);
+	if (!ctx) {
+		IRSSI_INFO(irssi, nick, "Nothing to do");
 		goto end;
 	}
 
 	otrl_message_disconnect(user_state_global->otr_state, &otr_ops, irssi,
-			co->accountname, OTR_PROTOCOL_ID, nick, co->their_instance);
+			ctx->accountname, OTR_PROTOCOL_ID, nick, ctx->their_instance);
 
 	otr_status_change(irssi, nick, OTR_STATUS_FINISHED);
 
-	if (inquery) {
-		otr_info(irssi, nick, TXT_CMD_FINISH, nick, IRSSI_CONN_ADDR(irssi));
-	} else {
-		otr_infost(TXT_CMD_FINISH, nick, IRSSI_CONN_ADDR(irssi));
-	}
+	IRSSI_INFO(irssi, nick, "Finished conversation with %9%s%9",
+			ctx->accountname);
 
 end:
 	return;
@@ -370,11 +363,13 @@ end:
 void otr_finishall(struct otr_user_state *ustate)
 {
 	ConnContext *context;
-	int finished = 0;
 	SERVER_REC *irssi;
+
+	assert(ustate);
 
 	for (context = ustate->otr_state->context_root; context;
 			context = context->next) {
+		/* Only finish encrypted session. */
 		if (context->msgstate != OTRL_MSGSTATE_ENCRYPTED) {
 			continue;
 		}
@@ -382,42 +377,26 @@ void otr_finishall(struct otr_user_state *ustate)
 		irssi = find_irssi_ctx_by_peername(context->accountname,
 				context->username);
 		if (!irssi) {
-			IRSSI_DEBUG("%9OTR%9: Unable to find context on /otr finishall "
+			IRSSI_DEBUG("Unable to find server window on /otr finishall "
 					"for username %s", context->username);
 			continue;
 		}
 
-		otrl_message_disconnect(ustate->otr_state, &otr_ops, irssi,
-					context->accountname, OTR_PROTOCOL_ID, context->username,
-					context->their_instance);
-		otr_status_change(irssi, context->username, OTR_STATUS_FINISHED);
-
-		otr_infost(TXT_CMD_FINISH, context->username, IRSSI_CONN_ADDR(irssi));
-		finished++;
-	}
-
-	if (!finished) {
-		otr_infost(TXT_CMD_FINISHALL_NONE);
+		otr_finish(irssi, context->username);
 	}
 }
 
 /*
  * Trust our peer.
  */
-void otr_trust(SERVER_REC *irssi, char *nick, const char *peername)
+void otr_trust(SERVER_REC *irssi, char *nick)
 {
 	ConnContext *ctx;
-	char nickbuf[128];
 	char peerfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
 	struct otr_peer_context *opc;
 
-	if (peername) {
-		nick = nickbuf;
-		irssi = find_irssi_ctx_by_peername(peername, nick);
-		if (!irssi) {
-			goto end;
-		}
-	}
+	assert(irssi);
+	assert(nick);
 
 	ctx = otr_find_context(irssi, nick, FALSE);
 	if (!ctx) {
@@ -427,12 +406,13 @@ void otr_trust(SERVER_REC *irssi, char *nick, const char *peername)
 	opc = ctx->app_data;
 	assert(opc);
 
+	/* Trust level is manual at this point. */
 	otrl_context_set_trust(opc->active_fingerprint, "manual");
 	otr_status_change(irssi, nick, OTR_STATUS_TRUST_MANUAL);
 
 	otrl_privkey_hash_to_human(peerfp, opc->active_fingerprint->fingerprint);
 
-	IRSSI_NOTICE(irssi, nick, "%9OTR%9: Trusting fingerprint from %9%s%9:\n"
+	IRSSI_NOTICE(irssi, nick, "Trusting fingerprint from %9%s%9:\n"
 			"%9OTR%9: %g%s%n", nick, peerfp);
 
 	key_write_fingerprints(user_state_global);
@@ -442,41 +422,29 @@ end:
 }
 
 /*
- * Abort any ongoing SMP authentication.
- */
-void otr_abort_auth(ConnContext *co, SERVER_REC *irssi, const char *nick)
-{
-	otr_notice(irssi, nick,
-			co->smstate->nextExpected != OTRL_SMP_EXPECT1 ?
-			TXT_AUTH_ABORTED_ONGOING : TXT_AUTH_ABORTED);
-
-	otrl_message_abort_smp(user_state_global->otr_state, &otr_ops,
-			irssi, co);
-	otr_status_change(irssi, nick, OTR_STATUS_SMP_ABORT);
-}
-
-/*
  * implements /otr authabort
  */
-void otr_authabort(SERVER_REC *irssi, char *nick, const char *peername)
+void otr_auth_abort(SERVER_REC *irssi, char *nick)
 {
-	ConnContext *co;
-	char nickbuf[128];
+	ConnContext *ctx;
 
-	if (peername) {
-		nick = nickbuf;
-		irssi = find_irssi_ctx_by_peername(peername, nick);
-		if (!irssi) {
-			goto end;
-		}
-	}
+	assert(irssi);
+	assert(nick);
 
-	if (!(co = otr_find_context(irssi, nick, FALSE))) {
-		otr_noticest(TXT_CTX_NOT_FOUND, co->accountname, nick);
+	ctx = otr_find_context(irssi, nick, FALSE);
+	if (!ctx) {
+		IRSSI_NOTICE(irssi, nick, "Context for %9%s%9 not found.", nick);
 		goto end;
 	}
 
-	otr_abort_auth(co, irssi, nick);
+	otrl_message_abort_smp(user_state_global->otr_state, &otr_ops, irssi, ctx);
+	otr_status_change(irssi, nick, OTR_STATUS_SMP_ABORT);
+
+	if (ctx->smstate->nextExpected != OTRL_SMP_EXPECT1) {
+		IRSSI_NOTICE(irssi, nick, "Ongoing authentication aborted");
+	} else {
+		IRSSI_NOTICE(irssi, nick, "Authentication aborted");
+	}
 
 end:
 	return;
@@ -485,25 +453,20 @@ end:
 /*
  * Initiate or respond to SMP authentication.
  */
-void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
-		const char *question, const char *secret)
+void otr_auth(SERVER_REC *irssi, char *nick, const char *question,
+		const char *secret)
 {
 	int ret;
 	ConnContext *ctx;
-	char nickbuf[128];
 	struct otr_peer_context *opc;
 
-	if (peername) {
-		nick = nickbuf;
-		irssi = find_irssi_ctx_by_peername(peername, nick);
-		if (!irssi) {
-			goto end;
-		}
-	}
+	assert(irssi);
+	assert(nick);
+	assert(secret);
 
 	ctx = otr_find_context(irssi, nick, 0);
 	if (!ctx) {
-		otr_noticest(TXT_CTX_NOT_FOUND, ctx->accountname, nick);
+		IRSSI_NOTICE(irssi, nick, "Context for %9%s%9 not found.", nick);
 		goto end;
 	}
 
@@ -512,15 +475,15 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 	assert(opc);
 
 	if (ctx->msgstate != OTRL_MSGSTATE_ENCRYPTED) {
-		IRSSI_NOTICE(irssi, nick,
-				"%9OTR%9: You need to establish an OTR session before you "
+		IRSSI_INFO(irssi, nick,
+				"You need to establish an OTR session before you "
 				"can authenticate.");
 		goto end;
 	}
 
 	/* Aborting an ongoing auth */
 	if (ctx->smstate->nextExpected != OTRL_SMP_EXPECT1) {
-		otr_abort_auth(ctx, irssi, nick);
+		otr_auth_abort(irssi, nick);
 	}
 
 	/* reset trust level */
@@ -536,7 +499,7 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 		otrl_message_respond_smp(user_state_global->otr_state, &otr_ops,
 				irssi, ctx, (unsigned char *) secret, strlen(secret));
 		otr_status_change(irssi, nick, OTR_STATUS_SMP_RESPONDED);
-		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Responding to authentication...");
+		IRSSI_NOTICE(irssi, nick, "Responding to authentication...");
 	} else {
 		if (question) {
 			otrl_message_initiate_smp_q(user_state_global->otr_state,
@@ -548,7 +511,7 @@ void otr_auth(SERVER_REC *irssi, char *nick, const char *peername,
 				strlen(secret));
 		}
 		otr_status_change(irssi, nick, OTR_STATUS_SMP_STARTED);
-		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Initiated authentication...");
+		IRSSI_NOTICE(irssi, nick, "Initiated authentication...");
 	}
 
 	opc->ask_secret = 0;
@@ -570,22 +533,24 @@ int otr_receive(SERVER_REC *irssi, const char *msg, const char *from,
 	OtrlTLV *tlvs;
 	ConnContext *ctx;
 
+	assert(irssi);
+
 	accname = create_account_name(irssi);
 	if (!accname) {
 		goto error;
 	}
 
-	IRSSI_DEBUG("%9OTR%9: Receiving message...");
+	IRSSI_DEBUG("Receiving message...");
 
 	ret = otrl_message_receiving(user_state_global->otr_state,
 		&otr_ops, irssi, accname, OTR_PROTOCOL_ID, from, msg, new_msg, &tlvs,
 		&ctx, add_peer_context_cb, irssi);
 	if (ret) {
-		IRSSI_DEBUG("%9OTR%9: Ignoring message of length %d from %s to %s.\n"
-				"%9OTR%9: %s", strlen(msg), from, accname, msg);
+		IRSSI_DEBUG("Ignoring message of length %d from %s to %s.\n"
+				"%s", strlen(msg), from, accname, msg);
 	} else {
 		if (*new_msg) {
-			IRSSI_DEBUG("%9OTR%9: Converted received message.");
+			IRSSI_DEBUG("Converted received message.");
 		}
 	}
 
@@ -598,7 +563,7 @@ int otr_receive(SERVER_REC *irssi, const char *msg, const char *from,
 	OtrlTLV *tlv = otrl_tlv_find(tlvs, OTRL_TLV_DISCONNECTED);
 	if (tlv) {
 		otr_status_change(irssi, from, OTR_STATUS_PEER_FINISHED);
-		IRSSI_NOTICE(irssi, from, "%9OTR%9: %9%s%9 has finished the OTR "
+		IRSSI_NOTICE(irssi, from, "%9%s%9 has finished the OTR "
 				"conversation. If you want to continue talking enter "
 				"%9/otr finish%9 for plaintext or %9/otr init%9 to restart.",
 				from);
@@ -606,7 +571,7 @@ int otr_receive(SERVER_REC *irssi, const char *msg, const char *from,
 
 	otrl_tlv_free(tlvs);
 
-	IRSSI_DEBUG("%9OTR%9: Message received.");
+	IRSSI_DEBUG("Message received.");
 
 error:
 	free(accname);
@@ -707,7 +672,7 @@ int otr_getstatus(SERVER_REC *irssi, const char *nick)
 		code = IO_ST_FINISHED;
 		break;
 	default:
-		otr_logst(MSGLEVEL_CRAP,
+		IRSSI_INFO(irssi, nick,
 				"BUG Found! Please write us a mail and describe how you got here");
 		code = IO_ST_UNKNOWN;
 		break;
@@ -810,7 +775,7 @@ void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 	struct otr_peer_context *opc;
 
 	if (!irssi && !str_fp) {
-		IRSSI_NOTICE(NULL, nick, "%9OTR%9: Need a fingerprint!");
+		IRSSI_NOTICE(NULL, nick, "Need a fingerprint!");
 		goto error;
 	}
 
@@ -830,13 +795,12 @@ void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 		fp_forget = otr_find_hash_fingerprint_from_human(str_fp, ustate);
 	}
 
-	IRSSI_DEBUG("%9OTR%9: Forgetting fingerprint: %s",
-			(str_fp != NULL) ? str_fp : fp);
+	IRSSI_DEBUG("Forgetting fingerprint: %s", (str_fp != NULL) ? str_fp : fp);
 
 	if (fp_forget) {
 		/* Don't do anything if context is in encrypted state. */
 		if (fp_forget->context->msgstate == OTRL_MSGSTATE_ENCRYPTED) {
-			IRSSI_NOTICE(irssi, nick, "%9OTR%9: Fingerprint "
+			IRSSI_NOTICE(irssi, nick, "Fingerprint "
 					"context is still encrypted. Finish the OTR "
 					"session beforehands.");
 			goto end;
@@ -847,10 +811,10 @@ void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 		otrl_context_forget_fingerprint(fp_forget, 1);
 		/* Update fingerprints file. */
 		key_write_fingerprints(ustate);
-		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Fingerprint %y%s%n forgotten.",
+		IRSSI_NOTICE(irssi, nick, "Fingerprint %y%s%n forgotten.",
 				fp);
 	} else {
-		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Fingerprint %y%s%n NOT found",
+		IRSSI_NOTICE(irssi, nick, "Fingerprint %y%s%n NOT found",
 				(str_fp != NULL) ? str_fp : fp);
 	}
 
@@ -877,7 +841,7 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 	struct otr_peer_context *opc;
 
 	if (!irssi && !str_fp) {
-		IRSSI_NOTICE(NULL, nick, "%9OTR%9: Need a fingerprint!");
+		IRSSI_NOTICE(NULL, nick, "Need a fingerprint!");
 		goto error;
 	}
 
@@ -897,7 +861,7 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		fp_distrust = otr_find_hash_fingerprint_from_human(str_fp, ustate);
 	}
 
-	IRSSI_DEBUG("%9OTR%9: Distrust fingerprint: %s",
+	IRSSI_DEBUG("Distrust fingerprint: %s",
 			(str_fp != NULL) ? str_fp : fp);
 
 	if (fp_distrust) {
@@ -911,10 +875,10 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		otrl_context_set_trust(fp_distrust, "");
 		/* Update fingerprints file. */
 		key_write_fingerprints(ustate);
-		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Fingerprint %y%s%n distrusted.",
+		IRSSI_NOTICE(irssi, nick, "Fingerprint %y%s%n distrusted.",
 				fp);
 	} else {
-		IRSSI_NOTICE(irssi, nick, "%9OTR%9: Fingerprint %y%s%n NOT found",
+		IRSSI_NOTICE(irssi, nick, "Fingerprint %y%s%n NOT found",
 				(str_fp != NULL) ? str_fp : fp);
 	}
 

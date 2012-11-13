@@ -1,20 +1,22 @@
 /*
  * Off-the-Record Messaging (OTR) module for the irssi IRC client
- * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 2008 - Uli Meis <a.sporto+bee@gmail.com>
+ *               2012 - David Goulet <dgoulet@ev0ke.net>
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 2 of the License, or (at your option)
+ * any later version.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 51
+ * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
 #define UOFF_T_LONG_LONG 1
@@ -35,68 +37,58 @@
 #include <src/irc/core/irc-queries.h>
 #include <src/fe-text/statusbar-item.h>
 
-#define IRC_CTX SERVER_REC
-
 #define get_client_config_dir get_irssi_dir
 
-static IRC_CTX *IRSSI_DUP(IRC_CTX *ircctx) __attribute__ ((unused));
+static SERVER_REC *IRSSI_DUP(SERVER_REC *ircctx) __attribute__ ((unused));
 
-static IRC_CTX *IRSSI_DUP(IRC_CTX *ircctx) {
+static SERVER_REC *IRSSI_DUP(SERVER_REC *ircctx) {
 	server_ref(ircctx);
 	return ircctx;
 }
 
-static IRC_CTX *IRSSI_FREE(IRC_CTX *ircctx) __attribute__ ((unused));
+static SERVER_REC *IRSSI_FREE(SERVER_REC *ircctx) __attribute__ ((unused));
 
-static IRC_CTX *IRSSI_FREE(IRC_CTX *ircctx)
+static SERVER_REC *IRSSI_FREE(SERVER_REC *ircctx)
 {
 	server_unref(ircctx);
 	return ircctx;
 }
 
-void otr_query_create(IRC_CTX *ircctx, const char *nick);
+void otr_query_create(SERVER_REC *ircctx, const char *nick);
 
 #define IRSSI_CONN_ADDR(i) i->connrec->address
 #define IRSSI_NICK(i) i->nick
-#define IRSSI_ACCNAME(accname, i) sprintf(accname, "%s@%s", i->nick, IRSSI_CONN_ADDR(i))
-
-#define otr_noticest(formatnum,...) \
-	printformat(NULL,NULL,MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__)
-
-#define otr_notice(irssi, nick, formatnum, ...) { \
-	otr_query_create(irssi, nick); \
-	printformat(irssi, nick, MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__);}
 
 #define otr_infost(formatnum,...) \
-	printformat(NULL,NULL,MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__)
-
-#define otr_info(server, nick, formatnum, ...) { \
-	otr_query_create(server, nick); \
-	printformat(server, nick, MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__);}
-
-#define otr_debug(irssi, nick, formatnum, ...) { \
-	if (debug) { \
-		otr_query_create(irssi, nick); \
-		printformat(irssi, nick, MSGLEVEL_MSGS, formatnum, ## __VA_ARGS__); } }
+	printformat(NULL, NULL, MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__)
 
 /*
  * Irssi macros for printing text to console.
  */
 #define IRSSI_MSG(fmt, ...)                                                 \
 	do {                                                                    \
-		printtext(NULL, NULL, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__);          \
+		printtext(NULL, NULL, MSGLEVEL_MSGS, "%9OTR%9: " fmt,               \
+						## __VA_ARGS__);                                    \
+	} while (0)
+#define IRSSI_INFO(irssi, username, fmt, ...)                               \
+	do {                                                                    \
+		printtext(irssi, username, MSGLEVEL_CRAP, "%9OTR%9: " fmt,          \
+						## __VA_ARGS__);                                    \
 	} while (0)
 #define IRSSI_NOTICE(irssi, username, fmt, ...)                             \
 	do {                                                                    \
-		printtext(irssi, username, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__);     \
+		printtext(irssi, username, MSGLEVEL_MSGS, "%9OTR%9: " fmt,          \
+						## __VA_ARGS__);                                    \
 	} while (0)
 #define IRSSI_WARN(irssi, username, fmt, ...)                               \
 	do {                                                                    \
-		printtext(irssi, username, MSGLEVEL_HILIGHT, fmt, ## __VA_ARGS__);  \
+		printtext(irssi, username, MSGLEVEL_HILIGHT, "%9OTR%9: " fmt,       \
+						## __VA_ARGS__);                                    \
 	} while (0)
 #define IRSSI_DEBUG(fmt, ...) \
 	do {                                                                    \
 		if (debug) {                                                        \
-			printtext(NULL, NULL, MSGLEVEL_MSGS, fmt, ## __VA_ARGS__); \
+			printtext(NULL, NULL, MSGLEVEL_MSGS, "%9OTR%9: " fmt,           \
+						## __VA_ARGS__);                                    \
 		}                                                                   \
 	} while (0)

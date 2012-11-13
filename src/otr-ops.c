@@ -98,7 +98,7 @@ static void ops_inject_msg(void *opdata, const char *accountname,
 {
 	SERVER_REC *irssi = opdata;
 
-	IRSSI_DEBUG("%9OTR%9: Inject msg:\n[%s]", message);
+	IRSSI_DEBUG("Inject msg:\n[%s]", message);
 	irssi_send_message(irssi, recipient, message);
 }
 
@@ -117,7 +117,7 @@ static void ops_secure(void *opdata, ConnContext *context)
 	/* This should *really* not happened */
 	assert(context->msgstate == OTRL_MSGSTATE_ENCRYPTED);
 
-	IRSSI_NOTICE(irssi, context->username, "%9OTR%9: Gone %9secure%9");
+	IRSSI_NOTICE(irssi, context->username, "Gone %9secure%9");
 	otr_status_change(irssi, context->username, OTR_STATUS_GONE_SECURE);
 
 	opc = context->app_data;
@@ -135,7 +135,7 @@ static void ops_secure(void *opdata, ConnContext *context)
 	otrl_privkey_fingerprint(user_state_global->otr_state, ownfp,
 			context->accountname, OTR_PROTOCOL_ID);
 
-	IRSSI_NOTICE(irssi, context->username, "%9OTR%9: Your peer is not "
+	IRSSI_NOTICE(irssi, context->username, "Your peer is not "
 			"authenticated. To make sure you're talking to the right guy you can "
 			"either agree on a secret and use the authentication command "
 			"%9/otr auth%9 or %9/otr authq [QUESTION] SECRET%9. You can also "
@@ -144,8 +144,8 @@ static void ops_secure(void *opdata, ConnContext *context)
 			"%9/otr trust%9.");
 
 	IRSSI_NOTICE(irssi, context->username,
-			"%9OTR%9: Your fingerprint is: %y%s\%n.\n"
-			"%9OTR%9: %9%s's%9 fingerprint is: %r%s\%n", ownfp,
+			"Your fingerprint is: %y%s\%n.\n"
+			"%9%s's%9 fingerprint is: %r%s\%n", ownfp,
 			context->username, peerfp);
 
 end:
@@ -159,7 +159,7 @@ static void ops_insecure(void *opdata, ConnContext *context)
 {
 	SERVER_REC *irssi = opdata;
 
-	IRSSI_NOTICE(irssi, context->username, "%9OTR%9: Gone %rinsecure%r");
+	IRSSI_NOTICE(irssi, context->username, "Gone %rinsecure%r");
 	otr_status_change(irssi, context->username, OTR_STATUS_GONE_INSECURE);
 }
 
@@ -182,14 +182,14 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 	case OTRL_MSGEVENT_NONE:
 		break;
 	case OTRL_MSGEVENT_ENCRYPTION_REQUIRED:
-		IRSSI_WARN(server, username, "%9OTR:%9 %yEncryption is required.%n");
+		IRSSI_WARN(server, username, "%yEncryption is required.%n");
 		break;
 	case OTRL_MSGEVENT_ENCRYPTION_ERROR:
-		IRSSI_WARN(server, username, "%9OTR:%9 An error occurred when "
+		IRSSI_WARN(server, username, "An error occurred when "
 				"encrypting your message. The message was NOT sent.");
 		break;
 	case OTRL_MSGEVENT_CONNECTION_ENDED:
-		IRSSI_WARN(server, username, "%9OTR: %s%9 has already closed the "
+		IRSSI_WARN(server, username, "%9%s%9 has already closed the "
 				"connection to you.", username);
 		break;
 	case OTRL_MSGEVENT_SETUP_ERROR:
@@ -198,49 +198,49 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 		}
 		switch (err) {
 		case GPG_ERR_INV_VALUE:
-			IRSSI_WARN(server, username, "%9OTR:%9 Error setting up private "
+			IRSSI_WARN(server, username, "Error setting up private "
 					"conversation: Malformed message received");
 			break;
 		default:
-			IRSSI_WARN(server, username, "%9OTR:%9 Error up private "
+			IRSSI_WARN(server, username, "Error up private "
 					"conversation: %s", gcry_strerror(err));
 			break;
 		}
 		break;
 	case OTRL_MSGEVENT_MSG_REFLECTED:
-		IRSSI_WARN(server, username, "%9OTR:%9 Receiving our own OTR messages. "
+		IRSSI_WARN(server, username, "Receiving our own OTR messages. "
 				"You are either trying to talk to yourself, or someone is "
 				"reflecting your messages back at you.");
 		break;
 	case OTRL_MSGEVENT_MSG_RESENT:
-		IRSSI_NOTICE(server, username, "%9OTR:%9 The last message to %9%s%9 "
+		IRSSI_NOTICE(server, username, "The last message to %9%s%9 "
 				"was resent: %s", username, message);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_NOT_IN_PRIVATE:
-		IRSSI_WARN(server, username, "%9OTR:%9 The encrypted message received "
+		IRSSI_WARN(server, username, "The encrypted message received "
 				"from %s is unreadable, as you are not currently communicating "
 				"privately.", username);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_UNREADABLE:
-		IRSSI_WARN(server, username, "%9OTR:%9 We received an unreadable "
+		IRSSI_WARN(server, username, "We received an unreadable "
 				"encrypted message from %s.", username);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_MALFORMED:
-		IRSSI_WARN(server, username, "%9OTR:%9 We received a malformed data "
+		IRSSI_WARN(server, username, "We received a malformed data "
 				"message from %s.", username);
 		break;
 	case OTRL_MSGEVENT_LOG_HEARTBEAT_RCVD:
-		IRSSI_DEBUG("%9OTR:%9 Heartbeat received from %s.", username);
+		IRSSI_DEBUG("Heartbeat received from %s.", username);
 		break;
 	case OTRL_MSGEVENT_LOG_HEARTBEAT_SENT:
-		IRSSI_DEBUG("%9OTR:%9 Heartbeat sent to %s.", username);
+		IRSSI_DEBUG("Heartbeat sent to %s.", username);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_GENERAL_ERR:
-		IRSSI_WARN(server, username, "%9OTR:%9 OTR Error: %s.", message);
+		IRSSI_WARN(server, username, "General Error: %s.", message);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_UNENCRYPTED:
 		IRSSI_NOTICE(server, username,
-				"%9OTR:%9 The following message from %9%s%9 was NOT "
+				"The following message from %9%s%9 was NOT "
 				"encrypted.", username);
 		/*
 		 * This is a hack I found to send the message in a private window of
@@ -255,11 +255,11 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 		signal_add_first("message private", (SIGNAL_FUNC) sig_message_private);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_UNRECOGNIZED:
-		IRSSI_WARN(server, username, "%9OTR:%9 Unrecognized OTR message "
+		IRSSI_WARN(server, username, "Unrecognized OTR message "
 				"received from %s.", username);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_FOR_OTHER_INSTANCE:
-		IRSSI_DEBUG("%9OTR:%9 %s has sent a message for a different instance.",
+		IRSSI_DEBUG("%s has sent a message for a different instance.",
 				username);
 		break;
 	}
@@ -295,7 +295,7 @@ static int ops_is_logged_in(void *opdata, const char *accountname,
 		ret = 0;
 	}
 
-	IRSSI_DEBUG("%9OTR%9: User %s %s logged in", accountname,
+	IRSSI_DEBUG("User %s %s logged in", accountname,
 			(ret == 0) ? "not" : "");
 
 	return ret;
@@ -328,40 +328,40 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 
 	switch (smp_event) {
 	case OTRL_SMPEVENT_ASK_FOR_SECRET:
-		IRSSI_NOTICE(irssi, from, "%9OTR%9: %9%s%9 wants to authenticate. "
+		IRSSI_NOTICE(irssi, from, "%9%s%9 wants to authenticate. "
 				"Type %9/otr auth <SECRET>%9 to complete.", from);
 		opc->ask_secret = 1;
 		otr_status_change(irssi, from, OTR_STATUS_SMP_INCOMING);
 		break;
 	case OTRL_SMPEVENT_ASK_FOR_ANSWER:
-		IRSSI_NOTICE(irssi, from, "%9OTR%9: %9%s%9 wants to authenticate and "
+		IRSSI_NOTICE(irssi, from, "%9%s%9 wants to authenticate and "
 				"asked this question: %9%s%9\n"
-				"%9OTR%9: Type %9/otr auth <SECRET>%9 to complete.", from,
+				"Type %9/otr auth <SECRET>%9 to complete.", from,
 				question);
 		opc->ask_secret = 1;
 		otr_status_change(irssi, from, OTR_STATUS_SMP_INCOMING);
 		break;
 	case OTRL_SMPEVENT_IN_PROGRESS:
-		IRSSI_NOTICE(irssi, from, "%9OTR%9: %9%s%9 replied to our auth request",
+		IRSSI_NOTICE(irssi, from, "%9%s%9 replied to our auth request",
 				from);
 		otr_status_change(irssi, from, OTR_STATUS_SMP_FINALIZE);
 		break;
 	case OTRL_SMPEVENT_SUCCESS:
-		IRSSI_NOTICE(irssi, from, "%9OTR%9: %GAuthentication successful%n");
+		IRSSI_NOTICE(irssi, from, "%GAuthentication successful%n");
 		otr_status_change(irssi, from, OTR_STATUS_SMP_SUCCESS);
 		break;
 	case OTRL_SMPEVENT_ABORT:
-		otr_abort_auth(context, irssi, from);
+		otr_auth_abort(irssi, context->username);
 		otr_status_change(irssi, from, OTR_STATUS_SMP_ABORTED);
 		break;
 	case OTRL_SMPEVENT_FAILURE:
 	case OTRL_SMPEVENT_CHEATED:
 	case OTRL_SMPEVENT_ERROR:
-		IRSSI_NOTICE(irssi, from, "%9OTR%9: %RAuthentication failed%n");
+		IRSSI_NOTICE(irssi, from, "%RAuthentication failed%n");
 		otr_status_change(irssi, from, OTR_STATUS_SMP_FAILED);
 		break;
 	default:
-		IRSSI_NOTICE(irssi, from, "%9OTR%9: Received unknown SMP event. "
+		IRSSI_NOTICE(irssi, from, "Received unknown SMP event. "
 			"Ignoring");
 		break;
 	}

@@ -138,7 +138,7 @@ void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
 	*argcp = argc;
 }
 
-void otr_log(IRC_CTX *server, const char *nick, int lvl, const char *fmt, ...)
+void otr_log(SERVER_REC *server, const char *nick, int lvl, const char *fmt, ...)
 {
 	va_list params;
 	va_start(params, fmt);

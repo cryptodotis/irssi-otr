@@ -24,81 +24,103 @@
 /*
  * /otr debug
  */
-static void _cmd_debug(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc, char *argv[],
-		char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_debug(struct otr_user_state *ustate, SERVER_REC *irssi,
+		int argc, char *argv[], char *argv_eol[], char *target,
+		const char *orig_args)
 {
 	debug = !debug;
-	otr_noticest(debug ? TXT_CMD_DEBUG_ON : TXT_CMD_DEBUG_OFF);
+	if (debug) {
+		IRSSI_INFO(NULL, NULL, "Debug on");
+	} else {
+		IRSSI_INFO(NULL, NULL, "Debug off");
+	}
 }
 
 /*
  * /otr version 
  */
-static void _cmd_version(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc, char *argv[],
-		char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_version(struct otr_user_state *ustate, SERVER_REC *irssi,
+		int argc, char *argv[], char *argv_eol[], char *target,
+		const char *orig_args)
 {
-	otr_noticest(TXT_CMD_VERSION, IRCOTR_VERSION);
+	IRSSI_INFO(NULL, NULL, "OTR module version: " VERSION);
 }
 
 /*
  * /otr help 
  */
-static void _cmd_help(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc, char *argv[],
+static void _cmd_help(struct otr_user_state *ustate, SERVER_REC *irssi, int argc, char *argv[],
 		char *argv_eol[], char *target, const char *orig_args)
 {
-	otr_log(ircctx, target, MSGLEVEL_CRAP, otr_help);
+	IRSSI_INFO(NULL, NULL, "%s", otr_help);
 }
 
 /*
  * /otr finish 
  */
-static void _cmd_finish(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc, char *argv[],
-		char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_finish(struct otr_user_state *ustate, SERVER_REC *irssi,
+		int argc, char *argv[], char *argv_eol[], char *target,
+		const char *orig_args)
 {
-	if (argc) {
-		otr_finish(NULL, NULL, argv[0], TRUE);
-	} else if (ircctx && target) {
-		otr_finish(ircctx, target, NULL, TRUE);
-	} else {
-		otr_noticest(TXT_CMD_QNOTFOUND);
+	if (!irssi || !target) {
+		IRSSI_WARN(irssi, target,
+				"Failed: Can't get nick and server of current query window. "
+				"(Or maybe you're doing this in the status window?)");
+		goto end;
 	}
+
+	otr_finish(irssi, target);
+
+end:
+	return;
 }
 
 /*
  * /otr trust
  */
-static void _cmd_trust(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc, char *argv[],
-		char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_trust(struct otr_user_state *ustate, SERVER_REC *irssi,
+		int argc, char *argv[], char *argv_eol[], char *target,
+		const char *orig_args)
 {
-	if (argc) {
-		otr_trust(NULL, NULL, argv[0]);
-	} else if (ircctx && target) {
-		otr_trust(ircctx, target, NULL);
-	} else {
-		otr_noticest(TXT_CMD_QNOTFOUND);
+	if (!irssi || !target) {
+		IRSSI_WARN(irssi, target,
+				"Failed: Can't get nick and server of current query window. "
+				"(Or maybe you're doing this in the status window?)");
+		goto end;
 	}
+
+	otr_trust(irssi, target);
+
+end:
+	return;
 }
 
 /*
  * /otr authabort
  */
-static void _cmd_authabort(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc,
-		char *argv[], char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_authabort(struct otr_user_state *ustate, SERVER_REC *irssi,
+		int argc, char *argv[], char *argv_eol[], char *target,
+		const char *orig_args)
 {
-	if (argc) {
-		otr_authabort(NULL, NULL, argv[0]);
-	} else if (ircctx && target) {
-		otr_authabort(ircctx, target, NULL);
-	} else {
-		otr_noticest(TXT_CMD_QNOTFOUND);
+	if (!irssi || !target) {
+		IRSSI_WARN(irssi, target,
+				"Failed: Can't get nick and server of current query window. "
+				"(Or maybe you're doing this in the status window?)");
+		goto end;
 	}
+
+	otr_auth_abort(irssi, target);
+
+end:
+	return;
 }
 
 /*
  * /otr genkey
  */
-static void _cmd_genkey(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc, char *argv[],
-		char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_genkey(struct otr_user_state *ustate, SERVER_REC *irssi,
+		int argc, char *argv[], char *argv_eol[], char *target,
+		const char *orig_args)
 {
 	if (argc) {
 		if (strncmp(argv[0], "abort", strlen("abort")) == 0) {
@@ -106,53 +128,38 @@ static void _cmd_genkey(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc
 		} else if (strchr(argv[0], '@')) {
 			key_generation_run(ustate, argv[0]);
 		} else {
-			otr_noticest(TXT_KG_NEEDACC);
+			IRSSI_INFO(NULL, NULL, "I need an account name. "
+					"Try something like /otr genkey mynick@irc.server.net");
 		}
 	} else {
-		otr_noticest(TXT_KG_NEEDACC);
+		IRSSI_INFO(NULL, NULL, "I need an account name. "
+				"Try something like /otr genkey mynick@irc.server.net");
 	}
 }
 
 /*
  * Generic internal function for /otr auth command.
  */
-static void _auth(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc,
+static void _auth(struct otr_user_state *ustate, SERVER_REC *irssi, int argc,
 		char *argv[], char *argv_eol[], char *target, int qanda,
 		const char *orig_args)
 {
 	int ret;
-	char *accountname = NULL, *question = NULL, *secret = NULL;
-
-	/* have args? */
-	if (argc < (qanda ? 2 : 1)) {
-		otr_notice(ircctx, target, TXT_CMD_AUTH);
-		goto end;
-	}
-
-	/* have buddy? */
-	if (!(ircctx && target)) {
-		accountname = strchr(argv[0], '@');
-		if (!accountname) {
-			otr_noticest(TXT_CMD_QNOTFOUND);
-			goto end;
-		}
-		ircctx = NULL;
-		target = NULL;
-		argv++; argv_eol++; argc--;
-	}
+	char *question = NULL, *secret = NULL;
 
 	/* have question? */
 	if (qanda) {
 		ret = utils_io_extract_smp(orig_args, &question, &secret);
 		if (ret < 0) {
-			otr_notice(ircctx, target, TXT_CMD_AUTH);
+			IRSSI_NOTICE(irssi, target, "Usage: %9/otr authq [QUESTION] "
+					"SECRET%9");
 			goto end;
 		}
 	} else {
 		secret = argv_eol[0];
 	}
 
-	otr_auth(ircctx, target, accountname, question, secret);
+	otr_auth(irssi, target, question, secret);
 
 	free(question);
 	if (qanda) {
@@ -166,32 +173,51 @@ end:
 /*
  * /otr authq (Authentication with a question)
  */
-static void _cmd_authq(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc,
-		char *argv[], char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_authq(struct otr_user_state *ustate, SERVER_REC *irssi,
+		int argc, char *argv[], char *argv_eol[], char *target,
+		const char *orig_args)
 {
-	_auth(ustate, ircctx, argc, argv, argv_eol, target, TRUE, orig_args);
+	if (argc == 0) {
+		IRSSI_NOTICE(irssi, target, "Huh... I need a question here Bob.");
+		goto end;
+	}
+
+	_auth(ustate, irssi, argc, argv, argv_eol, target, TRUE, orig_args);
+
+end:
+	return;
 }
 
 /*
  * /otr auth
  */
-static void _cmd_auth(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc, char *argv[],
-		char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi, int argc,
+		char *argv[], char *argv_eol[], char *target, const char *orig_args)
 {
-	_auth(ustate, ircctx, argc, argv, argv_eol, target, FALSE, orig_args);
+	if (argc == 0) {
+		IRSSI_NOTICE(irssi, target, "Huh... I need a secret here James.");
+		goto end;
+	}
+
+	_auth(ustate, irssi, argc, argv, argv_eol, target, FALSE, orig_args);
+
+end:
+	return;
 }
 
 /*
  * /otr contexts
  */
-static void _cmd_contexts(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc,
-		char *argv[], char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_contexts(struct otr_user_state *ustate, SERVER_REC *irssi,
+		int argc, char *argv[], char *argv_eol[], char *target,
+		const char *orig_args)
 {
 	struct ctxlist_ *ctxlist = otr_contexts(ustate), *ctxnext = ctxlist;
 	struct fplist_ *fplist, *fpnext;
 
 	if (!ctxlist) {
-		otr_infost(TXT_CTX_NOCTXS);
+		IRSSI_INFO(NULL, NULL, "No active OTR contexts found");
+		goto end;
 	}
 
 	while (ctxlist) {
@@ -215,27 +241,33 @@ static void _cmd_contexts(struct otr_user_state *ustate, IRC_CTX *ircctx, int ar
 		}
 		g_free(ctxlist);
 	}
+
+end:
+	return;
 }
 
-static void _cmd_init(struct otr_user_state *ustate, SERVER_REC *irssi, int argc,
-		char *argv[], char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_init(struct otr_user_state *ustate, SERVER_REC *irssi,
+		int argc, char *argv[], char *argv_eol[], char *target,
+		const char *orig_args)
 {
 	char *msg;
 	ConnContext *ctx;
 
 	/* No server object, just ignore the request */
 	if (!irssi || !target) {
-		otr_noticest(TXT_CMD_QNOTFOUND);
+		IRSSI_WARN(irssi, target,
+				"Failed: Can't get nick and server of current query window. "
+				"(Or maybe you're doing this in the status window?)");
 		goto end;
 	}
 
 	ctx = otr_find_context(irssi, target, 0);
 	if (ctx && ctx->msgstate == OTRL_MSGSTATE_ENCRYPTED) {
-		IRSSI_NOTICE(irssi, target, "%9OTR%9: Already secure!");
+		IRSSI_NOTICE(irssi, target, "Already secure!");
 		goto end;
 	}
 
-	IRSSI_NOTICE(irssi, target, "%9OTR%9: Initiating OTR session...");
+	IRSSI_NOTICE(irssi, target, "Initiating OTR session...");
 
 	msg = otrl_proto_default_query_msg(target, OTRL_POLICY_DEFAULT);
 	irssi_send_message(irssi, target, msg ? msg : "?OTRv23?");
@@ -254,9 +286,10 @@ static void _cmd_forget(struct otr_user_state *ustate, SERVER_REC *irssi,
 	if (argc == 5) {
 		utils_hash_parts_to_readable_hash((const char **) argv, str_fp);
 		fp = str_fp;
-	} else if (!irssi || (irssi && argc != 0)) {
+	} else if (!irssi || (irssi && argc != 0 &&
+				(argc == 1 && argv[0] != NULL))) {
 		/* If no IRSSI or some arguments (not 5), bad command. */
-		IRSSI_NOTICE(irssi, target, "%9OTR%9: Usage %9/otr forget [FP]%9 "
+		IRSSI_NOTICE(irssi, target, "Usage %9/otr forget [FP]%9 "
 				"where FP is the five part of the fingerprint listed by "
 				"%9/otr contexts%9 or do the command inside an OTR session "
 				"private message window");
@@ -279,9 +312,10 @@ static void _cmd_distrust(struct otr_user_state *ustate, SERVER_REC *irssi,
 	if (argc == 5) {
 		utils_hash_parts_to_readable_hash((const char **) argv, str_fp);
 		fp = str_fp;
-	} else if (!irssi || (irssi && argc != 0)) {
+	} else if (!irssi || (irssi && argc != 0 &&
+				(argc == 1 && argv[0] != NULL))) {
 		/* If no IRSSI or some arguments (not 5), bad command. */
-		IRSSI_NOTICE(irssi, target, "%9OTR%9: Usage %9/otr distrust [FP]%9 "
+		IRSSI_NOTICE(irssi, target, "Usage %9/otr distrust [FP]%9 "
 				"where FP is the five part of the fingerprint listed by "
 				"%9/otr contexts%9 or do the command inside an OTR session "
 				"private message window");
@@ -318,14 +352,14 @@ static struct irssi_commands cmds[] = {
  *
  * Return TRUE if command exist and is executed else FALSE.
  */
-int cmd_generic(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc, char *argv[],
-		char *argv_eol[], char *target, const char *orig_args)
+int cmd_generic(struct otr_user_state *ustate, SERVER_REC *irssi, int argc,
+		char *argv[], char *argv_eol[], char *target, const char *orig_args)
 {
 	char *cmd;
 	struct irssi_commands *commands = cmds;
 
 	if (!argc) {
-		otr_noticest(TXT_CMD_OTR);
+		IRSSI_INFO(NULL, NULL, "Alive");
 		goto done;
 	}
 
@@ -337,7 +371,7 @@ int cmd_generic(struct otr_user_state *ustate, IRC_CTX *ircctx, int argc, char *
 
 	do {
 		if (strcmp(commands->name, cmd) == 0) {
-			commands->func(ustate, ircctx, argc, argv, argv_eol, target,
+			commands->func(ustate, irssi, argc, argv, argv_eol, target,
 					orig_args);
 			goto done;
 		}

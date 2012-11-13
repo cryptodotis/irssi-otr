@@ -32,7 +32,7 @@
 #define otr_logst(level, fmt, ...) \
 	otr_log(NULL, NULL, level, fmt, ## __VA_ARGS__)
 
-void otr_log(IRC_CTX *server, const char *to, int lvl, const char *fmt, ...);
+void otr_log(SERVER_REC *server, const char *to, int lvl, const char *fmt, ...);
 
 void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
 		int *argcp);

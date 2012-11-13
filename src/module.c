@@ -124,7 +124,7 @@ end:
 static void sig_query_destroyed(QUERY_REC *query)
 {
 	if (query && query->server && query->server->connrec) {
-		otr_finish(query->server, query->name, NULL, FALSE);
+		otr_finish(query->server, query->name);
 	}
 }
 
@@ -138,7 +138,7 @@ static void cmd_otr(const char *data, void *server, WI_ITEM_REC *item)
 	QUERY_REC *query = QUERY(item);
 
 	if (*data == '\0') {
-		otr_noticest(TXT_CMD_OTR);
+		IRSSI_INFO(NULL, NULL, "Alive!");
 		goto end;
 	}
 
@@ -167,9 +167,7 @@ end:
  */
 static void cmd_quit(const char *data, void *server, WI_ITEM_REC *item)
 {
-	if (settings_get_bool("otr_finishonunload")) {
-		otr_finishall(user_state_global);
-	}
+	otr_finishall(user_state_global);
 }
 
 /*
@@ -286,9 +284,7 @@ void otr_deinit(void)
 
 	statusbar_item_unregister("otr");
 
-	if (settings_get_bool("otr_finishonunload")) {
-		otr_finishall(user_state_global);
-	}
+	otr_finishall(user_state_global);
 
 	otr_free_user(user_state_global);
 

@@ -86,12 +86,15 @@ static void keygen_childwatch(GPid pid, gint status, gpointer data)
 				"%s", strsignal(WTERMSIG(status))
 #endif
 			);
-			otr_noticest(TXT_KG_EXITSIG, kg_st.accountname, sigstr);
+			IRSSI_INFO(NULL, NULL, "Key generation for %s, child was killed "
+					"by signal %s", kg_st.accountname, sigstr);
 		} else {
-			otr_noticest(TXT_KG_EXITED, kg_st.accountname);
+			IRSSI_INFO(NULL, NULL, "Key generation for %s, child terminated "
+					"for unknown reason", kg_st.accountname);
 		}
 	} else if (ret < 0) {
-		otr_noticest(TXT_KG_POLLERR, kg_st.accountname, strerror(errno));
+		IRSSI_INFO(NULL, NULL, "Key generation for %s. Poll error %s",
+				kg_st.accountname, strerror(errno));
 	}
 
 	key_generation_abort(kg_st.ustate, FALSE);
@@ -121,11 +124,12 @@ static gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 	g_io_channel_unref(kg_st.ch[1]);
 
 	if (err) {
-		otr_noticest(TXT_KG_FAILED, kg_st.accountname, gcry_strerror(err),
-				gcry_strsource(err));
+		IRSSI_INFO(NULL, NULL, "Key generation failed for %s (err: %s)",
+				kg_st.accountname, gcry_strerror(err));
 	} else {
 		/* reload keys */
-		otr_noticest(TXT_KG_COMPLETED, kg_st.accountname,
+		IRSSI_INFO(NULL, NULL, "Key generation for %s completed in %d seconds."
+				" Reloading keys.", kg_st.accountname,
 				time(NULL) - kg_st.started);
 		rename(tmpfilename, filename);
 		//otrl_privkey_forget_all(otr_state); <-- done by lib
@@ -149,14 +153,20 @@ static gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
  * will rewrite the key file, we shouldn't change anything till it's done and
  * we've reloaded the keys.
  */
-void key_generation_run(struct otr_user_state *ustate, const char *accname) { gcry_error_t
-	err; int ret; int fds[2]; char *filename =
-		g_strconcat(get_client_config_dir(), OTR_TMP_KEYFILE, NULL); char
-		*filenamedup = g_strdup(filename); char *dir = dirname(filenamedup);
+void key_generation_run(struct otr_user_state *ustate, const char *accname)
+{
+	gcry_error_t err;
+	int ret;
+	int fds[2];
+	char *filename = g_strconcat(get_client_config_dir(), OTR_TMP_KEYFILE, NULL);
+	char *filenamedup = g_strdup(filename);
+	char *dir = dirname(filenamedup);
 
 	if (kg_st.status != KEYGEN_NO) {
 		if (strncmp(accname, kg_st.accountname, strlen(accname)) != 0) {
-			otr_noticest(TXT_KG_ABORTED_DUP, accname, kg_st.accountname);
+			IRSSI_INFO(NULL, NULL, "Key generation for %s aborted. "
+					"Key generation for %s still in progress", accname,
+					kg_st.accountname);
 		}
 		g_free(filenamedup);
 		goto end;
@@ -164,12 +174,15 @@ void key_generation_run(struct otr_user_state *ustate, const char *accname) { gc
 
 	if (!g_file_test(dir, G_FILE_TEST_EXISTS)) {
 		if (g_mkdir(dir, S_IRWXU)) {
-			otr_noticest(TXT_KG_ABORTED_DIR, accname, dir, strerror(errno));
+			IRSSI_INFO(NULL, NULL, "Key generation for %s aborted. Failed "
+					"creating directory %s (err: %s)",
+					accname, dir, strerror(errno));
 			g_free(dir);
 			g_free(filenamedup);
 			goto end;
 		} else {
-			otr_noticest(TXT_KG_MKDIR, dir);
+			IRSSI_INFO(NULL, NULL, "Key generation created directory %9%s%9",
+					dir);
 		}
 	}
 
@@ -177,7 +190,8 @@ void key_generation_run(struct otr_user_state *ustate, const char *accname) { gc
 
 	ret = pipe(fds);
 	if (ret < 0) {
-		otr_noticest(TXT_KG_PIPE, accname, strerror(errno));
+		IRSSI_INFO(NULL, NULL, "Key generation for %s. Error creating "
+				"pipe (err: %s)", accname, strerror(errno));
 		goto end;
 	}
 
@@ -191,14 +205,18 @@ void key_generation_run(struct otr_user_state *ustate, const char *accname) { gc
 
 	if ((ret = fork())) {
 		if (ret == -1) {
-			otr_noticest(TXT_KG_FORK, accname, strerror(errno));
+			IRSSI_INFO(NULL, NULL, "Key generation for %s. Fork error "
+					"(err: %s)", accname, strerror(errno));
 			goto end;
 		}
 
 		kg_st.status = KEYGEN_RUNNING;
 		kg_st.pid = ret;
 
-		otr_noticest(TXT_KG_INITIATED, accname);
+		IRSSI_INFO(NULL, NULL, "Key generation for %s initiated. "
+				"This might take several minutes or on some systems even an "
+				"hour. If you wanna check that something is happening, see if "
+				"there are two processes of your IRC client.", accname);
 
 		kg_st.cpid = g_io_add_watch(kg_st.ch[0], G_IO_IN,
 				(GIOFunc) keygen_complete, NULL);
@@ -229,12 +247,12 @@ void key_generation_abort(struct otr_user_state *ustate, int ignoreidle)
 {
 	if (kg_st.status != KEYGEN_RUNNING) {
 		if (!ignoreidle) {
-			otr_noticest(TXT_KG_NOABORT);
+			IRSSI_INFO(NULL, NULL, "No ongoing key generation to abort");
 		}
 		goto end;
 	}
 
-	otr_noticest(TXT_KG_ABORT, kg_st.accountname);
+	IRSSI_INFO(NULL, NULL, "Key generation for %s aborted", kg_st.accountname);
 
 	g_source_remove(kg_st.cpid);
 	g_source_remove(kg_st.cwid);
@@ -268,9 +286,9 @@ void key_write_fingerprints(struct otr_user_state *ustate)
 
 	err = otrl_privkey_write_fingerprints(ustate->otr_state, filename);
 	if (err == GPG_ERR_NO_ERROR) {
-		IRSSI_DEBUG("%9OTR%9: Fingerprints saved to %9%s%9", filename);
+		IRSSI_DEBUG("Fingerprints saved to %9%s%9", filename);
 	} else {
-		IRSSI_DEBUG("%9OTR%9: Error writing fingerprints: %d (%d)",
+		IRSSI_DEBUG("Error writing fingerprints: %d (%d)",
 				gcry_strerror(err), gcry_strsource(err));
 	}
 
@@ -296,9 +314,9 @@ void key_write_instags(struct otr_user_state *ustate)
 
 	err = otrl_instag_write(ustate->otr_state, filename);
 	if (err == GPG_ERR_NO_ERROR) {
-		IRSSI_DEBUG("%9OTR%9: Instance tags saved in %9%s%9", filename);
+		IRSSI_DEBUG("Instance tags saved in %9%s%9", filename);
 	} else {
-		IRSSI_DEBUG("%9OTR%9: Error saving instance tags: %d (%d)",
+		IRSSI_DEBUG("Error saving instance tags: %d (%d)",
 				gcry_strerror(err), gcry_strsource(err));
 	}
 
@@ -325,15 +343,15 @@ void key_load(struct otr_user_state *ustate)
 
 	ret = access(filename, F_OK);
 	if (ret < 0) {
-		IRSSI_DEBUG("%9OTR%9: No private keys found in %9%s%9", filename);
+		IRSSI_DEBUG("No private keys found in %9%s%9", filename);
 		goto end;
 	}
 
 	err = otrl_privkey_read(ustate->otr_state, filename);
 	if (err == GPG_ERR_NO_ERROR) {
-		IRSSI_DEBUG("%9OTR%9: Private keys loaded from %9%s%9", filename);
+		IRSSI_DEBUG("Private keys loaded from %9%s%9", filename);
 	} else {
-		IRSSI_DEBUG("%9OTR%9: Error loading private keys: %d (%d)",
+		IRSSI_DEBUG("Error loading private keys: %d (%d)",
 				gcry_strerror(err), gcry_strsource(err));
 	}
 
@@ -361,16 +379,16 @@ void key_load_fingerprints(struct otr_user_state *ustate)
 
 	ret = access(filename, F_OK);
 	if (ret < 0) {
-		IRSSI_DEBUG("%9OTR%9: No fingerprints found in %9%s%9", filename);
+		IRSSI_DEBUG("No fingerprints found in %9%s%9", filename);
 		goto end;
 	}
 
 	err = otrl_privkey_read_fingerprints(ustate->otr_state, filename, NULL,
 			NULL);
 	if (err == GPG_ERR_NO_ERROR) {
-		IRSSI_DEBUG("%9OTR%9: Fingerprints loaded from %9%s%9", filename);
+		IRSSI_DEBUG("Fingerprints loaded from %9%s%9", filename);
 	} else {
-		IRSSI_DEBUG("%9OTR%9: Error loading fingerprints: %d (%d)",
+		IRSSI_DEBUG("Error loading fingerprints: %d (%d)",
 				gcry_strerror(err), gcry_strsource(err));
 	}
 
