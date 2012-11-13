@@ -104,6 +104,47 @@ error:
 	return -1;
 }
 
+void utils_explode_args(const char *_data, char ***_argv, int *_argc)
+{
+	int argc = 1, i = 0;
+	char **argv = NULL, *c, *data = NULL;
+
+	assert(_data);
+
+	data = strndup(_data, strlen(_data));
+	if (!data) {
+		goto error;
+	}
+
+	c = data;
+	while ((c = strchr(c + 1, ' '))) {
+		/* Skip consecutive spaces. */
+		if (*(c + 1) == ' ') {
+			continue;
+		}
+		argc++;
+	}
+
+	argv = malloc(argc * sizeof(char *));
+	if (!argv) {
+		goto error;
+	}
+
+	c = strtok(data, " ");
+	while (c != NULL) {
+		argv[i] = strdup(c);
+		c = strtok(NULL, " ");
+		i++;
+	}
+
+error:
+	*_argv = argv;
+	*_argc = argc;
+
+	free(data);
+	return;
+}
+
 void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
 		int *argcp)
 {
