@@ -335,7 +335,7 @@ struct ctxlist_ *otr_contexts(struct otr_user_state *ustate)
 /*
  * Finish the conversation.
  */
-void otr_finish(SERVER_REC *irssi, char *nick)
+void otr_finish(SERVER_REC *irssi, const char *nick)
 {
 	ConnContext *ctx;
 
@@ -389,7 +389,7 @@ void otr_finishall(struct otr_user_state *ustate)
 /*
  * Trust our peer.
  */
-void otr_trust(SERVER_REC *irssi, char *nick)
+void otr_trust(SERVER_REC *irssi, const char *nick)
 {
 	ConnContext *ctx;
 	char peerfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
@@ -424,7 +424,7 @@ end:
 /*
  * implements /otr authabort
  */
-void otr_auth_abort(SERVER_REC *irssi, char *nick)
+void otr_auth_abort(SERVER_REC *irssi, const char *nick)
 {
 	ConnContext *ctx;
 
@@ -453,7 +453,7 @@ end:
 /*
  * Initiate or respond to SMP authentication.
  */
-void otr_auth(SERVER_REC *irssi, char *nick, const char *question,
+void otr_auth(SERVER_REC *irssi, const char *nick, const char *question,
 		const char *secret)
 {
 	int ret;

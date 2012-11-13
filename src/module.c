@@ -19,6 +19,7 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#include <assert.h>
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <glib/gstdio.h>
@@ -133,31 +134,32 @@ static void sig_query_destroyed(QUERY_REC *query)
  */
 static void cmd_otr(const char *data, void *server, WI_ITEM_REC *item)
 {
-	int argc;
-	char **argv, **argv_eol;
-	QUERY_REC *query = QUERY(item);
+	char *cmd = NULL;
+	QUERY_REC *query;
+
+	query = QUERY(item);
 
 	if (*data == '\0') {
 		IRSSI_INFO(NULL, NULL, "Alive!");
 		goto end;
 	}
 
-	utils_io_explode_args(data, &argv, &argv_eol, &argc);
+	utils_extract_command(data, &cmd);
+	if (!cmd) {
+		/* ENOMEM and cmd is untouched. */
+		goto end;
+	}
 
 	if (query && query->server && query->server->connrec) {
-		cmd_generic(user_state_global, query->server, argc, argv, argv_eol,
-				query->name, data);
+		cmd_generic(user_state_global, query->server, query->name, cmd, data);
 	} else {
-		cmd_generic(user_state_global, NULL, argc, argv, argv_eol, NULL, data);
+		cmd_generic(user_state_global, NULL, NULL, cmd, data);
 	}
 
 	statusbar_items_redraw("otr");
 
-	g_free(argv_eol[0]);
-	g_free(argv_eol);
-	g_free(argv);
-
 end:
+	free(cmd);
 	return;
 }
 
@@ -293,11 +295,11 @@ void otr_deinit(void)
 	theme_unregister();
 }
 
-SERVER_REC *find_irssi_ctx_by_peername(const char *peername, char *nick)
+SERVER_REC *find_irssi_ctx_by_peername(const char *peername, const char *nick)
 {
 	GSList *tmp;
 	char pname[256];
-	char *address;
+	char *address, *_nick = strdup(nick);
 	SERVER_REC *server = NULL;
 
 	strncpy(pname, peername, sizeof(pname));
@@ -308,7 +310,7 @@ SERVER_REC *find_irssi_ctx_by_peername(const char *peername, char *nick)
 	}
 
 	*address = '\0';
-	strncpy(nick, pname, strlen(nick));
+	strncpy(_nick, pname, strlen(_nick));
 	*address++ = '@';
 
 	for (tmp = servers; tmp != NULL; tmp = tmp->next) {

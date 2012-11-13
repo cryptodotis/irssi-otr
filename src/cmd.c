@@ -18,6 +18,8 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#include <assert.h>
+
 #include "cmd.h"
 #include "key.h"
 
@@ -25,8 +27,7 @@
  * /otr debug
  */
 static void _cmd_debug(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
 	debug = !debug;
 	if (debug) {
@@ -40,8 +41,7 @@ static void _cmd_debug(struct otr_user_state *ustate, SERVER_REC *irssi,
  * /otr version 
  */
 static void _cmd_version(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
 	IRSSI_INFO(NULL, NULL, "OTR module version: " VERSION);
 }
@@ -49,8 +49,8 @@ static void _cmd_version(struct otr_user_state *ustate, SERVER_REC *irssi,
 /*
  * /otr help 
  */
-static void _cmd_help(struct otr_user_state *ustate, SERVER_REC *irssi, int argc, char *argv[],
-		char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_help(struct otr_user_state *ustate, SERVER_REC *irssi,
+		const char *target, const void *data)
 {
 	IRSSI_INFO(NULL, NULL, "%s", otr_help);
 }
@@ -59,8 +59,7 @@ static void _cmd_help(struct otr_user_state *ustate, SERVER_REC *irssi, int argc
  * /otr finish 
  */
 static void _cmd_finish(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
 	if (!irssi || !target) {
 		IRSSI_WARN(irssi, target,
@@ -79,8 +78,7 @@ end:
  * /otr trust
  */
 static void _cmd_trust(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
 	if (!irssi || !target) {
 		IRSSI_WARN(irssi, target,
@@ -99,8 +97,7 @@ end:
  * /otr authabort
  */
 static void _cmd_authabort(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
 	if (!irssi || !target) {
 		IRSSI_WARN(irssi, target,
@@ -119,9 +116,13 @@ end:
  * /otr genkey
  */
 static void _cmd_genkey(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
+	int argc;
+	char **argv;
+
+	utils_explode_args(data, &argv, &argc);
+
 	if (argc) {
 		if (strncmp(argv[0], "abort", strlen("abort")) == 0) {
 			key_generation_abort(ustate, FALSE);
@@ -135,73 +136,60 @@ static void _cmd_genkey(struct otr_user_state *ustate, SERVER_REC *irssi,
 		IRSSI_INFO(NULL, NULL, "I need an account name. "
 				"Try something like /otr genkey mynick@irc.server.net");
 	}
-}
 
-/*
- * Generic internal function for /otr auth command.
- */
-static void _auth(struct otr_user_state *ustate, SERVER_REC *irssi, int argc,
-		char *argv[], char *argv_eol[], char *target, int qanda,
-		const char *orig_args)
-{
-	int ret;
-	char *question = NULL, *secret = NULL;
-
-	/* have question? */
-	if (qanda) {
-		ret = utils_io_extract_smp(orig_args, &question, &secret);
-		if (ret < 0) {
-			IRSSI_NOTICE(irssi, target, "Usage: %9/otr authq [QUESTION] "
-					"SECRET%9");
-			goto end;
-		}
-	} else {
-		secret = argv_eol[0];
-	}
-
-	otr_auth(irssi, target, question, secret);
-
-	free(question);
-	if (qanda) {
-		free(secret);
-	}
-
-end:
-	return;
+	utils_free_args(&argv, argc);
 }
 
 /*
  * /otr authq (Authentication with a question)
  */
 static void _cmd_authq(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
+	int argc, ret;
+	char **argv, *question = NULL, *secret = NULL;
+
+	utils_explode_args(data, &argv, &argc);
+
 	if (argc == 0) {
 		IRSSI_NOTICE(irssi, target, "Huh... I need a question here Bob.");
 		goto end;
 	}
 
-	_auth(ustate, irssi, argc, argv, argv_eol, target, TRUE, orig_args);
+	ret = utils_io_extract_smp(data, &question, &secret);
+	if (ret < 0) {
+		IRSSI_NOTICE(irssi, target, "Usage: %9/otr authq [QUESTION] "
+				"SECRET%9");
+		goto end;
+	}
+
+	otr_auth(irssi, target, question, secret);
 
 end:
+	utils_free_args(&argv, argc);
 	return;
 }
 
 /*
  * /otr auth
  */
-static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi, int argc,
-		char *argv[], char *argv_eol[], char *target, const char *orig_args)
+static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi,
+		const char *target, const void *data)
 {
+	int argc;
+	char **argv;
+
+	utils_explode_args(data, &argv, &argc);
+
 	if (argc == 0) {
 		IRSSI_NOTICE(irssi, target, "Huh... I need a secret here James.");
 		goto end;
 	}
 
-	_auth(ustate, irssi, argc, argv, argv_eol, target, FALSE, orig_args);
+	otr_auth(irssi, target, NULL, argv[1]);
 
 end:
+	utils_free_args(&argv, argc);
 	return;
 }
 
@@ -209,8 +197,7 @@ end:
  * /otr contexts
  */
 static void _cmd_contexts(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
 	struct ctxlist_ *ctxlist = otr_contexts(ustate), *ctxnext = ctxlist;
 	struct fplist_ *fplist, *fpnext;
@@ -247,8 +234,7 @@ end:
 }
 
 static void _cmd_init(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
 	char *msg;
 	ConnContext *ctx;
@@ -278,16 +264,18 @@ end:
 }
 
 static void _cmd_forget(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
+	int argc;
+	char **argv;
 	char str_fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *fp = NULL;
+
+	utils_explode_args(data, &argv, &argc);
 
 	if (argc == 5) {
 		utils_hash_parts_to_readable_hash((const char **) argv, str_fp);
 		fp = str_fp;
-	} else if (!irssi || (irssi && argc != 0 &&
-				(argc == 1 && argv[0] != NULL))) {
+	} else if (!irssi || (irssi && argc != 0)) {
 		/* If no IRSSI or some arguments (not 5), bad command. */
 		IRSSI_NOTICE(irssi, target, "Usage %9/otr forget [FP]%9 "
 				"where FP is the five part of the fingerprint listed by "
@@ -300,20 +288,23 @@ static void _cmd_forget(struct otr_user_state *ustate, SERVER_REC *irssi,
 	otr_forget(irssi, target, fp, ustate);
 
 error:
+	utils_free_args(&argv, argc);
 	return;
 }
 
 static void _cmd_distrust(struct otr_user_state *ustate, SERVER_REC *irssi,
-		int argc, char *argv[], char *argv_eol[], char *target,
-		const char *orig_args)
+		const char *target, const void *data)
 {
+	int argc;
+	char **argv;
 	char str_fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *fp = NULL;
+
+	utils_explode_args(data, &argv, &argc);
 
 	if (argc == 5) {
 		utils_hash_parts_to_readable_hash((const char **) argv, str_fp);
 		fp = str_fp;
-	} else if (!irssi || (irssi && argc != 0 &&
-				(argc == 1 && argv[0] != NULL))) {
+	} else if (!irssi || (irssi && argc != 0)) {
 		/* If no IRSSI or some arguments (not 5), bad command. */
 		IRSSI_NOTICE(irssi, target, "Usage %9/otr distrust [FP]%9 "
 				"where FP is the five part of the fingerprint listed by "
@@ -326,6 +317,7 @@ static void _cmd_distrust(struct otr_user_state *ustate, SERVER_REC *irssi,
 	otr_distrust(irssi, target, fp, ustate);
 
 error:
+	utils_free_args(&argv, argc);
 	return;
 }
 
@@ -352,33 +344,18 @@ static struct irssi_commands cmds[] = {
  *
  * Return TRUE if command exist and is executed else FALSE.
  */
-int cmd_generic(struct otr_user_state *ustate, SERVER_REC *irssi, int argc,
-		char *argv[], char *argv_eol[], char *target, const char *orig_args)
+void cmd_generic(struct otr_user_state *ustate, SERVER_REC *irssi,
+		const char *target, char *cmd, const void *data)
 {
-	char *cmd;
 	struct irssi_commands *commands = cmds;
-
-	if (!argc) {
-		IRSSI_INFO(NULL, NULL, "Alive");
-		goto done;
-	}
-
-	cmd = argv[0];
-
-	argv++;
-	argv_eol++;
-	argc--;
 
 	do {
 		if (strcmp(commands->name, cmd) == 0) {
-			commands->func(ustate, irssi, argc, argv, argv_eol, target,
-					orig_args);
-			goto done;
+			commands->func(ustate, irssi, target, data);
+			goto end;
 		}
 	} while ((++commands)->name);
 
-	return FALSE;
-
-done:
-	return TRUE;
+end:
+	return;
 }

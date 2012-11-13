@@ -29,6 +29,46 @@ static const char *lvlstring[] = {
 	"DEBUG"
 };
 
+/*
+ * Left trim a string.
+ */
+static char *ltrim(char *s)
+{
+	assert(s);
+
+	while (isspace(*s)) {
+		s++;
+	}
+	return s;
+}
+
+/*
+ * Right trim a string.
+ */
+static char *rtrim(char *s)
+{
+	char *back;
+
+	assert(s);
+
+	back = s + strlen(s);
+
+	while (isspace(*--back));
+	*(back + 1) = '\0';
+
+	return s;
+}
+
+/*
+ * Trim whitespaces in front and back of the string.
+ */
+char *utils_trim_string(char *s)
+{
+	assert(s);
+
+	return rtrim(ltrim(s));
+}
+
 int utils_io_extract_smp(const char *data, char **question, char **secret)
 {
 	unsigned int q_len, s_len;
@@ -106,31 +146,56 @@ error:
 
 void utils_explode_args(const char *_data, char ***_argv, int *_argc)
 {
-	int argc = 1, i = 0;
-	char **argv = NULL, *c, *data = NULL;
+	int argc = 0, i = 0, have_arg = 0;
+	char **argv = NULL, *c, *data = NULL, *cmd_offset;
 
-	assert(_data);
+	if (!_data) {
+		goto error;
+	}
 
 	data = strndup(_data, strlen(_data));
 	if (!data) {
 		goto error;
 	}
 
-	c = data;
+	c = utils_trim_string(data);
+
+	/* Ignore first command */
+	cmd_offset = strchr(c, ' ');
+	if (!cmd_offset) {
+		goto error;
+	}
+
+	cmd_offset = utils_trim_string(cmd_offset);
+
+	if (cmd_offset && strlen(cmd_offset) > 0) {
+		argc++;
+		have_arg = 1;
+	}
+
+	c = cmd_offset;
 	while ((c = strchr(c + 1, ' '))) {
 		/* Skip consecutive spaces. */
 		if (*(c + 1) == ' ') {
 			continue;
 		}
 		argc++;
+		have_arg = 1;
 	}
 
-	argv = malloc(argc * sizeof(char *));
+	/* No args, only spaces encountered. */
+	if (!have_arg) {
+		argc = 0;
+		goto error;
+	}
+
+	argv = zmalloc(argc * sizeof(char *));
 	if (!argv) {
 		goto error;
 	}
 
-	c = strtok(data, " ");
+	/* Ignore first command */
+	c = strtok(cmd_offset, " ");
 	while (c != NULL) {
 		argv[i] = strdup(c);
 		c = strtok(NULL, " ");
@@ -145,38 +210,46 @@ error:
 	return;
 }
 
-void utils_io_explode_args(const char *args, char ***argvp, char ***argv_eolp,
-		int *argcp)
+void utils_free_args(char ***argv, int argc)
 {
-	char **argv, **argv_eol;
-	char *s = (char *) args;
-	int argc = 1, i;
+	int i;
+	char **args;
 
-	while ((s = strchr(s + 1, ' '))) {
-		argc++;
+	assert(argv);
+
+	args = *argv;
+
+	for (i = 0; i < argc; i++) {
+		if (args[i]) {
+			free(args[i]);
+		}
 	}
 
-	argv = (char **) malloc(argc * sizeof(char *));
-	argv_eol = (char **) malloc(argc * sizeof(char *));
+	free(args);
+}
 
-	s = (char *) args;
-	argv_eol[0] = strdup(args);
-	i = 0;
+void utils_extract_command(const char *data, char **_cmd)
+{
+	char *s, *cmd = NULL;
 
-	while (++i < argc) {
-		argv_eol[i] = strchr(argv_eol[i - 1], ' ') + 1;
+	assert(data);
+	assert(_cmd);
+
+	/* Search for the first whitespace. */
+	s = strchr(data, ' ');
+	if (s) {
+		cmd = strndup(data, s - data);
+		if (!cmd) {
+			goto error;
+		}
+	} else {
+		cmd = strdup(data);
 	}
 
-	argv[0] = strtok(strdup(args), " ");
-	i = 1;
-	while (i < argc) {
-		argv[i++] = strtok(NULL, " ");
-		otr_logst(MSGLEVEL_CRAP, "arg %d: %s", i, argv[i - 1]);
-	}
+	*_cmd = cmd;
 
-	*argvp = argv;
-	*argv_eolp = argv_eol;
-	*argcp = argc;
+error:
+	return;
 }
 
 void otr_log(SERVER_REC *server, const char *nick, int lvl, const char *fmt, ...)

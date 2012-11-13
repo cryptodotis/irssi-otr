@@ -160,7 +160,7 @@ void irssi_send_message(SERVER_REC *irssi, const char *recipient,
 void otr_status_change(SERVER_REC *irssi, const char *nick,
 		enum otr_status_event event);
 
-SERVER_REC *find_irssi_ctx_by_peername(const char *peername, char *nick);
+SERVER_REC *find_irssi_ctx_by_peername(const char *peername, const char *nick);
 
 /* init stuff */
 
@@ -184,11 +184,11 @@ int otr_getstatus(SERVER_REC *irssi, const char *nick);
 
 /* user interaction */
 
-void otr_trust(SERVER_REC *irssi, char *nick);
-void otr_finish(SERVER_REC *irssi, char *nick);
-void otr_auth(SERVER_REC *irssi, char *nick, const char *question,
+void otr_trust(SERVER_REC *irssi, const char *nick);
+void otr_finish(SERVER_REC *irssi, const char *nick);
+void otr_auth(SERVER_REC *irssi, const char *nick, const char *question,
 		const char *secret);
-void otr_auth_abort(SERVER_REC *irssi, char *nick);
+void otr_auth_abort(SERVER_REC *irssi, const char *nick);
 struct ctxlist_ *otr_contexts(struct otr_user_state *ustate);
 void otr_finishall(struct otr_user_state *ustate);
 void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
