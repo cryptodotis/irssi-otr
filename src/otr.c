@@ -421,6 +421,14 @@ void otr_trust(SERVER_REC *irssi, const char *nick, char *str_fp,
 	}
 
 	if (fp_trust) {
+		int ret;
+
+		ret = otrl_context_is_fingerprint_trusted(fp_trust);
+		if (ret) {
+			IRSSI_NOTICE(irssi, nick, "Already trusted!");
+			goto end;
+		}
+
 		/* Trust level is manual at this point. */
 		otrl_context_set_trust(fp_trust, "manual");
 		key_write_fingerprints(ustate);
@@ -434,8 +442,7 @@ void otr_trust(SERVER_REC *irssi, const char *nick, char *str_fp,
 				(str_fp != NULL) ? str_fp : peerfp);
 	}
 
-	IRSSI_DEBUG("Trust fingerprint: %s", (str_fp != NULL) ? str_fp : peerfp);
-
+end:
 error:
 	return;
 }
@@ -888,6 +895,7 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		ret = otrl_context_is_fingerprint_trusted(fp_distrust);
 		if (!ret) {
 			/* Fingerprint already not trusted. Do nothing. */
+			IRSSI_NOTICE(irssi, nick, "Already not trusting it!");
 			goto end;
 		}
 
@@ -901,8 +909,6 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		IRSSI_NOTICE(irssi, nick, "Fingerprint %y%s%n NOT found",
 				(str_fp != NULL) ? str_fp : fp);
 	}
-
-	IRSSI_DEBUG("Distrust fingerprint: %s", (str_fp != NULL) ? str_fp : fp);
 
 end:
 error:
