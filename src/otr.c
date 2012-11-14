@@ -825,7 +825,7 @@ void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 		if (fp_forget->context->msgstate == OTRL_MSGSTATE_ENCRYPTED) {
 			IRSSI_NOTICE(irssi, nick, "Fingerprint "
 					"context is still encrypted. Finish the OTR "
-					"session beforehands.");
+					"session to forget fingerprint (%9/otr finish%9).");
 			goto end;
 		}
 

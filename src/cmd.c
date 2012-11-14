@@ -91,10 +91,10 @@ static void _cmd_trust(struct otr_user_state *ustate, SERVER_REC *irssi,
 		fp = str_fp;
 	} else if (!irssi || (irssi && argc != 0)) {
 		/* If no IRSSI or some arguments (not 5), bad command. */
-		IRSSI_NOTICE(irssi, target, "Usage %9/otr forget [FP]%9 "
+		IRSSI_NOTICE(irssi, target, "Usage %9/otr trust [FP]%9 "
 				"where FP is the five part of the fingerprint listed by "
 				"%9/otr contexts%9 or do the command inside an OTR session "
-				"private message window");
+				"private message window.");
 		goto end;
 	}
 

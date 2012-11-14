@@ -146,7 +146,7 @@ static void ops_secure(void *opdata, ConnContext *context)
 	IRSSI_NOTICE(irssi, context->username, "Your fingerprint is: %y%s%n",
 			ownfp);
 	IRSSI_NOTICE(irssi, context->username, "%9%s's%9 fingerprint is: %r%s%n",
-			peerfp);
+			context->username, peerfp);
 
 end:
 	return;
