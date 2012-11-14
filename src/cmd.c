@@ -80,14 +80,25 @@ end:
 static void _cmd_trust(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
-	if (!irssi || !target) {
-		IRSSI_WARN(irssi, target,
-				"Failed: Can't get nick and server of current query window. "
-				"(Or maybe you're doing this in the status window?)");
+	int argc;
+	char **argv;
+	char str_fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *fp = NULL;
+
+	utils_explode_args(data, &argv, &argc);
+
+	if (argc == 5) {
+		utils_hash_parts_to_readable_hash((const char **) argv, str_fp);
+		fp = str_fp;
+	} else if (!irssi || (irssi && argc != 0)) {
+		/* If no IRSSI or some arguments (not 5), bad command. */
+		IRSSI_NOTICE(irssi, target, "Usage %9/otr forget [FP]%9 "
+				"where FP is the five part of the fingerprint listed by "
+				"%9/otr contexts%9 or do the command inside an OTR session "
+				"private message window");
 		goto end;
 	}
 
-	otr_trust(irssi, target);
+	otr_trust(irssi, target, fp, ustate);
 
 end:
 	return;
@@ -149,6 +160,13 @@ static void _cmd_authq(struct otr_user_state *ustate, SERVER_REC *irssi,
 	int ret;
 	char *question = NULL, *secret = NULL;
 
+	if (!irssi || !target) {
+		IRSSI_WARN(irssi, target,
+				"Failed: Can't get nick and server of current query window. "
+				"(Or maybe you're doing this in the status window?)");
+		goto end;
+	}
+
 	/*
 	 * Returns a negative value if the command arguments are not formatted
 	 * correctly or missing. Note, an empty question or secret is valid.
@@ -175,6 +193,13 @@ static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi,
 	int argc;
 	char **argv;
 
+	if (!irssi || !target) {
+		IRSSI_WARN(irssi, target,
+				"Failed: Can't get nick and server of current query window. "
+				"(Or maybe you're doing this in the status window?)");
+		goto error;
+	}
+
 	utils_explode_args(data, &argv, &argc);
 
 	if (argc == 0) {
@@ -186,6 +211,7 @@ static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi,
 
 end:
 	utils_free_args(&argv, argc);
+error:
 	return;
 }
 

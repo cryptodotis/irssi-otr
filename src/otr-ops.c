@@ -143,10 +143,10 @@ static void ops_secure(void *opdata, ConnContext *context)
 			"(e.g. telephone or GPG-signed mail) and subsequently enter "
 			"%9/otr trust%9.");
 
-	IRSSI_NOTICE(irssi, context->username,
-			"Your fingerprint is: %y%s\%n.\n"
-			"%9%s's%9 fingerprint is: %r%s\%n", ownfp,
-			context->username, peerfp);
+	IRSSI_NOTICE(irssi, context->username, "Your fingerprint is: %y%s%n",
+			ownfp);
+	IRSSI_NOTICE(irssi, context->username, "%9%s's%9 fingerprint is: %r%s%n",
+			peerfp);
 
 end:
 	return;

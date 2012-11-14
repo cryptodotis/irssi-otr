@@ -389,35 +389,54 @@ void otr_finishall(struct otr_user_state *ustate)
 /*
  * Trust our peer.
  */
-void otr_trust(SERVER_REC *irssi, const char *nick)
+void otr_trust(SERVER_REC *irssi, const char *nick, char *str_fp,
+		struct otr_user_state *ustate)
 {
-	ConnContext *ctx;
 	char peerfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
 	struct otr_peer_context *opc;
+	ConnContext *ctx;
+	Fingerprint *fp_trust;
 
-	assert(irssi);
-	assert(nick);
+	assert(ustate);
 
-	ctx = otr_find_context(irssi, nick, FALSE);
-	if (!ctx) {
-		goto end;
+	if (!irssi && !str_fp) {
+		IRSSI_NOTICE(NULL, nick, "Need a fingerprint!");
+		goto error;
 	}
 
-	opc = ctx->app_data;
-	assert(opc);
+	/* No human string fingerprint given. */
+	if (!str_fp) {
+		ctx = otr_find_context(irssi, nick, FALSE);
+		if (!ctx) {
+			goto error;
+		}
 
-	/* Trust level is manual at this point. */
-	otrl_context_set_trust(opc->active_fingerprint, "manual");
-	otr_status_change(irssi, nick, OTR_STATUS_TRUST_MANUAL);
+		opc = ctx->app_data;
+		/* Always NEED a peer context or else code error. */
+		assert(opc);
 
-	otrl_privkey_hash_to_human(peerfp, opc->active_fingerprint->fingerprint);
+		fp_trust = opc->active_fingerprint;
+	} else {
+		fp_trust = otr_find_hash_fingerprint_from_human(str_fp, ustate);
+	}
 
-	IRSSI_NOTICE(irssi, nick, "Trusting fingerprint from %9%s%9:\n"
-			"%9OTR%9: %g%s%n", nick, peerfp);
+	if (fp_trust) {
+		/* Trust level is manual at this point. */
+		otrl_context_set_trust(fp_trust, "manual");
+		key_write_fingerprints(ustate);
 
-	key_write_fingerprints(user_state_global);
+		otr_status_change(irssi, nick, OTR_STATUS_TRUST_MANUAL);
 
-end:
+		otrl_privkey_hash_to_human(peerfp, fp_trust->fingerprint);
+		IRSSI_NOTICE(irssi, nick, "Fingerprint %g%s%n trusted!", peerfp);
+	} else {
+		IRSSI_NOTICE(irssi, nick, "Fingerprint %y%s%n NOT found",
+				(str_fp != NULL) ? str_fp : peerfp);
+	}
+
+	IRSSI_DEBUG("Trust fingerprint: %s", (str_fp != NULL) ? str_fp : peerfp);
+
+error:
 	return;
 }
 
@@ -865,9 +884,6 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		fp_distrust = otr_find_hash_fingerprint_from_human(str_fp, ustate);
 	}
 
-	IRSSI_DEBUG("Distrust fingerprint: %s",
-			(str_fp != NULL) ? str_fp : fp);
-
 	if (fp_distrust) {
 		ret = otrl_context_is_fingerprint_trusted(fp_distrust);
 		if (!ret) {
@@ -885,6 +901,8 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		IRSSI_NOTICE(irssi, nick, "Fingerprint %y%s%n NOT found",
 				(str_fp != NULL) ? str_fp : fp);
 	}
+
+	IRSSI_DEBUG("Distrust fingerprint: %s", (str_fp != NULL) ? str_fp : fp);
 
 end:
 error:

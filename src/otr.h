@@ -184,7 +184,6 @@ int otr_getstatus(SERVER_REC *irssi, const char *nick);
 
 /* user interaction */
 
-void otr_trust(SERVER_REC *irssi, const char *nick);
 void otr_finish(SERVER_REC *irssi, const char *nick);
 void otr_auth(SERVER_REC *irssi, const char *nick, const char *question,
 		const char *secret);
@@ -194,6 +193,8 @@ void otr_finishall(struct otr_user_state *ustate);
 void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 		struct otr_user_state *ustate);
 void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
+		struct otr_user_state *ustate);
+void otr_trust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		struct otr_user_state *ustate);
 
 int otr_getstatus_format(SERVER_REC *irssi, const char *nick);
