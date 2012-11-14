@@ -56,8 +56,6 @@ static SERVER_REC *IRSSI_FREE(SERVER_REC *ircctx)
 	return ircctx;
 }
 
-void otr_query_create(SERVER_REC *ircctx, const char *nick);
-
 #define IRSSI_CONN_ADDR(i) i->connrec->address
 #define IRSSI_NICK(i) i->nick
 

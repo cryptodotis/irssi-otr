@@ -270,16 +270,6 @@ void irssi_send_message(SERVER_REC *irssi, const char *recipient,
 	}
 }
 
-void otr_query_create(SERVER_REC *server, const char *nick)
-{
-	if (!server || !nick || !settings_get_bool("otr_createqueries") ||
-			query_find(server, nick)) {
-		return;
-	}
-
-	irc_query_create(server->tag, nick, TRUE);
-}
-
 /*
  * irssi init()
  */
@@ -352,37 +342,4 @@ void otr_deinit(void)
 	otr_lib_uninit();
 
 	theme_unregister();
-}
-
-SERVER_REC *find_irssi_ctx_by_peername(const char *peername, const char *nick)
-{
-	GSList *tmp;
-	char pname[256];
-	char *address, *_nick = strdup(nick);
-	SERVER_REC *server = NULL;
-
-	strncpy(pname, peername, sizeof(pname));
-
-	address = strchr(pname, '@');
-	if (!address) {
-		goto error;
-	}
-
-	*address = '\0';
-	strncpy(_nick, pname, strlen(_nick));
-	*address++ = '@';
-
-	for (tmp = servers; tmp != NULL; tmp = tmp->next) {
-		server = tmp->data;
-
-		if (g_ascii_strncasecmp(server->connrec->address, address,
-					strlen(server->connrec->address))) {
-			goto error;
-		}
-	}
-
-	return server;
-
-error:
-	return NULL;
 }

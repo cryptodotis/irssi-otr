@@ -160,8 +160,6 @@ void irssi_send_message(SERVER_REC *irssi, const char *recipient,
 void otr_status_change(SERVER_REC *irssi, const char *nick,
 		enum otr_status_event event);
 
-SERVER_REC *find_irssi_ctx_by_peername(const char *peername, const char *nick);
-
 /* init stuff */
 
 struct otr_user_state *otr_init_user(const char *user);

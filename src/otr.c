@@ -127,6 +127,53 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 	IRSSI_DEBUG("Peer context created for %s", context->username);
 }
 
+static SERVER_REC *find_irssi_by_account_name(const char *accname)
+{
+	GSList *tmp;
+	size_t nick_len;
+	char *address, *nick = NULL;
+	SERVER_REC *server, *srv = NULL;
+
+	assert(accname);
+
+	address = strchr(accname, '@');
+	if (!address) {
+		goto error;
+	}
+
+	/* Calculate the nickname length. */
+	nick_len = address - accname;
+
+	/* Allocate right size for the nickname plus the NULL terminated byte. */
+	nick = malloc(nick_len + 1);
+	if (!nick) {
+		/* ENOMEM */
+		goto error;
+	}
+
+	/* Get the nick from the account name. */
+	strncpy(nick, accname, nick_len);
+	nick[nick_len] = '\0';
+
+	/* Move after the @ */
+	address++;
+
+	for (tmp = servers; tmp; tmp = tmp->next) {
+		server = tmp->data;
+		if (g_ascii_strncasecmp(server->connrec->address, address,
+					strlen(server->connrec->address)) == 0 &&
+				strncmp(server->nick, nick, strlen(nick)) == 0) {
+			srv = server;
+			break;
+		}
+	}
+
+	free(nick);
+
+error:
+	return srv;
+}
+
 /*
  * Get a context from a pair.
  */
@@ -374,11 +421,10 @@ void otr_finishall(struct otr_user_state *ustate)
 			continue;
 		}
 
-		irssi = find_irssi_ctx_by_peername(context->accountname,
-				context->username);
+		irssi = find_irssi_by_account_name(context->accountname);
 		if (!irssi) {
-			IRSSI_DEBUG("Unable to find server window on /otr finishall "
-					"for username %s", context->username);
+			IRSSI_DEBUG("Unable to find server window for account %s",
+					context->accountname);
 			continue;
 		}
 
