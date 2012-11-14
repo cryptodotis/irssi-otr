@@ -124,7 +124,7 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 	context->app_data = opc;
 	context->app_data_free = destroy_peer_context_cb;
 
-	IRSSI_MSG("Peer context created for %s", context->username);
+	IRSSI_DEBUG("Peer context created for %s", context->username);
 }
 
 /*
@@ -441,9 +441,9 @@ void otr_auth_abort(SERVER_REC *irssi, const char *nick)
 	otr_status_change(irssi, nick, OTR_STATUS_SMP_ABORT);
 
 	if (ctx->smstate->nextExpected != OTRL_SMP_EXPECT1) {
-		IRSSI_NOTICE(irssi, nick, "Ongoing authentication aborted");
+		IRSSI_NOTICE(irssi, nick, "%rOngoing authentication aborted%n");
 	} else {
-		IRSSI_NOTICE(irssi, nick, "Authentication aborted");
+		IRSSI_NOTICE(irssi, nick, "%rAuthentication aborted%n");
 	}
 
 end:
@@ -457,12 +457,12 @@ void otr_auth(SERVER_REC *irssi, const char *nick, const char *question,
 		const char *secret)
 {
 	int ret;
+	size_t secret_len = 0;
 	ConnContext *ctx;
 	struct otr_peer_context *opc;
 
 	assert(irssi);
 	assert(nick);
-	assert(secret);
 
 	ctx = otr_find_context(irssi, nick, 0);
 	if (!ctx) {
@@ -495,23 +495,27 @@ void otr_auth(SERVER_REC *irssi, const char *nick, const char *question,
 		}
 	}
 
+	/* Libotr allows empty secret. */
+	if (secret) {
+		secret_len = strlen(secret);
+	}
+
 	if (opc->ask_secret) {
 		otrl_message_respond_smp(user_state_global->otr_state, &otr_ops,
-				irssi, ctx, (unsigned char *) secret, strlen(secret));
+				irssi, ctx, (unsigned char *) secret, secret_len);
 		otr_status_change(irssi, nick, OTR_STATUS_SMP_RESPONDED);
-		IRSSI_NOTICE(irssi, nick, "Responding to authentication...");
+		IRSSI_NOTICE(irssi, nick, "%yResponding to authentication...%n");
 	} else {
 		if (question) {
 			otrl_message_initiate_smp_q(user_state_global->otr_state,
 				&otr_ops, irssi, ctx, question, (unsigned char *) secret,
-				strlen(secret));
+				secret_len);
 		} else {
 			otrl_message_initiate_smp(user_state_global->otr_state,
-				&otr_ops, irssi, ctx, (unsigned char *) secret,
-				strlen(secret));
+				&otr_ops, irssi, ctx, (unsigned char *) secret, secret_len);
 		}
 		otr_status_change(irssi, nick, OTR_STATUS_SMP_STARTED);
-		IRSSI_NOTICE(irssi, nick, "Initiated authentication...");
+		IRSSI_NOTICE(irssi, nick, "%yInitiated authentication...%n");
 	}
 
 	opc->ask_secret = 0;

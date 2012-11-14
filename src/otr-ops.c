@@ -347,7 +347,7 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 		otr_status_change(irssi, from, OTR_STATUS_SMP_FINALIZE);
 		break;
 	case OTRL_SMPEVENT_SUCCESS:
-		IRSSI_NOTICE(irssi, from, "%GAuthentication successful%n");
+		IRSSI_NOTICE(irssi, from, "%gAuthentication successful.%n");
 		otr_status_change(irssi, from, OTR_STATUS_SMP_SUCCESS);
 		break;
 	case OTRL_SMPEVENT_ABORT:
