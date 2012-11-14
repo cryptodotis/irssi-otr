@@ -146,16 +146,13 @@ static void _cmd_genkey(struct otr_user_state *ustate, SERVER_REC *irssi,
 static void _cmd_authq(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
-	int argc, ret;
-	char **argv, *question = NULL, *secret = NULL;
+	int ret;
+	char *question = NULL, *secret = NULL;
 
-	utils_explode_args(data, &argv, &argc);
-
-	if (argc == 0) {
-		IRSSI_NOTICE(irssi, target, "Huh... I need a question here Bob.");
-		goto end;
-	}
-
+	/*
+	 * Returns a negative value if the command arguments are not formatted
+	 * correctly or missing. Note, an empty question or secret is valid.
+	 */
 	ret = utils_io_extract_smp(data, &question, &secret);
 	if (ret < 0) {
 		IRSSI_NOTICE(irssi, target, "Usage: %9/otr authq [QUESTION] "
@@ -166,7 +163,6 @@ static void _cmd_authq(struct otr_user_state *ustate, SERVER_REC *irssi,
 	otr_auth(irssi, target, question, secret);
 
 end:
-	utils_free_args(&argv, argc);
 	return;
 }
 
@@ -186,7 +182,7 @@ static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi,
 		goto end;
 	}
 
-	otr_auth(irssi, target, NULL, argv[1]);
+	otr_auth(irssi, target, NULL, argv[0]);
 
 end:
 	utils_free_args(&argv, argc);
