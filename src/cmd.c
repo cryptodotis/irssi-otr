@@ -258,7 +258,6 @@ end:
 static void _cmd_init(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
-	char *msg;
 	ConnContext *ctx;
 
 	/* No server object, just ignore the request */
@@ -277,9 +276,11 @@ static void _cmd_init(struct otr_user_state *ustate, SERVER_REC *irssi,
 
 	IRSSI_NOTICE(irssi, target, "Initiating OTR session...");
 
-	msg = otrl_proto_default_query_msg(target, OTRL_POLICY_DEFAULT);
-	irssi_send_message(irssi, target, msg ? msg : "?OTRv23?");
-	free(msg);
+	/*
+	 * Irssi does not handle well the HTML tag in the default OTR query message
+	 * so just send the OTR tag instead. Contact me for a better fix! :)
+	 */
+	irssi_send_message(irssi, target, "?OTRv23?");
 
 end:
 	return;
