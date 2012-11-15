@@ -41,21 +41,6 @@
 
 #define get_client_config_dir get_irssi_dir
 
-static SERVER_REC *IRSSI_DUP(SERVER_REC *ircctx) __attribute__ ((unused));
-
-static SERVER_REC *IRSSI_DUP(SERVER_REC *ircctx) {
-	server_ref(ircctx);
-	return ircctx;
-}
-
-static SERVER_REC *IRSSI_FREE(SERVER_REC *ircctx) __attribute__ ((unused));
-
-static SERVER_REC *IRSSI_FREE(SERVER_REC *ircctx)
-{
-	server_unref(ircctx);
-	return ircctx;
-}
-
 #define IRSSI_CONN_ADDR(i) i->connrec->address
 #define IRSSI_NICK(i) i->nick
 

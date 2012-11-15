@@ -15,6 +15,6 @@ INCLUDES = -I$(top_srcdir)/src $(IRSSI_INCLUDE)
 
 lib_LTLIBRARIES = libotr.la
 
-libotr_la_SOURCES = key.c key.h cmd.c cmd.h otr.c otr-ops.c io_set.c \
+libotr_la_SOURCES = key.c key.h cmd.c cmd.h otr.c otr-ops.c \
 					utils.h utils.c otr.h module.c irssi_otr.h \
 					otr-formats.c otr-formats.h

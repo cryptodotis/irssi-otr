@@ -26,7 +26,6 @@
 #include <libotr/context.h>
 #include <libotr/privkey.h>
 
-#include "io-config.h"
 #include "irssi_otr.h"
 #include "utils.h"
 
@@ -54,14 +53,6 @@
 
 #define OTR_DEFAULT_POLICY_KNOWN      "* always"
 #define OTR_DEFAULT_IGNORE            "xmlconsole[0-9]*"
-
-/* used as a prefix for /me messages.
- * This makes it readable and sensible for
- * people not on IRC (i.e. in case of a gateway
- * like bitlbee)
- */
-#define IRCACTIONMARK                 "/me "
-#define IRCACTIONMARKLEN              4
 
 /*
  * Memory allocation zeroed. Really useful!

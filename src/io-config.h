@@ -1,3 +1,0 @@
-#define HAVE_STRSIGNAL
-#define HAVE_GREGEX_H
-#define IRCOTR_VERSION "git-fd11e699d9cb8d2f230251b23c037f1fd6372e14"

@@ -748,8 +748,8 @@ int otr_getstatus(SERVER_REC *irssi, const char *nick)
 		code = IO_ST_FINISHED;
 		break;
 	default:
-		IRSSI_INFO(irssi, nick,
-				"BUG Found! Please write us a mail and describe how you got here");
+		IRSSI_WARN(irssi, nick, "BUG Found! "
+				"Please write us a mail and describe how you got here");
 		code = IO_ST_UNKNOWN;
 		break;
 	}

@@ -24,11 +24,6 @@
 #include "otr.h"
 #include "utils.h"
 
-static const char *lvlstring[] = {
-	"NOTICE",
-	"DEBUG"
-};
-
 /*
  * Left trim a string.
  */
@@ -250,32 +245,6 @@ void utils_extract_command(const char *data, char **_cmd)
 
 error:
 	return;
-}
-
-void otr_log(SERVER_REC *server, const char *nick, int lvl, const char *fmt, ...)
-{
-	va_list params;
-	va_start(params, fmt);
-	char msg[LOGMAX], *s = msg;
-
-	if ((lvl == LVL_DEBUG) && !debug) {
-		return;
-	}
-
-	s += sprintf(s, "%s", "%9OTR%9");
-
-	if (lvl != LVL_NOTICE) {
-		s += sprintf(s, "(%s)", lvlstring[lvl]);
-	}
-
-	s += sprintf(s, ": ");
-
-	if (vsnprintf(s, LOGMAX, fmt, params ) < 0) {
-		sprintf(s, "internal error parsing error string (BUG)");
-	}
-	va_end(params);
-
-	printtext(server, nick, MSGLEVEL_MSGS, msg);
 }
 
 void utils_string_to_upper(char *string)
