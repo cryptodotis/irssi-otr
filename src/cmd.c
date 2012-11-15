@@ -229,17 +229,46 @@ static void _cmd_contexts(struct otr_user_state *ustate, SERVER_REC *irssi,
 		goto end;
 	}
 
-	while (ctxlist) {
-		otr_infost(TXT_CTX_CTX_UNENCRYPTED + ctxlist->state, ctxlist->username,
-				ctxlist->accountname);
+	IRSSI_MSG("%UAccount%n - %UUser%n - %UStatus%n - "
+			"%UFingerprint%n - %UTrust%n");
 
+	while (ctxlist) {
 		fplist = ctxlist->fplist;
-		while (fplist) {
-			otr_infost(TXT_CTX_FPS_NO + fplist->authby, fplist->fp);
-			fplist = fplist->next;
-		}
+
+		switch (ctxlist->state) {
+		case STENCRYPTED:
+			IRSSI_MSG("%9%s%9 - %B%s%n - %GEncrypted%n", ctxlist->accountname,
+					ctxlist->username);
+			break;
+		case STUNENCRYPTED:
+			IRSSI_MSG("%9%s%9 - %B%s%n - Plaintext", ctxlist->accountname,
+					ctxlist->username);
+			break;
+		case STFINISHED:
+			IRSSI_MSG("%9%s%9 - %B%s%n - %yFinished%n", ctxlist->accountname,
+					ctxlist->username);
+			break;
+		case STUNKNOWN:
+			IRSSI_MSG("%9%s%9 - %B%s%n - Unknown", ctxlist->accountname,
+					ctxlist->username);
+			break;
+		};
+
+		switch (fplist->authby) {
+		case NOAUTH:
+			IRSSI_MSG("%r%s%n - Unverified", fplist->fp);
+			break;
+		case AUTHSMP:
+			IRSSI_MSG("%g%s%n - SMP", fplist->fp);
+			break;
+		case AUTHMAN:
+			IRSSI_MSG("%g%s%n - Manual", fplist->fp);
+			break;
+		};
+
 		ctxlist = ctxlist->next;
 	}
+
 	while ((ctxlist = ctxnext)) {
 		ctxnext = ctxlist->next;
 		fpnext = ctxlist->fplist;
