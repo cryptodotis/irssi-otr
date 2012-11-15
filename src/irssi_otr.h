@@ -44,9 +44,6 @@
 #define IRSSI_CONN_ADDR(i) i->connrec->address
 #define IRSSI_NICK(i) i->nick
 
-#define otr_infost(formatnum,...) \
-	printformat(NULL, NULL, MSGLEVEL_CRAP, formatnum, ## __VA_ARGS__)
-
 /*
  * Irssi macros for printing text to console.
  */
