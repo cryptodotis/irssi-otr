@@ -1,9 +1,0 @@
-*.o
-*.so
-term.h
-statusbar.h
-mainwindows.h
-.exrc
-*.swp
-cscope.files
-cscope.out
