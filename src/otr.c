@@ -50,13 +50,17 @@ GRegex *regex_policies;
 
 static char *create_account_name(SERVER_REC *irssi)
 {
+	int ret;
 	char *accname = NULL;
 
 	assert(irssi);
 
 	/* Valid or NULL, the caller should handle this */
-	(void) asprintf(&accname, "%s@%s", IRSSI_NICK(irssi),
+	ret = asprintf(&accname, "%s@%s", IRSSI_NICK(irssi),
 			IRSSI_CONN_ADDR(irssi));
+	if (ret < 0) {
+		IRSSI_INFO(NULL, NULL, "Unable to allocate account name.");
+	}
 
 	return accname;
 }

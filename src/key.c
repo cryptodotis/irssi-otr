@@ -43,14 +43,18 @@ static struct {
 
 static char *file_path_build(const char *path)
 {
-	char *filename = NULL;
+	int ret;
+	char *filename;
 
 	if (!path) {
 		path = "";
 	}
 
 	/* Either NULL or the filename is returned here which is valid. */
-	(void) asprintf(&filename, "%s%s", get_client_config_dir(), path);
+	ret = asprintf(&filename, "%s%s", get_client_config_dir(), path);
+	if (ret < 0) {
+		filename = NULL;
+	}
 
 	return filename;
 }
@@ -110,12 +114,17 @@ end:
 static gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 		gpointer data)
 {
+	int ret;
 	gcry_error_t err;
 	const char *clconfdir = get_client_config_dir();
 	char *filename = g_strconcat(clconfdir, OTR_KEYFILE, NULL);
 	char *tmpfilename = g_strconcat(clconfdir, OTR_TMP_KEYFILE, NULL);
 
-	read(g_io_channel_unix_get_fd(kg_st.ch[0]), &err, sizeof(err));
+	ret = read(g_io_channel_unix_get_fd(kg_st.ch[0]), &err, sizeof(err));
+	if (ret < 0) {
+		IRSSI_INFO(NULL, NULL, "Unable to read on key gen IO channel.");
+		goto error;
+	}
 
 	g_source_remove(kg_st.cpid);
 	g_io_channel_shutdown(kg_st.ch[0], FALSE, NULL);
@@ -145,6 +154,7 @@ static gboolean keygen_complete(GIOChannel *source, GIOCondition condition,
 	g_free(filename);
 	g_free(tmpfilename);
 
+error:
 	return FALSE;
 }
 
@@ -229,7 +239,10 @@ void key_generation_run(struct otr_user_state *ustate, const char *accname)
 
 	err = otrl_privkey_generate(ustate->otr_state, filename, accname,
 			OTR_PROTOCOL_ID);
-	(void) write(fds[1], &err, sizeof(err));
+	ret = write(fds[1], &err, sizeof(err));
+	if (ret != sizeof(err) || ret < 0) {
+		IRSSI_INFO(NULL, NULL, "Unable to write to pipe at key gen.");
+	}
 
 	g_free(filename);
 

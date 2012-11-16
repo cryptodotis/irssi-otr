@@ -39,7 +39,7 @@ AC_SUBST(PACKAGE_CFLAGS)
 
 LT_INIT
 
-CFLAGS="-Wall $CFLAGS -g -fno-strict-aliasing"
+CFLAGS="-Wall $CFLAGS -g -fno-strict-aliasing -fstack-protector-all -D_FORTIFY_SOURCE=2 -O1 -Wl,-z,relro,-z,now -fPIE -pie"
 
 DEFAULT_INCLUDES="-I\$(top_srcdir) -I\$(top_builddir) -I\$(top_builddir)/src -I\$(top_builddir)/include"
 
