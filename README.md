@@ -22,9 +22,11 @@ Installation
 
 Run the following commands to compile and install.
 
-$ ./bootstrap
-$ ./configure --prefix="~/.irssi/modules"
-$ make && make install
+`$ ./bootstrap`
+
+`$ ./configure --prefix="~/.irssi/modules"`
+
+`$ make && make install`
 
 Quick Start
 ---------
