@@ -44,10 +44,6 @@ static const char *statusbar_txt[] = {
 	"CTX_UPDATE"
 };
 
-#ifdef HAVE_GREGEX_H
-GRegex *regex_policies;
-#endif
-
 static char *create_account_name(SERVER_REC *irssi)
 {
 	int ret;
@@ -258,12 +254,6 @@ void otr_free_user(struct otr_user_state *ustate)
 void otr_lib_init()
 {
 	OTRL_INIT;
-
-#ifdef HAVE_GREGEX_H
-	regex_policies = g_regex_new(
-			"([^,]+) (never|manual|handlews|opportunistic|always)(,|$)",
-			0, 0, NULL);
-#endif
 }
 
 /*
@@ -271,9 +261,6 @@ void otr_lib_init()
  */
 void otr_lib_uninit()
 {
-#ifdef HAVE_GREGEX_H
-	g_regex_unref(regex_policies);
-#endif
 }
 
 /*

@@ -35,10 +35,6 @@ static const char *signal_args_otr_event[] = {
 
 int debug = FALSE;
 
-#ifdef HAVE_GREGEX_H
-GRegex *regex_nickignore = NULL;
-#endif
-
 /* need this to decode arguments in perl signal handlers. Maybe irssi should
  * install perl/perl-signals.h which is where this definition comes from? */
 void perl_signal_register(const char *signal, const char **args);
@@ -60,12 +56,6 @@ static void sig_server_sendmsg(SERVER_REC *server, const char *target,
 	if (GPOINTER_TO_INT(target_type_p) != SEND_TARGET_NICK) {
 		goto end;
 	}
-
-#ifdef HAVE_GREGEX_H
-	if (g_regex_match(regex_nickignore, target, 0, NULL)) {
-		goto end;
-	}
-#endif
 
 	/* Critical section. On error, message MUST NOT be sent */
 	ret = otr_send(server, msg, target, &otrmsg);
@@ -95,12 +85,6 @@ void sig_message_private(SERVER_REC *server, const char *msg,
 {
 	int ret;
 	char *new_msg = NULL;
-
-#ifdef HAVE_GREGEX_H
-	if (g_regex_match(regex_nickignore, nick, 0, NULL)) {
-		goto end;
-	}
-#endif
 
 	ret = otr_receive(server, msg, nick, &new_msg);
 	if (ret) {
@@ -250,14 +234,6 @@ static void read_settings(void)
 {
 	otr_setpolicies(user_state_global, settings_get_str("otr_policy"), FALSE);
 	otr_setpolicies(user_state_global, settings_get_str("otr_policy_known"), TRUE);
-
-#ifdef HAVE_GREGEX_H
-	if (regex_nickignore) {
-		g_regex_unref(regex_nickignore);
-	}
-
-	regex_nickignore = g_regex_new(settings_get_str("otr_ignore"), 0, 0, NULL);
-#endif
 }
 
 void irssi_send_message(SERVER_REC *irssi, const char *recipient,
@@ -319,10 +295,6 @@ void otr_init(void)
  */
 void otr_deinit(void)
 {
-#ifdef HAVE_GREGEX_H
-	g_regex_unref(regex_nickignore);
-#endif
-
 	signal_remove("server sendmsg", (SIGNAL_FUNC) sig_server_sendmsg);
 	signal_remove("message private", (SIGNAL_FUNC) sig_message_private);
 	signal_remove("query destroyed", (SIGNAL_FUNC) sig_query_destroyed);
