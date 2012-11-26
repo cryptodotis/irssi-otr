@@ -119,7 +119,7 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 		return;
 	}
 
-	context->active_fingerprint = context->active_fingerprint;
+	opc->active_fingerprint = context->active_fingerprint;
 
 	context->app_data = opc;
 	context->app_data_free = destroy_peer_context_cb;
@@ -172,6 +172,33 @@ static SERVER_REC *find_irssi_by_account_name(const char *accname)
 
 error:
 	return srv;
+}
+
+/*
+ * Check if fingerprint is in an encrypted context.
+ *
+ * Return 1 if it does, else 0.
+ */
+static int check_fp_encrypted_msgstate(Fingerprint *fp)
+{
+	int ret;
+	ConnContext *context;
+
+	assert(fp);
+
+	/* Loop on all fingerprint's context(es). */
+	for (context = fp->context; context != NULL; context = context->next) {
+		if (context->msgstate == OTRL_MSGSTATE_ENCRYPTED) {
+			ret = 1;
+			goto end;
+		}
+	}
+
+	/* No state is in an encrypted state. */
+	ret = 0;
+
+end:
+	return ret;
 }
 
 /*
@@ -452,7 +479,7 @@ void otr_trust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		/* Always NEED a peer context or else code error. */
 		assert(opc);
 
-		fp_trust = opc->active_fingerprint;
+		fp_trust = ctx->active_fingerprint;
 	} else {
 		fp_trust = otr_find_hash_fingerprint_from_human(str_fp, ustate);
 	}
@@ -836,9 +863,10 @@ end:
 void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 		struct otr_user_state *ustate)
 {
+	int ret;
 	char fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
 	Fingerprint *fp_forget;
-	ConnContext *ctx;
+	ConnContext *ctx = NULL;
 	struct otr_peer_context *opc;
 
 	if (!irssi && !str_fp) {
@@ -862,14 +890,14 @@ void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 		fp_forget = otr_find_hash_fingerprint_from_human(str_fp, ustate);
 	}
 
-	IRSSI_DEBUG("Forgetting fingerprint: %s", (str_fp != NULL) ? str_fp : fp);
-
 	if (fp_forget) {
 		/* Don't do anything if context is in encrypted state. */
-		if (fp_forget->context->msgstate == OTRL_MSGSTATE_ENCRYPTED) {
+		ret = check_fp_encrypted_msgstate(fp_forget);
+		if (ret) {
 			IRSSI_NOTICE(irssi, nick, "Fingerprint "
 					"context is still encrypted. Finish the OTR "
-					"session to forget fingerprint (%9/otr finish%9).");
+					"session before forgetting a fingerprint "
+					"(%9/otr finish%9).");
 			goto end;
 		}
 

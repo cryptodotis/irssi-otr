@@ -235,6 +235,10 @@ static void _cmd_contexts(struct otr_user_state *ustate, SERVER_REC *irssi,
 	while (ctxlist) {
 		fplist = ctxlist->fplist;
 
+		if (!fplist) {
+			goto cleanup;
+		}
+
 		switch (ctxlist->state) {
 		case STENCRYPTED:
 			IRSSI_MSG("%9%s%9 - %B%s%n - %GEncrypted%n", ctxlist->accountname,
@@ -269,6 +273,7 @@ static void _cmd_contexts(struct otr_user_state *ustate, SERVER_REC *irssi,
 		ctxlist = ctxlist->next;
 	}
 
+cleanup:
 	while ((ctxlist = ctxnext)) {
 		ctxnext = ctxlist->next;
 		fpnext = ctxlist->fplist;
