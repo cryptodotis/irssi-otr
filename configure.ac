@@ -16,9 +16,11 @@ AC_CHECK_LIB([pthread], [pthread_create], [],
 	[AC_MSG_ERROR([Cannot find libpthread. Use [LDFLAGS]=-Ldir to specify its location.])]
 )
 
-AC_SEARCH_LIBS([otrl_init], [otr], [],
-	[AC_MSG_ERROR([Cannot find libotr. Use [LDFLAGS]=-Ldir to specify its location.])]
-)
+AC_ARG_WITH([irssi-headers],
+	AS_HELP_STRING([--with-irssi-headers],
+	[Directory containing the Irssi header files]),
+	[IRSSI_HEADER_DIR="$withval"],
+	[IRSSI_HEADER_DIR="\"\""])
 
 # Check for Glib. It needs to be installed anyway or this macro will not be defined.
 AM_PATH_GLIB_2_0([2.22.0], [],
@@ -36,6 +38,27 @@ LIBS="$LIBS $GMODULE_LIBS"
 
 PACKAGE_CFLAGS="$GMODULE_CFLAGS -Wall -Werror=format-security"
 AC_SUBST(PACKAGE_CFLAGS)
+
+# Checking only a few Irssi headers is enough to tell that everything is
+# available. This is broken I know but tell that to the irssi guys to NOT use
+# cluster fu*** of headers and local inclusion system wide...
+CPPFLAGS="$CPPFLAGS $PACKAGE_CFLAGS -I$IRSSI_HEADER_DIR"
+AC_CHECK_HEADERS([\
+				irssi/src/common.h \
+				irssi/src/core/commands.h \
+				irssi/src/core/modules.h \
+				irssi/src/core/servers.h \
+				irssi/src/core/signals.h \
+				irssi/src/core/levels.h \
+				irssi/src/core/queries.h \
+				irssi/src/core/settings.h \
+				], [], [AC_MSG_ERROR([Irssi Header files are needed])],
+[
+#include <irssi/irssi-config.h>
+#ifdef HAVE_IRSSI_SRC_COMMON_H
+#include <irssi/src/common.h>
+#endif
+])
 
 LT_INIT
 
