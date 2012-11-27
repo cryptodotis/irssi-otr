@@ -333,68 +333,60 @@ error:
 	return -1;
 }
 
-struct ctxlist_ *otr_contexts(struct otr_user_state *ustate)
+void otr_contexts(struct otr_user_state *ustate)
 {
-	ConnContext *context;
-	Fingerprint *fprint;
-	struct ctxlist_ *ctxlist = NULL, *ctxhead = NULL;
-	struct fplist_ *fplist, *fphead;
-	char fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
-	char *trust;
+	char human_fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *trust;
+	ConnContext *ctx;
+	Fingerprint *fp;
 
-	for (context = ustate->otr_state->context_root; context;
-			context = context->next) {
-		if (!ctxlist) {
-			ctxhead = ctxlist = g_malloc0(sizeof(struct ctxlist_));
-		} else {
-			ctxlist = ctxlist->next = g_malloc0(sizeof(struct ctxlist_));
-		}
+	assert(ustate);
 
-		switch (context->msgstate) {
-		case OTRL_MSGSTATE_PLAINTEXT:
-			ctxlist->state = STUNENCRYPTED;
-			break;
-		case OTRL_MSGSTATE_ENCRYPTED:
-			ctxlist->state = STENCRYPTED;
-			break;
-		case OTRL_MSGSTATE_FINISHED:
-			ctxlist->state = STFINISHED;
-			break;
-		default:
-			ctxlist->state = STUNKNOWN;
-			break;
-		}
-
-		ctxlist->username = context->username;
-		ctxlist->accountname = context->accountname;
-
-		fplist = fphead = NULL;
-		for (fprint = context->fingerprint_root.next; fprint;
-				fprint = fprint->next) {
-			if (!fplist) {
-				fphead = fplist = g_malloc0(sizeof(struct fplist_));
-			} else {
-				fplist = fplist->next = g_malloc0(sizeof(struct fplist_));
-			}
-
-			trust = fprint->trust ? : "";
-
-			otrl_privkey_hash_to_human(fp, fprint->fingerprint);
-
-			fplist->fp = g_strdup(fp);
-			if (*trust == '\0') {
-				fplist->authby = NOAUTH;
-			} else if (strncmp(trust, "smp", strlen("smp")) == 0) {
-				fplist->authby = AUTHSMP;
-			} else {
-				fplist->authby = AUTHMAN;
-			}
-		}
-
-		ctxlist->fplist = fphead;
+	if (!ustate->otr_state->context_root) {
+		IRSSI_INFO(NULL, NULL, "No active OTR contexts found");
+		goto end;
 	}
 
-	return ctxhead;
+	IRSSI_MSG("%UAccount%n - %UUser%n - %UStatus%n - %UFingerprint%n - "
+			"%UTrust%n");
+
+	for (ctx = ustate->otr_state->context_root; ctx != NULL; ctx = ctx->next) {
+		/* Print accoun name, username and msgstate. */
+		switch (ctx->msgstate) {
+		case OTRL_MSGSTATE_ENCRYPTED:
+			IRSSI_MSG("%9%s%9 - %B%s%n - %GEncrypted%n", ctx->accountname,
+					ctx->username);
+			break;
+		case OTRL_MSGSTATE_PLAINTEXT:
+			IRSSI_MSG("%9%s%9 - %B%s%n - Plaintext", ctx->accountname,
+					ctx->username);
+			break;
+		case OTRL_MSGSTATE_FINISHED:
+			IRSSI_MSG("%9%s%9 - %B%s%n - %yFinished%n", ctx->accountname,
+					ctx->username);
+			break;
+		default:
+			IRSSI_MSG("%9%s%9 - %B%s%n - Unknown", ctx->accountname,
+					ctx->username);
+			break;
+		};
+
+		for (fp = ctx->fingerprint_root.next; fp != NULL; fp = fp->next) {
+			/* Hash fingerprint to human. */
+			otrl_privkey_hash_to_human(human_fp, fp->fingerprint);
+
+			trust = fp->trust ? : '\0';
+			if (*trust == '\0') {
+				IRSSI_MSG("%r%s%n - Unverified", human_fp);
+			} else if (strncmp(trust, "smp", strlen("smp")) == 0) {
+				IRSSI_MSG("%g%s%n - SMP", human_fp);
+			} else {
+				IRSSI_MSG("%g%s%n - Manual", human_fp);
+			}
+		}
+	}
+
+end:
+	return;
 }
 
 /*

@@ -177,7 +177,7 @@ void otr_finish(SERVER_REC *irssi, const char *nick);
 void otr_auth(SERVER_REC *irssi, const char *nick, const char *question,
 		const char *secret);
 void otr_auth_abort(SERVER_REC *irssi, const char *nick);
-struct ctxlist_ *otr_contexts(struct otr_user_state *ustate);
+void otr_contexts(struct otr_user_state *ustate);
 void otr_finishall(struct otr_user_state *ustate);
 void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 		struct otr_user_state *ustate);
