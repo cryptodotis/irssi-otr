@@ -1,10 +1,8 @@
 #! /bin/sh
 
-ACLOCAL_FLAGS="-I /usr/local/share/aclocal"
-
 set -x
 if [ ! -e config ]; then
 	mkdir config
 fi
 
-autoreconf -i -s $ACLOCAL_FLAGS
+autoreconf -i -s

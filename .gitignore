@@ -27,3 +27,4 @@ libtool
 tags
 
 config/
+!config/libotr.m4

@@ -44,7 +44,7 @@ Instructions
 ---------
 
 To load the OTR module at startup, use the following and make sure
-**libotr.so** is located in the **modules/** directory of the Irssi home
+**otr.so** is located in the **modules/** directory of the Irssi home
 (usually ~/.irssi).
 
 `echo "load otr" >> ~/.irssi/startup`
