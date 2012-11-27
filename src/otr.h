@@ -82,22 +82,6 @@ struct otr_peer_context {
 	Fingerprint *active_fingerprint;
 };
 
-/* these are returned by /otr contexts */
-
-struct fplist_ {
-	char *fp;
-	enum { NOAUTH, AUTHSMP, AUTHMAN } authby;
-	struct fplist_ *next;
-};
-
-struct ctxlist_ {
-	char *username;
-	char *accountname;
-	enum { STUNENCRYPTED, STENCRYPTED, STFINISHED, STUNKNOWN } state;
-	struct fplist_ *fplist;
-	struct ctxlist_ *next;
-};
-
 /* returned by otr_getstatus */
 enum otr_status {
 	IO_ST_PLAINTEXT        = 0,
