@@ -18,4 +18,5 @@ lib_LTLIBRARIES = libotr.la
 libotr_la_SOURCES = key.c key.h cmd.c cmd.h otr.c otr-ops.c \
 					utils.h utils.c otr.h module.c irssi_otr.h \
 					otr-formats.c otr-formats.h
-libotr_la_LDFLAGS = -module -avoid-version $(LIBOTR_LIBS)
+libotr_la_LDFLAGS = -module -avoid-version -shared
+libotr_la_LIBADD = $(LIBOTR_LIBS) $(LIBGCRYPT_LIBS)
