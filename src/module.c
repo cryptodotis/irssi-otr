@@ -28,6 +28,7 @@
 
 #include "cmd.h"
 #include "otr.h"
+#include "otr-formats.h"
 #include "utils.h"
 
 static const char *signal_args_otr_event[] = {
@@ -220,14 +221,14 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 {
 	WI_ITEM_REC *wi = active_win->active;
 	QUERY_REC *query = QUERY(wi);
-	int formatnum = 0;
+	enum otr_status_format formatnum = TXT_OTR_MODULE_NAME;
 
 	if (query && query->server && query->server->connrec) {
-		formatnum = otr_getstatus_format(query->server, query->name);
+		formatnum = otr_get_status_format(query->server, query->name);
 	}
 
 	statusbar_item_default_handler(item, get_size_only,
-			formatnum ? formats[formatnum].def : "", " ", FALSE);
+			formatnum ? otr_formats[formatnum].def : "", " ", FALSE);
 }
 
 static void read_settings(void)
@@ -253,7 +254,7 @@ void otr_init(void)
 {
 	module_register(MODULE_NAME, "core");
 
-	theme_register(formats);
+	theme_register(otr_formats);
 
 	otr_lib_init();
 

@@ -52,7 +52,7 @@ static void _cmd_version(struct otr_user_state *ustate, SERVER_REC *irssi,
 static void _cmd_help(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
-	IRSSI_INFO(NULL, NULL, "%s", otr_help);
+	/* TODO: Add help message. */
 }
 
 /*

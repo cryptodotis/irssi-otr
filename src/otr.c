@@ -24,6 +24,7 @@
 #include <gcrypt.h>
 #include <unistd.h>
 
+#include "otr-formats.h"
 #include "key.h"
 
 static const char *statusbar_txt[] = {
@@ -728,39 +729,41 @@ void otr_setpolicies(struct otr_user_state *ustate, const char *policies, int kn
 /*
  * Get the OTR status of this conversation.
  */
-int otr_getstatus(SERVER_REC *irssi, const char *nick)
+enum otr_status_format otr_get_status_format(SERVER_REC *irssi,
+		const char *nick)
 {
-	int ret, code = 0;
+	int ret;
+	enum otr_status_format code;
 	ConnContext *ctx = NULL;
 
 	assert(irssi);
 
 	ctx = otr_find_context(irssi, nick, FALSE);
 	if (!ctx) {
-		code = IO_ST_PLAINTEXT;
+		code = TXT_STB_PLAINTEXT;
 		goto end;
 	}
 
 	switch (ctx->msgstate) {
 	case OTRL_MSGSTATE_PLAINTEXT:
-		code = IO_ST_PLAINTEXT;
+		code = TXT_STB_PLAINTEXT;
 		break;
 	case OTRL_MSGSTATE_ENCRYPTED:
 		/* Begin by checking trust. */
 		ret = otrl_context_is_fingerprint_trusted(ctx->active_fingerprint);
 		if (ret) {
-			code = IO_ST_TRUST_SMP;
+			code = TXT_STB_TRUST;
 		} else {
-			code = IO_ST_UNTRUSTED;
+			code = TXT_STB_UNTRUSTED;
 		}
 		break;
 	case OTRL_MSGSTATE_FINISHED:
-		code = IO_ST_FINISHED;
+		code = TXT_STB_FINISHED;
 		break;
 	default:
 		IRSSI_WARN(irssi, nick, "BUG Found! "
 				"Please write us a mail and describe how you got here");
-		code = IO_ST_UNKNOWN;
+		code = TXT_STB_UNKNOWN;
 		break;
 	}
 
@@ -771,36 +774,6 @@ end:
 				ctx->auth.authstate);
 	}
 	return code;
-}
-
-
-/*
- * Get a format describing the OTR status of this conversation.
- */
-int otr_getstatus_format(SERVER_REC *irssi, const char *nick)
-{
-	int status = otr_getstatus(irssi, nick);
-
-	switch (status) {
-	case IO_ST_PLAINTEXT:
-		return TXT_ST_PLAINTEXT;
-	case IO_ST_FINISHED:
-		return TXT_ST_FINISHED;
-	case IO_ST_UNTRUSTED:
-		return TXT_ST_UNTRUSTED;
-	case IO_ST_SMP_INCOMING:
-		return TXT_ST_SMP_INCOMING;
-	case IO_ST_SMP_OUTGOING:
-		return TXT_ST_SMP_OUTGOING;
-	case IO_ST_SMP_FINALIZE:
-		return TXT_ST_SMP_FINALIZE;
-	case IO_ST_TRUST_MANUAL:
-		return TXT_ST_TRUST_MANUAL;
-	case IO_ST_TRUST_SMP:
-		return TXT_ST_TRUST_SMP;
-	default:
-		return TXT_ST_SMP_UNKNOWN;
-	}
 }
 
 /*

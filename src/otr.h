@@ -32,8 +32,6 @@
 /* irssi module name */
 #define MODULE_NAME "otr"
 
-#include "otr-formats.h"
-
 /*
  * XXX: Maybe this should be configurable?
  */
@@ -80,19 +78,6 @@ struct otr_peer_context {
 	 * automatically.
 	 */
 	Fingerprint *active_fingerprint;
-};
-
-/* returned by otr_getstatus */
-enum otr_status {
-	IO_ST_PLAINTEXT        = 0,
-	IO_ST_FINISHED         = 1,
-	IO_ST_SMP_INCOMING     = 2,
-	IO_ST_SMP_OUTGOING     = 3,
-	IO_ST_SMP_FINALIZE     = 4,
-	IO_ST_UNKNOWN          = 5,
-	IO_ST_UNTRUSTED        = 6,
-	IO_ST_TRUST_MANUAL     = 7,
-	IO_ST_TRUST_SMP        = 8,
 };
 
 /* given to otr_status_change */
@@ -153,8 +138,6 @@ int otr_send(SERVER_REC *irssi, const char *msg, const char *to,
 int otr_receive(SERVER_REC *irssi, const char *msg,
 		const char *from, char **new_msg);
 
-int otr_getstatus(SERVER_REC *irssi, const char *nick);
-
 /* user interaction */
 
 void otr_finish(SERVER_REC *irssi, const char *nick);
@@ -170,7 +153,9 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 void otr_trust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		struct otr_user_state *ustate);
 
-int otr_getstatus_format(SERVER_REC *irssi, const char *nick);
+enum otr_status_format otr_get_status_format(SERVER_REC *irssi,
+		const char *nick);
+
 struct otr_peer_context *otr_create_peer_context(void);
 ConnContext *otr_find_context(SERVER_REC *irssi, const char *nick, int create);
 Fingerprint *otr_find_hash_fingerprint_from_human(const char *human_fp,

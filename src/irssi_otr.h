@@ -30,7 +30,6 @@
 #include <src/core/queries.h>
 #include <src/fe-common/core/printtext.h>
 #include <src/fe-common/core/fe-windows.h>
-#include <src/fe-common/core/module-formats.h>
 #include <src/core/modules.h>
 #include <src/core/settings.h>
 #include <src/irc/core/irc.h>
