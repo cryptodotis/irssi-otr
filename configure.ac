@@ -69,6 +69,13 @@ CFLAGS="-Wall $CFLAGS -g -fno-strict-aliasing -fstack-protector-all -D_FORTIFY_S
 DEFAULT_INCLUDES="-I\$(top_srcdir) -I\$(top_builddir) -I\$(top_builddir)/src -I\$(top_builddir)/include"
 AC_SUBST(DEFAULT_INCLUDES)
 
+if test -n "$HOME"; then
+	IRSSI_MODULE_DIR="$HOME/.irssi/modules"
+	AC_SUBST(IRSSI_MODULE_DIR)
+else
+	AC_MSG_ERROR([Unable to find Irssi directory. The HOME variable is unset.])
+fi
+
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
