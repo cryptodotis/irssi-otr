@@ -32,12 +32,15 @@
 #include "utils.h"
 
 static const char *signal_args_otr_event[] = {
-	"iobject", "string", "string", "NULL" };
+	"iobject", "string", "string", "NULL"
+};
 
 int debug = FALSE;
 
-/* need this to decode arguments in perl signal handlers. Maybe irssi should
- * install perl/perl-signals.h which is where this definition comes from? */
+/*
+ * Need this to decode arguments in perl signal handlers. Maybe irssi should
+ * install perl/perl-signals.h which is where this definition comes from?
+ */
 void perl_signal_register(const char *signal, const char **args);
 
 /*
@@ -233,8 +236,7 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 
 static void read_settings(void)
 {
-	otr_setpolicies(user_state_global, settings_get_str("otr_policy"), FALSE);
-	otr_setpolicies(user_state_global, settings_get_str("otr_policy_known"), TRUE);
+	return;
 }
 
 void irssi_send_message(SERVER_REC *irssi, const char *recipient,
@@ -274,12 +276,6 @@ void otr_init(void)
 	command_bind("otr", NULL, (SIGNAL_FUNC) cmd_otr);
 	command_bind_first("quit", NULL, (SIGNAL_FUNC) cmd_quit);
 	command_bind_irc_first("me", NULL, (SIGNAL_FUNC) cmd_me);
-
-	settings_add_str("otr", "otr_policy", OTR_DEFAULT_POLICY);
-	settings_add_str("otr", "otr_policy_known", OTR_DEFAULT_POLICY_KNOWN);
-	settings_add_str("otr", "otr_ignore", OTR_DEFAULT_IGNORE);
-	settings_add_bool("otr", "otr_finishonunload", TRUE);
-	settings_add_bool("otr", "otr_createqueries", TRUE);
 
 	read_settings();
 

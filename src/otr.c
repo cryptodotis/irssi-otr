@@ -270,9 +270,6 @@ void otr_free_user(struct otr_user_state *ustate)
 		ustate->otr_state = NULL;
 	}
 
-	otr_setpolicies(ustate, "", FALSE);
-	otr_setpolicies(ustate, "", TRUE);
-
 	free(ustate);
 }
 
@@ -663,67 +660,6 @@ int otr_receive(SERVER_REC *irssi, const char *msg, const char *from,
 error:
 	free(accname);
 	return ret;
-}
-
-void otr_setpolicies(struct otr_user_state *ustate, const char *policies, int known)
-{
-#ifdef HAVE_GREGEX_H
-	GMatchInfo *match_info;
-	GSList *plist = known ? ustate->policy_known_list : ustate->policy_unknown_list;
-
-	if (plist) {
-		GSList *p = plist;
-		do {
-			struct plistentry *ple = p->data;
-			g_pattern_spec_free(ple->namepat);
-			g_free(p->data);
-		} while ((p = g_slist_next(p)));
-
-		g_slist_free(plist);
-		plist = NULL;
-	}
-
-	g_regex_match(regex_policies, policies, 0, &match_info);
-
-	while (g_match_info_matches(match_info)) {
-		struct plistentry *ple =
-			(struct plistentry *) g_malloc0(sizeof(struct plistentry));
-		char *pol = g_match_info_fetch(match_info, 2);
-
-		ple->namepat = g_pattern_spec_new(g_match_info_fetch(match_info, 1));
-
-		switch (*pol) {
-		case 'n':
-			ple->policy = OTRL_POLICY_NEVER;
-			break;
-		case 'm':
-			ple->policy = OTRL_POLICY_MANUAL;
-			break;
-		case 'h':
-			ple->policy = OTRL_POLICY_MANUAL | OTRL_POLICY_WHITESPACE_START_AKE;
-			break;
-		case 'o':
-			ple->policy = OTRL_POLICY_OPPORTUNISTIC;
-			break;
-		case 'a':
-			ple->policy = OTRL_POLICY_ALWAYS;
-			break;
-		}
-
-		plist = g_slist_append(plist, ple);
-
-		g_free(pol);
-
-		g_match_info_next(match_info, NULL);
-	}
-
-	g_match_info_free(match_info);
-
-	if (known)
-		ustate->policy_known_list = plist;
-	else
-		ustate->policy_unknown_list = plist;
-#endif
 }
 
 /*

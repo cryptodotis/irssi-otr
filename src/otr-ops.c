@@ -22,59 +22,15 @@
 #include "key.h"
 #include "module.h"
 
-OtrlPolicy IO_DEFAULT_OTR_POLICY =
+static OtrlPolicy OTR_DEFAULT_POLICY =
 	OTRL_POLICY_MANUAL | OTRL_POLICY_WHITESPACE_START_AKE;
 
 /*
- * Return policy for given context based on the otr_policy /setting
+ * Return default policy for now.
  */
 static OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 {
-	int ret;
-	char *server = strchr(context->accountname, '@') + 1;
-	OtrlPolicy op = IO_DEFAULT_OTR_POLICY;
-	GSList *pl;
-	char fullname[1024];
-
-	ret = snprintf(fullname, sizeof(fullname), "%s@%s", context->username,
-			server);
-	if (ret < 0) {
-		/* Return default policy */
-		goto error;
-	}
-
-	/* Unknown policy */
-	if (user_state_global->policy_unknown_list) {
-		pl = user_state_global->policy_unknown_list;
-		do {
-			struct plistentry *ple = pl->data;
-
-			if (g_pattern_match_string(ple->namepat, fullname)) {
-				op = ple->policy;
-			}
-		} while ((pl = g_slist_next(pl)));
-	}
-
-	/* Known policy */
-	if (user_state_global->policy_known_list && context->fingerprint_root.next) {
-		pl = user_state_global->policy_known_list;
-
-		do {
-			struct plistentry *ple = pl->data;
-
-			if (g_pattern_match_string(ple->namepat, fullname)) {
-				op = ple->policy;
-			}
-		} while ((pl = g_slist_next(pl)));
-	}
-
-	if (context->msgstate == OTRL_MSGSTATE_FINISHED &&
-			(op == OTRL_POLICY_OPPORTUNISTIC || op == OTRL_POLICY_ALWAYS)) {
-		op = OTRL_POLICY_MANUAL | OTRL_POLICY_WHITESPACE_START_AKE;
-	}
-
-error:
-	return op;
+	return OTR_DEFAULT_POLICY;
 }
 
 /*

@@ -45,13 +45,6 @@
 #define OTR_FINGERPRINTS_FILE         "/otr/otr.fp"
 #define OTR_INSTAG_FILE               "/otr/otr.instag"
 
-/* some defaults */
-#define OTR_DEFAULT_POLICY \
-	"*@localhost opportunistic, *@im.* opportunistic, *serv@irc* never"
-
-#define OTR_DEFAULT_POLICY_KNOWN      "* always"
-#define OTR_DEFAULT_IGNORE            "xmlconsole[0-9]*"
-
 /*
  * Memory allocation zeroed. Really useful!
  */
@@ -60,8 +53,6 @@
 /* Irssi otr user state */
 struct otr_user_state {
 	OtrlUserState otr_state;
-	GSList *policy_unknown_list;
-	GSList *policy_known_list;
 };
 
 /*
@@ -128,18 +119,13 @@ void otr_free_user(struct otr_user_state *ustate);
 void otr_lib_init();
 void otr_lib_uninit();
 
-void otr_setpolicies(struct otr_user_state *ustate, const char *policies,
-		int known);
-
-/* basic send/receive/status stuff */
-
+/* Message transport. */
 int otr_send(SERVER_REC *irssi, const char *msg, const char *to,
 		char **otr_msg);
 int otr_receive(SERVER_REC *irssi, const char *msg,
 		const char *from, char **new_msg);
 
-/* user interaction */
-
+/* User interaction */
 void otr_finish(SERVER_REC *irssi, const char *nick);
 void otr_auth(SERVER_REC *irssi, const char *nick, const char *question,
 		const char *secret);
