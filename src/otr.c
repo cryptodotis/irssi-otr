@@ -334,7 +334,7 @@ error:
 void otr_contexts(struct otr_user_state *ustate)
 {
 	char human_fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *trust;
-	ConnContext *ctx;
+	ConnContext *ctx, *c_iter;
 	Fingerprint *fp;
 
 	assert(ustate);
@@ -344,41 +344,77 @@ void otr_contexts(struct otr_user_state *ustate)
 		goto end;
 	}
 
-	IRSSI_MSG("%UAccount%n - %UUser%n - %UStatus%n - %UFingerprint%n - "
-			"%UTrust%n");
+	IRSSI_MSG("[ %KUser%n - %KAccount%n - %KStatus%n - %KFingerprint%n - "
+			"%KTrust%n ]");
 
+	/* Iterate over all contextes of the user state. */
 	for (ctx = ustate->otr_state->context_root; ctx != NULL; ctx = ctx->next) {
-		/* Print accoun name, username and msgstate. */
-		switch (ctx->msgstate) {
-		case OTRL_MSGSTATE_ENCRYPTED:
-			IRSSI_MSG("%9%s%9 - %B%s%n - %GEncrypted%n", ctx->accountname,
-					ctx->username);
-			break;
-		case OTRL_MSGSTATE_PLAINTEXT:
-			IRSSI_MSG("%9%s%9 - %B%s%n - Plaintext", ctx->accountname,
-					ctx->username);
-			break;
-		case OTRL_MSGSTATE_FINISHED:
-			IRSSI_MSG("%9%s%9 - %B%s%n - %yFinished%n", ctx->accountname,
-					ctx->username);
-			break;
-		default:
-			IRSSI_MSG("%9%s%9 - %B%s%n - Unknown", ctx->accountname,
-					ctx->username);
-			break;
-		};
+		OtrlMessageState best_mstate = OTRL_MSGSTATE_PLAINTEXT;
+
+		/* Skip master context. */
+		if (ctx != ctx->m_context) {
+			continue;
+		}
 
 		for (fp = ctx->fingerprint_root.next; fp != NULL; fp = fp->next) {
+			int used = 0;
+			char *username, *accountname;
+
+			username = ctx->username;
+			accountname = ctx->accountname;
+
+			for (c_iter = ctx->m_context;
+					c_iter && c_iter->m_context == ctx->m_context;
+					c_iter = c_iter->next) {
+				/* Print account name, username and msgstate. */
+				if (c_iter->active_fingerprint == fp) {
+					used = 1;
+
+					if (c_iter->msgstate == OTRL_MSGSTATE_ENCRYPTED) {
+						best_mstate = OTRL_MSGSTATE_ENCRYPTED;
+					} else if (c_iter->msgstate == OTRL_MSGSTATE_FINISHED &&
+							best_mstate == OTRL_MSGSTATE_PLAINTEXT) {
+						best_mstate = OTRL_MSGSTATE_FINISHED;
+					}
+				}
+			}
+
+			if (used) {
+				switch (best_mstate) {
+				case OTRL_MSGSTATE_ENCRYPTED:
+					IRSSI_MSG("%b>%n %9%s%9 - %B%s%n - %GEncrypted%n -",
+							accountname, username);
+					break;
+				case OTRL_MSGSTATE_PLAINTEXT:
+					IRSSI_MSG("%b>%n %9%s%9 - %B%s%n - Plaintext -",
+							accountname, username);
+					break;
+				case OTRL_MSGSTATE_FINISHED:
+					IRSSI_MSG("%b>%n %9%s%9 - %B%s%n - %yFinished%n -",
+							accountname, username);
+					break;
+				default:
+					IRSSI_MSG("%b>%n %9%s%9 - %B%s%n - Unknown -", accountname,
+							username);
+					break;
+				};
+			} else {
+				IRSSI_MSG("%b>%n %9%s%9 - %B%s%n - Unused -", accountname,
+						username);
+			}
+
 			/* Hash fingerprint to human. */
 			otrl_privkey_hash_to_human(human_fp, fp->fingerprint);
 
-			trust = fp->trust ? : '\0';
-			if (*trust == '\0') {
-				IRSSI_MSG("%r%s%n - Unverified", human_fp);
-			} else if (strncmp(trust, "smp", strlen("smp")) == 0) {
-				IRSSI_MSG("%g%s%n - SMP", human_fp);
+			trust = fp->trust;
+			if (trust && trust[0] != '\0') {
+				if (strncmp(trust, "smp", 3) == 0) {
+					IRSSI_MSG("  %g%s%n - SMP", human_fp);
+				} else {
+					IRSSI_MSG("  %g%s%n - Manual", human_fp);
+				}
 			} else {
-				IRSSI_MSG("%g%s%n - Manual", human_fp);
+				IRSSI_MSG("  %r%s%n - Unverified", human_fp);
 			}
 		}
 	}
