@@ -188,8 +188,11 @@ static int check_fp_encrypted_msgstate(Fingerprint *fp)
 	assert(fp);
 
 	/* Loop on all fingerprint's context(es). */
-	for (context = fp->context; context != NULL; context = context->next) {
-		if (context->msgstate == OTRL_MSGSTATE_ENCRYPTED) {
+	for (context = fp->context;
+			context != NULL && context->m_context == fp->context;
+			context = context->next) {
+		if (context->msgstate == OTRL_MSGSTATE_ENCRYPTED &&
+				context->active_fingerprint == fp) {
 			ret = 1;
 			goto end;
 		}
