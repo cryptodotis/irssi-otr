@@ -29,4 +29,4 @@ install-exec-hook:
 install-data-hook:
 	rm $(plugindir)/otr.la
 	mv $(plugindir)/otr.so $(plugindir)/libotr.so
-	chmod 700 $(plugindir)/libotr.so
+	chmod 644 $(plugindir)/libotr.so

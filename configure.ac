@@ -69,12 +69,10 @@ CFLAGS="-Wall $CFLAGS -g -fno-strict-aliasing -fstack-protector-all -D_FORTIFY_S
 DEFAULT_INCLUDES="-I\$(top_srcdir) -I\$(top_builddir) -I\$(top_builddir)/src -I\$(top_builddir)/include"
 AC_SUBST(DEFAULT_INCLUDES)
 
-if test -n "$HOME"; then
-	IRSSI_MODULE_DIR="$HOME/.irssi/modules"
-	AC_SUBST(IRSSI_MODULE_DIR)
-else
-	AC_MSG_ERROR([Unable to find Irssi directory. The HOME variable is unset.])
-fi
+# Hardcoded here since irssi only searches in $HOME/.irssi/modules or this path
+# which is unfortunate...
+IRSSI_MODULE_DIR="/usr/lib/irssi/modules"
+AC_SUBST(IRSSI_MODULE_DIR)
 
 AC_CONFIG_FILES([
 	Makefile
@@ -104,8 +102,6 @@ AS_ECHO($target_arch)
 
 # Print the bindir and libdir this `make install' will install into.
 AS_ECHO()
-AS_ECHO_N("Binaries will be installed in:  ")
-AS_ECHO("`eval eval echo $bindir`")
-AS_ECHO_N("Libraries will be installed in: ")
-AS_ECHO("`eval eval echo $libdir`")
+AS_ECHO_N("Module will be installed in: ")
+AS_ECHO("`eval eval echo $IRSSI_MODULE_DIR`")
 AS_ECHO()
