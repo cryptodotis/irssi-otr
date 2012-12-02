@@ -351,6 +351,9 @@ void otr_deinit(void)
 
 	otr_finishall(user_state_global);
 
+	/* Remove glib timer if any. */
+	otr_control_timer(0, NULL);
+
 	otr_free_user_state(user_state_global);
 
 	otr_lib_uninit();

@@ -324,6 +324,14 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 }
 
 /*
+ * timer_control callback.
+ */
+static void ops_timer_control(void *opdata, unsigned int interval)
+{
+	otr_control_timer(interval, opdata);
+}
+
+/*
  * Assign OTR message operations.
  */
 OtrlMessageAppOps otr_ops = {
@@ -338,7 +346,7 @@ OtrlMessageAppOps otr_ops = {
 	ops_insecure,
 	NULL, /* still_secure */
 	ops_max_msg,
-	NULL, /* accoun_name */
+	NULL, /* account_name */
 	NULL, /* account_name_free */
 	NULL, /* received_symkey */
 	NULL, /* otr_error_message */
@@ -350,5 +358,5 @@ OtrlMessageAppOps otr_ops = {
 	ops_create_instag,
 	NULL, /* convert_msg */
 	NULL, /* convert_free */
-	NULL, /* timer_control */
+	ops_timer_control, /* timer_control */
 };

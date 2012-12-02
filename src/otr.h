@@ -119,6 +119,8 @@ void otr_free_user_state(struct otr_user_state *ustate);
 void otr_lib_init();
 void otr_lib_uninit();
 
+void otr_control_timer(unsigned int interval, void *opdata);
+
 /* Message transport. */
 int otr_send(SERVER_REC *irssi, const char *msg, const char *to,
 		char **otr_msg);

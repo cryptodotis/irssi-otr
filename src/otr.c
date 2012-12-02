@@ -45,6 +45,9 @@ static const char *statusbar_txt[] = {
 	"CTX_UPDATE"
 };
 
+/* Glib timer for otr. */
+static guint otr_timerid;
+
 /*
  * Allocate and return a string containing the account name of the Irssi server
  * record.
@@ -218,6 +221,28 @@ static int check_fp_encrypted_msgstate(Fingerprint *fp)
 
 end:
 	return ret;
+}
+
+/*
+ * Timer called from the glib main loop and set up by the timer_control
+ * callback of libotr.
+ */
+static gboolean timer_fired_cb(gpointer data)
+{
+	otrl_message_poll(user_state_global->otr_state, &otr_ops, NULL);
+	return TRUE;
+}
+
+void otr_control_timer(unsigned int interval, void *opdata)
+{
+	if (otr_timerid) {
+		g_source_remove(otr_timerid);
+		otr_timerid = 0;
+	}
+
+	if (interval > 0) {
+		otr_timerid = g_timeout_add_seconds(interval, timer_fired_cb, opdata);
+	}
 }
 
 /*
