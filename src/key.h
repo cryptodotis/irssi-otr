@@ -1,4 +1,6 @@
 /*
+ * Off-the-Record Messaging (OTR) modules for IRC
+ *
  * Copyright (C) 2012 - David Goulet <dgoulet@ev0ke.net>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -21,6 +23,9 @@
 
 #include "otr.h"
 
+/*
+ * Status of key generation.
+ */
 enum key_gen_status {
 	KEY_GEN_IDLE		= 0,
 	KEY_GEN_RUNNING		= 1,
@@ -28,6 +33,9 @@ enum key_gen_status {
 	KEY_GEN_ERROR		= 3,
 };
 
+/*
+ * Data of the state of key generation.
+ */
 struct key_gen_data {
 	struct otr_user_state *ustate;
 	char *account_name;

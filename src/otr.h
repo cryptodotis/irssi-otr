@@ -1,20 +1,22 @@
 /*
  * Off-the-Record Messaging (OTR) modules for IRC
- * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 2008 - Uli Meis <a.sporto+bee@gmail.com>
+ *               2012 - David Goulet <dgoulet@ev0ke.net>
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 2 of the License, or (at your option)
+ * any later version.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 51
+ * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
 #ifndef IRSSI_OTR_OTR_H
@@ -30,7 +32,7 @@
 #include "utils.h"
 
 /* irssi module name */
-#define MODULE_NAME "otr"
+#define MODULE_NAME                   "otr"
 
 /*
  * XXX: Maybe this should be configurable?
@@ -88,13 +90,6 @@ enum otr_status_event {
 	OTR_STATUS_GONE_SECURE,
 	OTR_STATUS_GONE_INSECURE,
 	OTR_STATUS_CTX_UPDATE
-};
-
-/* policy list generated from /set otr_policy */
-
-struct plistentry {
-	GPatternSpec *namepat;
-	OtrlPolicy policy;
 };
 
 /* there can be only one */

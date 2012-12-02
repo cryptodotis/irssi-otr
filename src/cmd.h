@@ -1,7 +1,8 @@
 /*
  * Off-the-Record Messaging (OTR) modules for IRC
  *
- * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
+ * Copyright (C) 2008 - Uli Meis <a.sporto+bee@gmail.com>
+ *               2012 - David Goulet <dgoulet@ev0ke.net>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -23,12 +24,19 @@
 
 #include "otr.h"
 
+/*
+ * The /otr commands structure.
+ */
 struct irssi_commands {
 	const char *name;
 	void (*func)(struct otr_user_state *ustate, SERVER_REC *irssi,
 			const char *target, const void *data);
 };
 
+/*
+ * This is called once the command is received and then dispatch to the correct
+ * func() of the right irssi_commands.
+ */
 void cmd_generic(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, char *cmd, const void *data);
 

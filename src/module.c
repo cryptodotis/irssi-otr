@@ -47,7 +47,7 @@ int debug = FALSE;
 void perl_signal_register(const char *signal, const char **args);
 
 /*
- * Global state for the user.
+ * Global state for the user. Init when the module loads.
  */
 struct otr_user_state *user_state_global;
 
@@ -246,11 +246,9 @@ static void otr_statusbar(struct SBAR_ITEM_REC *item, int get_size_only)
 			formatnum ? otr_formats[formatnum].def : "", " ", FALSE);
 }
 
-static void read_settings(void)
-{
-	return;
-}
-
+/*
+ * Create otr module directory if none exists.
+ */
 static int create_module_dir(void)
 {
 	int ret;
@@ -322,10 +320,6 @@ void otr_init(void)
 	command_bind_first("quit", NULL, (SIGNAL_FUNC) cmd_quit);
 	command_bind_irc_first("me", NULL, (SIGNAL_FUNC) cmd_me);
 
-	read_settings();
-
-	signal_add("setup changed", (SIGNAL_FUNC) read_settings);
-
 	statusbar_item_register("otr", NULL, otr_statusbar);
 	statusbar_items_redraw("window");
 
@@ -344,8 +338,6 @@ void otr_deinit(void)
 	command_unbind("otr", (SIGNAL_FUNC) cmd_otr);
 	command_unbind("quit", (SIGNAL_FUNC) cmd_quit);
 	command_unbind("me", (SIGNAL_FUNC) cmd_me);
-
-	signal_remove("setup changed", (SIGNAL_FUNC) read_settings);
 
 	statusbar_item_unregister("otr");
 

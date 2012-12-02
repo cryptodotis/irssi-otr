@@ -19,6 +19,9 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#ifndef IRSSI_IRSSI_OTR_H
+#define IRSSI_IRSSI_OTR_H
+
 #define UOFF_T_LONG_LONG 1
 
 #include <src/common.h>
@@ -38,38 +41,43 @@
 #include <src/irc/core/irc-servers.h>
 #include <src/fe-text/statusbar-item.h>
 
-#define get_client_config_dir get_irssi_dir
+/* Ease our life a bit. */
+#define get_client_config_dir	get_irssi_dir
 
-#define IRSSI_CONN_ADDR(i) i->connrec->address
-#define IRSSI_NICK(i) i->nick
+#define IRSSI_CONN_ADDR(i)		i->connrec->address
+#define IRSSI_NICK(i)			i->nick
+
+#define OTR_IRSSI_MSG_PREFIX	"%9OTR%9: "
 
 /*
  * Irssi macros for printing text to console.
  */
 #define IRSSI_MSG(fmt, ...)                                                 \
 	do {                                                                    \
-		printtext(NULL, NULL, MSGLEVEL_MSGS, "%9OTR%9: " fmt,               \
+		printtext(NULL, NULL, MSGLEVEL_MSGS, OTR_IRSSI_MSG_PREFIX fmt,      \
 						## __VA_ARGS__);                                    \
 	} while (0)
 #define IRSSI_INFO(irssi, username, fmt, ...)                               \
 	do {                                                                    \
-		printtext(irssi, username, MSGLEVEL_CRAP, "%9OTR%9: " fmt,          \
+		printtext(irssi, username, MSGLEVEL_CRAP, OTR_IRSSI_MSG_PREFIX fmt, \
 						## __VA_ARGS__);                                    \
 	} while (0)
 #define IRSSI_NOTICE(irssi, username, fmt, ...)                             \
 	do {                                                                    \
-		printtext(irssi, username, MSGLEVEL_MSGS, "%9OTR%9: " fmt,          \
+		printtext(irssi, username, MSGLEVEL_MSGS, OTR_IRSSI_MSG_PREFIX fmt, \
 						## __VA_ARGS__);                                    \
 	} while (0)
 #define IRSSI_WARN(irssi, username, fmt, ...)                               \
 	do {                                                                    \
-		printtext(irssi, username, MSGLEVEL_HILIGHT, "%9OTR%9: " fmt,       \
-						## __VA_ARGS__);                                    \
+		printtext(irssi, username, MSGLEVEL_HILIGHT,                        \
+				OTR_IRSSI_MSG_PREFIX fmt, ## __VA_ARGS__);                  \
 	} while (0)
 #define IRSSI_DEBUG(fmt, ...) \
 	do {                                                                    \
 		if (debug) {                                                        \
-			printtext(NULL, NULL, MSGLEVEL_MSGS, "%9OTR%9: " fmt,           \
+			printtext(NULL, NULL, MSGLEVEL_MSGS, OTR_IRSSI_MSG_PREFIX fmt,  \
 						## __VA_ARGS__);                                    \
 		}                                                                   \
 	} while (0)
+
+#endif /* IRSSI_IRSSI_OTR_H */
