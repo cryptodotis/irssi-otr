@@ -580,7 +580,7 @@ void otr_trust(SERVER_REC *irssi, const char *nick, char *str_fp,
 		IRSSI_NOTICE(irssi, nick, "Fingerprint %g%s%n trusted!", peerfp);
 	} else {
 		IRSSI_NOTICE(irssi, nick, "Fingerprint %y%s%n NOT found",
-				(str_fp != NULL) ? str_fp : peerfp);
+				(str_fp != NULL) ? str_fp : "");
 	}
 
 end:
@@ -898,7 +898,7 @@ void otr_forget(SERVER_REC *irssi, const char *nick, char *str_fp,
 				fp);
 	} else {
 		IRSSI_NOTICE(irssi, nick, "Fingerprint %y%s%n NOT found",
-				(str_fp != NULL) ? str_fp : fp);
+				(str_fp != NULL) ? str_fp : "");
 	}
 
 end:
@@ -960,7 +960,7 @@ void otr_distrust(SERVER_REC *irssi, const char *nick, char *str_fp,
 				fp);
 	} else {
 		IRSSI_NOTICE(irssi, nick, "Fingerprint %y%s%n NOT found",
-				(str_fp != NULL) ? str_fp : fp);
+				(str_fp != NULL) ? str_fp : "");
 	}
 
 end:
