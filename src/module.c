@@ -249,6 +249,30 @@ static void read_settings(void)
 	return;
 }
 
+static int create_module_dir(void)
+{
+	int ret;
+	char *dir_path = NULL;
+
+	/* Create ~/.irssi/otr directory. */
+	ret = asprintf(&dir_path, "%s%s", get_client_config_dir(), OTR_DIR);
+	if (ret < 0) {
+		IRSSI_MSG("Unable to allocate home dir path.");
+		goto error_alloc;
+	}
+
+	ret = mkdir(dir_path, S_IRWXU);
+	if (ret < 0) {
+		IRSSI_MSG("Unable to create %s directory.", dir_path);
+		goto error;
+	}
+
+error:
+	free(dir_path);
+error_alloc:
+	return ret;
+}
+
 void irssi_send_message(SERVER_REC *irssi, const char *recipient,
 		const char *msg)
 {
@@ -264,9 +288,16 @@ void irssi_send_message(SERVER_REC *irssi, const char *recipient,
  */
 void otr_init(void)
 {
+	int ret;
+
 	module_register(MODULE_NAME, "core");
 
 	theme_register(otr_formats);
+
+	ret = create_module_dir();
+	if (ret < 0) {
+		return;
+	}
 
 	otr_lib_init();
 
