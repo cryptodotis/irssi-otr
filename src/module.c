@@ -32,6 +32,8 @@
 #include "otr-formats.h"
 #include "utils.h"
 
+GCRY_THREAD_OPTION_PTHREAD_IMPL;
+
 static const char *signal_args_otr_event[] = {
 	"iobject", "string", "string", "NULL"
 };
@@ -261,10 +263,13 @@ static int create_module_dir(void)
 		goto error_alloc;
 	}
 
-	ret = mkdir(dir_path, S_IRWXU);
+	ret = access(dir_path, F_OK);
 	if (ret < 0) {
-		IRSSI_MSG("Unable to create %s directory.", dir_path);
-		goto error;
+		ret = mkdir(dir_path, S_IRWXU);
+		if (ret < 0) {
+			IRSSI_MSG("Unable to create %s directory.", dir_path);
+			goto error;
+		}
 	}
 
 error:
@@ -298,6 +303,8 @@ void otr_init(void)
 	if (ret < 0) {
 		return;
 	}
+
+	gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
 
 	otr_lib_init();
 
