@@ -1,7 +1,7 @@
 /*
  * Off-the-Record Messaging (OTR) modules for IRC
  *
- * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
+ * Copyright (C) 2012 - David Goulet <dgoulet@ev0ke.net>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free

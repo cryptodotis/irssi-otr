@@ -1,7 +1,7 @@
 /*
  * Off-the-Record Messaging (OTR) modules for IRC
  *
- * Copyright (C) 2008  Uli Meis <a.sporto+bee@gmail.com>
+ * Copyright (C) 2012 - David Goulet <dgoulet@ev0ke.net>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -64,13 +64,21 @@ char *utils_trim_string(char *s)
 	return rtrim(ltrim(s));
 }
 
+/*
+ * Extract question and secret for an SMP authentication.
+ *
+ * Return 0 and set question/secret on success. Else, return negative value and
+ * params are untouched.
+ */
 int utils_io_extract_smp(const char *data, char **question, char **secret)
 {
 	unsigned int q_len, s_len;
 	const char *tmp, *q_end, *q_beg, *args = data;
 	char *q, *s;
 
-	*question = *secret = NULL;
+	if (!data || !question || !secret) {
+		goto error;
+	}
 
 	/* Check for '[' as first char */
 	q_beg = strchr(args, '[');
@@ -177,12 +185,17 @@ error:
 	return -1;
 }
 
+/*
+ * Set _argv and _argc from the string in _data.
+ *
+ * On error, argv is untouched argc set to 0.
+ */
 void utils_explode_args(const char *_data, char ***_argv, int *_argc)
 {
 	int argc = 0, i = 0, have_arg = 0;
 	char **argv = NULL, *c, *data = NULL, *cmd_offset;
 
-	if (!_data) {
+	if (!_data || !_argv || !_argc) {
 		goto error;
 	}
 
@@ -235,14 +248,17 @@ void utils_explode_args(const char *_data, char ***_argv, int *_argc)
 		i++;
 	}
 
-error:
 	*_argv = argv;
-	*_argc = argc;
 
+error:
+	*_argc = argc;
 	free(data);
 	return;
 }
 
+/*
+ * Free an argv array. Usually, call this after using utils_explode_args.
+ */
 void utils_free_args(char ***argv, int argc)
 {
 	int i;
@@ -261,6 +277,11 @@ void utils_free_args(char ***argv, int argc)
 	free(args);
 }
 
+/*
+ * Extract otr command from an irssi command string.
+ *
+ * Ex: /otr auth my_secret, _cmd is set to "auth"
+ */
 void utils_extract_command(const char *data, char **_cmd)
 {
 	char *s, *cmd = NULL;
@@ -285,6 +306,9 @@ error:
 	return;
 }
 
+/*
+ * String to uppercase. Done inplace!
+ */
 void utils_string_to_upper(char *string)
 {
 	int i = 0;
