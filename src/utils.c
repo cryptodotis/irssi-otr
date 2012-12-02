@@ -157,13 +157,14 @@ error:
  */
 int utils_auth_extract_secret(const char *_data, char **secret)
 {
-	char *s, *data = NULL, *cmd_offset = NULL;
+	int ret = -1;
+	char *s, *cmd_offset = NULL, *data = NULL;
 
 	if (!_data || !secret) {
 		goto error;
 	}
 
-	data = strndup(_data, strlen(_data));
+	data = strdup(_data);
 	if (!data) {
 		goto error;
 	}
@@ -176,13 +177,14 @@ int utils_auth_extract_secret(const char *_data, char **secret)
 	}
 
 	s = utils_trim_string(cmd_offset);
-	*secret = s;
 
-	return 0;
+	*secret = strdup(s);
+
+	ret = 0;
 
 error:
 	free(data);
-	return -1;
+	return ret;
 }
 
 /*
@@ -265,6 +267,11 @@ void utils_free_args(char ***argv, int argc)
 	char **args;
 
 	assert(argv);
+
+	/* Nothing to free. */
+	if (argc == 0) {
+		return;
+	}
 
 	args = *argv;
 
