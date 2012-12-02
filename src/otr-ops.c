@@ -138,14 +138,14 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 	case OTRL_MSGEVENT_NONE:
 		break;
 	case OTRL_MSGEVENT_ENCRYPTION_REQUIRED:
-		IRSSI_WARN(server, username, "%yEncryption is required.%n");
+		IRSSI_NOTICE(server, username, "%yEncryption is required.%n");
 		break;
 	case OTRL_MSGEVENT_ENCRYPTION_ERROR:
-		IRSSI_WARN(server, username, "An error occurred when "
+		IRSSI_NOTICE(server, username, "An error occurred when "
 				"encrypting your message. The message was NOT sent.");
 		break;
 	case OTRL_MSGEVENT_CONNECTION_ENDED:
-		IRSSI_WARN(server, username, "%9%s%9 has already closed the "
+		IRSSI_NOTICE(server, username, "%9%s%9 has already closed the "
 				"connection to you.", username);
 		break;
 	case OTRL_MSGEVENT_SETUP_ERROR:
@@ -154,17 +154,17 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 		}
 		switch (err) {
 		case GPG_ERR_INV_VALUE:
-			IRSSI_WARN(server, username, "Error setting up private "
+			IRSSI_NOTICE(server, username, "Error setting up private "
 					"conversation: Malformed message received");
 			break;
 		default:
-			IRSSI_WARN(server, username, "Error up private "
+			IRSSI_NOTICE(server, username, "Error up private "
 					"conversation: %s", gcry_strerror(err));
 			break;
 		}
 		break;
 	case OTRL_MSGEVENT_MSG_REFLECTED:
-		IRSSI_WARN(server, username, "Receiving our own OTR messages. "
+		IRSSI_NOTICE(server, username, "Receiving our own OTR messages. "
 				"You are either trying to talk to yourself, or someone is "
 				"reflecting your messages back at you.");
 		break;
@@ -173,16 +173,16 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 				"was resent: %s", username, message);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_NOT_IN_PRIVATE:
-		IRSSI_WARN(server, username, "The encrypted message received "
+		IRSSI_NOTICE(server, username, "The encrypted message received "
 				"from %s is unreadable, as you are not currently communicating "
 				"privately.", username);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_UNREADABLE:
-		IRSSI_WARN(server, username, "We received an unreadable "
+		IRSSI_NOTICE(server, username, "We received an unreadable "
 				"encrypted message from %s.", username);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_MALFORMED:
-		IRSSI_WARN(server, username, "We received a malformed data "
+		IRSSI_NOTICE(server, username, "We received a malformed data "
 				"message from %s.", username);
 		break;
 	case OTRL_MSGEVENT_LOG_HEARTBEAT_RCVD:
@@ -192,7 +192,7 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 		IRSSI_DEBUG("Heartbeat sent to %s.", username);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_GENERAL_ERR:
-		IRSSI_WARN(server, username, "General Error: %s.", message);
+		IRSSI_NOTICE(server, username, "General Error: %s.", message);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_UNENCRYPTED:
 		IRSSI_NOTICE(server, username,
@@ -211,7 +211,7 @@ static void ops_handle_msg_event(void *opdata, OtrlMessageEvent msg_event,
 		signal_add_first("message private", (SIGNAL_FUNC) sig_message_private);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_UNRECOGNIZED:
-		IRSSI_WARN(server, username, "Unrecognized OTR message "
+		IRSSI_NOTICE(server, username, "Unrecognized OTR message "
 				"received from %s.", username);
 		break;
 	case OTRL_MSGEVENT_RCVDMSG_FOR_OTHER_INSTANCE:

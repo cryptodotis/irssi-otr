@@ -67,11 +67,6 @@
 		printtext(irssi, username, MSGLEVEL_MSGS, OTR_IRSSI_MSG_PREFIX fmt, \
 						## __VA_ARGS__);                                    \
 	} while (0)
-#define IRSSI_WARN(irssi, username, fmt, ...)                               \
-	do {                                                                    \
-		printtext(irssi, username, MSGLEVEL_HILIGHT,                        \
-				OTR_IRSSI_MSG_PREFIX fmt, ## __VA_ARGS__);                  \
-	} while (0)
 #define IRSSI_DEBUG(fmt, ...) \
 	do {                                                                    \
 		if (debug) {                                                        \

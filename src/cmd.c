@@ -76,7 +76,7 @@ static void _cmd_finish(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
 	if (!irssi || !target) {
-		IRSSI_WARN(irssi, target,
+		IRSSI_NOTICE(irssi, target,
 				"Failed: Can't get nick and server of current query window. "
 				"(Or maybe you're doing this in the status window?)");
 		goto end;
@@ -126,7 +126,7 @@ static void _cmd_authabort(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
 	if (!irssi || !target) {
-		IRSSI_WARN(irssi, target,
+		IRSSI_NOTICE(irssi, target,
 				"Failed: Can't get nick and server of current query window. "
 				"(Or maybe you're doing this in the status window?)");
 		goto end;
@@ -176,7 +176,7 @@ static void _cmd_authq(struct otr_user_state *ustate, SERVER_REC *irssi,
 	char *question = NULL, *secret = NULL;
 
 	if (!irssi || !target) {
-		IRSSI_WARN(irssi, target,
+		IRSSI_NOTICE(irssi, target,
 				"Failed: Can't get nick and server of current query window. "
 				"(Or maybe you're doing this in the status window?)");
 		goto end;
@@ -212,7 +212,7 @@ static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi,
 	char *secret = NULL;
 
 	if (!irssi || !target) {
-		IRSSI_WARN(irssi, target,
+		IRSSI_NOTICE(irssi, target,
 				"Failed: Can't get nick and server of current query window. "
 				"(Or maybe you're doing this in the status window?)");
 		goto error;
@@ -250,7 +250,7 @@ static void _cmd_init(struct otr_user_state *ustate, SERVER_REC *irssi,
 
 	/* No server object, just ignore the request */
 	if (!irssi || !target) {
-		IRSSI_WARN(irssi, target,
+		IRSSI_NOTICE(irssi, target,
 				"Failed: Can't get nick and server of current query window. "
 				"(Or maybe you're doing this in the status window?)");
 		goto end;
@@ -374,6 +374,8 @@ void cmd_generic(struct otr_user_state *ustate, SERVER_REC *irssi,
 			goto end;
 		}
 	} while ((++commands)->name);
+
+	IRSSI_NOTICE(irssi, target, "Unknown command %9%s%n", cmd);
 
 end:
 	return;

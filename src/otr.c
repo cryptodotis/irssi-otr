@@ -784,7 +784,7 @@ enum otr_status_format otr_get_status_format(SERVER_REC *irssi,
 		code = TXT_STB_FINISHED;
 		break;
 	default:
-		IRSSI_WARN(irssi, nick, "BUG Found! "
+		IRSSI_NOTICE(irssi, nick, "BUG Found! "
 				"Please write us a mail and describe how you got here");
 		code = TXT_STB_UNKNOWN;
 		break;
