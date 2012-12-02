@@ -18,7 +18,7 @@ plugin_LTLIBRARIES = otr.la
 
 otr_la_SOURCES = otr-formats.c otr-formats.h \
                  key.c key.h cmd.c cmd.h otr.c otr-ops.c \
-                 utils.h utils.c otr.h module.c irssi_otr.h
+                 utils.h utils.c otr.h module.c irssi-otr.h
 
 otr_la_LDFLAGS = -avoid-version -module
 otr_la_LDFLAGS += $(LIBOTR_LIBS) $(LIBGCRYPT_LIBS) -lpthread

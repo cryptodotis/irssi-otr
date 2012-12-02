@@ -28,7 +28,7 @@
 #include <libotr/context.h>
 #include <libotr/privkey.h>
 
-#include "irssi_otr.h"
+#include "irssi-otr.h"
 #include "utils.h"
 
 /* irssi module name */

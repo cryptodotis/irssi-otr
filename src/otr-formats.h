@@ -21,7 +21,7 @@
 #ifndef IRSSI_OTR_FORMATS_H
 #define IRSSI_OTR_FORMATS_H
 
-#include "irssi_otr.h"
+#include "irssi-otr.h"
 
 /*
  * Must be in sync with the otr_formats array.
