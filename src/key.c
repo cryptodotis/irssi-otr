@@ -39,6 +39,9 @@ static struct key_gen_data key_gen_state = {
 
 static pthread_t keygen_thread;
 
+/*
+ * Build file path concatenate to the irssi config dir.
+ */
 static char *file_path_build(const char *path)
 {
 	int ret;
@@ -78,6 +81,12 @@ static void reset_key_gen_state(void)
 	key_gen_state.gcry_error = GPG_ERR_NO_ERROR;
 }
 
+/*
+ * Generate OTR key. Thread in the background.
+ *
+ * NOTE: NO irssi interaction should be done here like emitting signals or else
+ * it causes a segfaults of libperl.
+ */
 static void *generate_key(void *data)
 {
 	gcry_error_t err;
@@ -99,6 +108,9 @@ error:
 	return NULL;
 }
 
+/*
+ * Check key generation state and print message to user according to state.
+ */
 void key_gen_check(void)
 {
 	gcry_error_t err;
@@ -139,6 +151,9 @@ void key_gen_run(struct otr_user_state *ustate, const char *account_name)
 {
 	int ret;
 	gcry_error_t err;
+
+	assert(ustate);
+	assert(account_name);
 
 	if (key_gen_state.status != KEY_GEN_IDLE) {
 		IRSSI_INFO(NULL, NULL, "Key generation for %s is still in progress. ",
