@@ -75,7 +75,7 @@ end:
 }
 
 /*
- * /otr trust
+ * /otr trust [FP]
  */
 static void _cmd_trust(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
@@ -101,6 +101,7 @@ static void _cmd_trust(struct otr_user_state *ustate, SERVER_REC *irssi,
 	otr_trust(irssi, target, fp, ustate);
 
 end:
+	utils_free_args(&argv, argc);
 	return;
 }
 
@@ -124,7 +125,7 @@ end:
 }
 
 /*
- * /otr genkey
+ * /otr genkey mynick@irc.server.net
  */
 static void _cmd_genkey(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
@@ -150,7 +151,9 @@ static void _cmd_genkey(struct otr_user_state *ustate, SERVER_REC *irssi,
 }
 
 /*
- * /otr authq (Authentication with a question)
+ * Authentication with a question.
+ *
+ * /otr authq [QUESTION] SECRET
  */
 static void _cmd_authq(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
@@ -178,12 +181,15 @@ static void _cmd_authq(struct otr_user_state *ustate, SERVER_REC *irssi,
 
 	otr_auth(irssi, target, question, secret);
 
+	free(question);
+	free(secret);
+
 end:
 	return;
 }
 
 /*
- * /otr auth
+ * /otr auth SECRET
  */
 static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
@@ -201,13 +207,12 @@ static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi,
 	ret = utils_auth_extract_secret(data, &secret);
 	if (ret < 0) {
 		IRSSI_NOTICE(irssi, target, "Huh... I need a secret here James.");
-		goto end;
+		goto error;
 	}
 
 	otr_auth(irssi, target, NULL, secret);
 	free(secret);
 
-end:
 error:
 	return;
 }
@@ -221,6 +226,9 @@ static void _cmd_contexts(struct otr_user_state *ustate, SERVER_REC *irssi,
 	otr_contexts(ustate);
 }
 
+/*
+ * /otr init
+ */
 static void _cmd_init(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
@@ -252,6 +260,9 @@ end:
 	return;
 }
 
+/*
+ * /otr forget [FP]
+ */
 static void _cmd_forget(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
@@ -281,6 +292,9 @@ error:
 	return;
 }
 
+/*
+ * /otr distrust [FP]
+ */
 static void _cmd_distrust(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
@@ -337,6 +351,8 @@ void cmd_generic(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, char *cmd, const void *data)
 {
 	struct irssi_commands *commands = cmds;
+
+	assert(cmd);
 
 	do {
 		if (strcmp(commands->name, cmd) == 0) {
