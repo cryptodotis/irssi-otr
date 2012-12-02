@@ -45,6 +45,12 @@ static const char *statusbar_txt[] = {
 	"CTX_UPDATE"
 };
 
+/*
+ * Allocate and return a string containing the account name of the Irssi server
+ * record.
+ *
+ * Return: nick@myserver.net
+ */
 static char *create_account_name(SERVER_REC *irssi)
 {
 	int ret;
@@ -100,6 +106,9 @@ error_filename:
 	return;
 }
 
+/*
+ * Free otr peer context. Callback passed to libotr.
+ */
 static void destroy_peer_context_cb(void *data)
 {
 	struct otr_peer_context *opc = data;
@@ -111,6 +120,9 @@ static void destroy_peer_context_cb(void *data)
 	IRSSI_DEBUG("Peer context freed");
 }
 
+/*
+ * Allocate otr peer context. Callback passed to libotr.
+ */
 static void add_peer_context_cb(void *data, ConnContext *context)
 {
 	struct otr_peer_context *opc;
@@ -128,6 +140,9 @@ static void add_peer_context_cb(void *data, ConnContext *context)
 	IRSSI_DEBUG("Peer context created for %s", context->username);
 }
 
+/*
+ * Find Irssi server record by account name.
+ */
 static SERVER_REC *find_irssi_by_account_name(const char *accname)
 {
 	GSList *tmp;
@@ -198,7 +213,7 @@ static int check_fp_encrypted_msgstate(Fingerprint *fp)
 		}
 	}
 
-	/* No state is in an encrypted state. */
+	/* No state is encrypted. */
 	ret = 0;
 
 end:
@@ -206,7 +221,7 @@ end:
 }
 
 /*
- * Get a context from a pair.
+ * Find context from nickname and irssi server record.
  */
 ConnContext *otr_find_context(SERVER_REC *irssi, const char *nick, int create)
 {
@@ -231,6 +246,9 @@ error:
 	return ctx;
 }
 
+/*
+ * Create otr peer context.
+ */
 struct otr_peer_context *otr_create_peer_context(void)
 {
 	struct otr_peer_context *opc;
@@ -239,13 +257,11 @@ struct otr_peer_context *otr_create_peer_context(void)
 }
 
 /*
- * Return a newly allocated OTR user state for the given username.
+ * Return a newly allocated OTR user state.
  */
-struct otr_user_state *otr_init_user(const char *user)
+struct otr_user_state *otr_init_user_state(void)
 {
 	struct otr_user_state *ous = NULL;
-
-	assert(user);
 
 	ous = zmalloc(sizeof(*ous));
 	if (!ous) {
@@ -264,7 +280,10 @@ error:
 	return ous;
 }
 
-void otr_free_user(struct otr_user_state *ustate)
+/*
+ * Destroy otr user state.
+ */
+void otr_free_user_state(struct otr_user_state *ustate)
 {
 	if (ustate->otr_state) {
 		otrl_userstate_free(ustate->otr_state);
@@ -332,6 +351,9 @@ error:
 	return -1;
 }
 
+/*
+ * List otr contexts to the main Irssi windows.
+ */
 void otr_contexts(struct otr_user_state *ustate)
 {
 	char human_fp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN], *trust;
@@ -452,6 +474,9 @@ end:
 	return;
 }
 
+/*
+ * Finish all otr contexts.
+ */
 void otr_finishall(struct otr_user_state *ustate)
 {
 	ConnContext *context;

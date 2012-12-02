@@ -113,8 +113,8 @@ void otr_status_change(SERVER_REC *irssi, const char *nick,
 
 /* init stuff */
 
-struct otr_user_state *otr_init_user(const char *user);
-void otr_free_user(struct otr_user_state *ustate);
+struct otr_user_state *otr_init_user_state(void);
+void otr_free_user_state(struct otr_user_state *ustate);
 
 void otr_lib_init();
 void otr_lib_uninit();

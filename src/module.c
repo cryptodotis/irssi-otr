@@ -308,10 +308,7 @@ void otr_init(void)
 
 	otr_lib_init();
 
-	/*
-	 * Username does not really matter here since well... we got only one :).
-	 */
-	user_state_global = otr_init_user("one to rule them all");
+	user_state_global = otr_init_user_state();
 	if (!user_state_global) {
 		IRSSI_MSG("Unable to allocate user global state");
 		return;
@@ -354,7 +351,7 @@ void otr_deinit(void)
 
 	otr_finishall(user_state_global);
 
-	otr_free_user(user_state_global);
+	otr_free_user_state(user_state_global);
 
 	otr_lib_uninit();
 
