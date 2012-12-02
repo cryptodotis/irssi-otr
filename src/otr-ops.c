@@ -332,6 +332,46 @@ static void ops_timer_control(void *opdata, unsigned int interval)
 }
 
 /*
+ * Handle otr error message.
+ */
+static const char *ops_otr_error_message(void *opdata, ConnContext *context,
+		OtrlErrorCode code)
+{
+	char *msg = NULL;
+
+	switch (code) {
+	case OTRL_ERRCODE_NONE:
+		break;
+	case OTRL_ERRCODE_ENCRYPTION_ERROR:
+		msg = strdup("Error occurred encrypting message.");
+		break;
+	case OTRL_ERRCODE_MSG_NOT_IN_PRIVATE:
+		if (context) {
+			msg = strdup("You sent encrypted data which was unexpected");
+		}
+		break;
+	case OTRL_ERRCODE_MSG_UNREADABLE:
+		msg = strdup("You transmitted an unreadable encrypted message");
+		break;
+	case OTRL_ERRCODE_MSG_MALFORMED:
+		msg = strdup("You transmitted a malformed data message.");
+		break;
+	}
+
+	return msg;
+}
+
+/*
+ * Free otr error message callback.
+ */
+static void ops_otr_error_message_free(void *opdata, const char *err_msg)
+{
+	if (err_msg) {
+		free((char *)err_msg);
+	}
+}
+
+/*
  * Assign OTR message operations.
  */
 OtrlMessageAppOps otr_ops = {
@@ -349,8 +389,8 @@ OtrlMessageAppOps otr_ops = {
 	NULL, /* account_name */
 	NULL, /* account_name_free */
 	NULL, /* received_symkey */
-	NULL, /* otr_error_message */
-	NULL, /* otr_error_message_free */
+	ops_otr_error_message,
+	ops_otr_error_message_free,
 	NULL, /* resent_msg_prefix */
 	NULL, /* resent_msg_prefix_free */
 	ops_smp_event,
@@ -358,5 +398,5 @@ OtrlMessageAppOps otr_ops = {
 	ops_create_instag,
 	NULL, /* convert_msg */
 	NULL, /* convert_free */
-	ops_timer_control, /* timer_control */
+	ops_timer_control,
 };
