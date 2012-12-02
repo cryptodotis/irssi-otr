@@ -1,0 +1,21 @@
+2012-12-02 irssi-otr 1.0.0-alpha1
+	* Initial import of the alpha1 version
+	* Major refactoring from the last version
+	* Only supports libotr4
+
+Version 0.3
+	* create queries for OTR messages if otr_createqueries is set
+	* finish conversations on unload unless otr_finishonunload is off
+	* added settings otr_policy, otr_policy_known and otr_ignore
+	* fixed two segfault sources
+	* key generation now operates on a temp file
+	* the .irssi/otr dir now gets created with mode 700
+	* commands now take an optional nick@server argument
+	  (for single message window users)
+	* changed loglevel of otr_log (heartbeats) and otr_finish
+	* moved to the new public statusbar-item.h header
+
+Version 0.2
+
+	* fixed multiple server problem.
+	* fixed fragmentation problem (seen with pidgin over IRC).
