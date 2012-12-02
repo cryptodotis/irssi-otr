@@ -3,6 +3,20 @@ irssi-otr
 
 LibOTR (http://www.cypherpunks.ca/otr/) support for IRSSI.
 
+**Mailing list**: otr-dev@lists.cypherpunks.ca
+
+First of all, we strongly recommend to set this option to speed up any OTR
+commands or sessions.
+
+`/set cmd_queue_speed 1msec`
+
+The default value of irssi is much higher and used to avoid excess flood on IRC
+servers. However, with the message size this module is using and rate of a
+normal conversation, it seems OK to set this limit. Please inform us if it
+causes problems.
+
+Future works is to handle IRC excess flood inside this module.
+
 Requirements
 ---------
 
@@ -24,7 +38,7 @@ Run the following commands to compile and install.
 
 `$ ./bootstrap`
 
-`$ ./configure --prefix="~/.irssi/modules"`
+`$ ./configure --prefix="/usr"`
 
 `$ make && make install`
 
