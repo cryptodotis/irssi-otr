@@ -76,6 +76,7 @@ AC_SUBST(IRSSI_MODULE_DIR)
 
 AC_CONFIG_FILES([
 	Makefile
+	help/Makefile
 	src/Makefile
 ])
 

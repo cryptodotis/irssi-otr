@@ -2,4 +2,5 @@ AM_CFLAGS = $(PACKAGE_CFLAGS)
 
 ACLOCAL_AMFLAGS = -I config
 
-SUBDIRS = src
+SUBDIRS = help \
+		  src

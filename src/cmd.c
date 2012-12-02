@@ -19,7 +19,9 @@
  * Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
+#define _GNU_SOURCE
 #include <assert.h>
+#include <stdio.h>
 
 #include "cmd.h"
 #include "key.h"
@@ -53,7 +55,18 @@ static void _cmd_version(struct otr_user_state *ustate, SERVER_REC *irssi,
 static void _cmd_help(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
-	/* TODO: Add help message. */
+	int ret;
+	char *cmd_line;
+
+	ret = asprintf(&cmd_line, "%sHELP otr", settings_get_str("cmdchars"));
+	if (ret < 0) {
+		return;
+	}
+
+	/* Call /help otr instread of duplicating the text output. */
+	signal_emit("send command", 3, cmd_line, irssi, NULL);
+
+	free(cmd_line);
 }
 
 /*
