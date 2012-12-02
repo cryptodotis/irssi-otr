@@ -135,10 +135,8 @@ static void _cmd_genkey(struct otr_user_state *ustate, SERVER_REC *irssi,
 	utils_explode_args(data, &argv, &argc);
 
 	if (argc) {
-		if (strncmp(argv[0], "abort", strlen("abort")) == 0) {
-			key_generation_abort(ustate, FALSE);
-		} else if (strchr(argv[0], '@')) {
-			key_generation_run(ustate, argv[0]);
+		if (strchr(argv[0], '@')) {
+			key_gen_run(ustate, argv[0]);
 		} else {
 			IRSSI_INFO(NULL, NULL, "I need an account name. "
 					"Try something like /otr genkey mynick@irc.server.net");

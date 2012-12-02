@@ -21,10 +21,24 @@
 
 #include "otr.h"
 
-typedef enum { KEYGEN_NO, KEYGEN_RUNNING } keygen_status_t;
+enum key_gen_status {
+	KEY_GEN_IDLE		= 0,
+	KEY_GEN_RUNNING		= 1,
+	KEY_GEN_FINISHED    = 2,
+	KEY_GEN_ERROR		= 3,
+};
 
-void key_generation_abort(struct otr_user_state *ustate, int ignoreidle);
-void key_generation_run(struct otr_user_state *ustate, const char *accname);
+struct key_gen_data {
+	struct otr_user_state *ustate;
+	char *account_name;
+	char *key_file_path;
+	enum key_gen_status status;
+	gcry_error_t gcry_error;
+	void *newkey;
+};
+
+void key_gen_check(void);
+void key_gen_run(struct otr_user_state *ustate, const char *account_name);
 void key_load(struct otr_user_state *ustate);
 void key_load_fingerprints(struct otr_user_state *ustate);
 void key_write_fingerprints(struct otr_user_state *ustate);

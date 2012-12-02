@@ -43,7 +43,7 @@ static OtrlPolicy ops_policy(void *opdata, ConnContext *context)
 static void ops_create_privkey(void *opdata, const char *accountname,
 		const char *protocol)
 {
-	key_generation_run(user_state_global, accountname);
+	key_gen_run(user_state_global, accountname);
 }
 
 /*

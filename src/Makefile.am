@@ -21,7 +21,7 @@ otr_la_SOURCES = otr-formats.c otr-formats.h \
                  utils.h utils.c otr.h module.c irssi_otr.h
 
 otr_la_LDFLAGS = -avoid-version -module
-otr_la_LDFLAGS += $(LIBOTR_LIBS) $(LIBGCRYPT_LIBS)
+otr_la_LDFLAGS += $(LIBOTR_LIBS) $(LIBGCRYPT_LIBS) -lpthread
 
 install-exec-hook:
 	mkdir -p $(plugindir)

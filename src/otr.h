@@ -41,7 +41,6 @@
 #define OTR_PROTOCOL_ID               "IRC"
 
 #define OTR_KEYFILE                   "/otr/otr.key"
-#define OTR_TMP_KEYFILE               "/otr/otr.key.tmp"
 #define OTR_FINGERPRINTS_FILE         "/otr/otr.fp"
 #define OTR_INSTAG_FILE               "/otr/otr.instag"
 

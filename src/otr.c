@@ -266,8 +266,6 @@ error:
 
 void otr_free_user(struct otr_user_state *ustate)
 {
-	key_generation_abort(ustate, TRUE);
-
 	if (ustate->otr_state) {
 		otrl_userstate_free(ustate->otr_state);
 		ustate->otr_state = NULL;
