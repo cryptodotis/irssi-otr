@@ -26,6 +26,7 @@ void utils_extract_command(const char *data, char **_cmd);
 void utils_explode_args(const char *_data, char ***_argv, int *_argc);
 int utils_io_extract_smp(const char *data, char **question, char **secret);
 void utils_string_to_upper(char *string);
+int utils_auth_extract_secret(const char *_data, char **secret);
 void utils_hash_parts_to_readable_hash(const char **parts, char *dst);
 
 #endif /* IRSSI_OTR_UTILS_H */

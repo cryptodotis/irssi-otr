@@ -188,8 +188,8 @@ end:
 static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi,
 		const char *target, const void *data)
 {
-	int argc;
-	char **argv;
+	int ret;
+	char *secret = NULL;
 
 	if (!irssi || !target) {
 		IRSSI_WARN(irssi, target,
@@ -198,17 +198,16 @@ static void _cmd_auth(struct otr_user_state *ustate, SERVER_REC *irssi,
 		goto error;
 	}
 
-	utils_explode_args(data, &argv, &argc);
-
-	if (argc == 0) {
+	ret = utils_auth_extract_secret(data, &secret);
+	if (ret < 0) {
 		IRSSI_NOTICE(irssi, target, "Huh... I need a secret here James.");
 		goto end;
 	}
 
-	otr_auth(irssi, target, NULL, argv[0]);
+	otr_auth(irssi, target, NULL, secret);
+	free(secret);
 
 end:
-	utils_free_args(&argv, argc);
 error:
 	return;
 }

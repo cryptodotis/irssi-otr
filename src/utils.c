@@ -139,6 +139,44 @@ error:
 	return -1;
 }
 
+/*
+ * Extract the secret from an auth otr command. The secret can have more than
+ * one words so this is more efficient than exploding all args and
+ * concatenating them.
+ *
+ * Return 0 and set secret on success or else return negative value an secret
+ * is untouched.
+ */
+int utils_auth_extract_secret(const char *_data, char **secret)
+{
+	char *s, *data = NULL, *cmd_offset = NULL;
+
+	if (!_data || !secret) {
+		goto error;
+	}
+
+	data = strndup(_data, strlen(_data));
+	if (!data) {
+		goto error;
+	}
+
+	s = utils_trim_string(data);
+
+	cmd_offset = strchr(s, ' ');
+	if (!cmd_offset) {
+		goto error;
+	}
+
+	s = utils_trim_string(cmd_offset);
+	*secret = s;
+
+	return 0;
+
+error:
+	free(data);
+	return -1;
+}
+
 void utils_explode_args(const char *_data, char ***_argv, int *_argc)
 {
 	int argc = 0, i = 0, have_arg = 0;
