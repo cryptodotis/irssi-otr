@@ -292,7 +292,7 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 	case OTRL_SMPEVENT_ASK_FOR_ANSWER:
 		IRSSI_NOTICE(irssi, from, "%9%s%9 wants to authenticate and "
 				"asked this question:", from);
-		IRSSI_NOTICE(irssi, from, "-> %9%s%9", question);
+		IRSSI_NOTICE(irssi, from, "%b>%n %y%s%n", question);
 		IRSSI_NOTICE(irssi, from, "Type %9/otr auth <SECRET>%9 to complete.");
 		opc->ask_secret = 1;
 		otr_status_change(irssi, from, OTR_STATUS_SMP_INCOMING);
