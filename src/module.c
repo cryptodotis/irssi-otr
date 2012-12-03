@@ -215,8 +215,9 @@ static void cmd_otr(const char *data, void *server, WI_ITEM_REC *item)
 
 	statusbar_items_redraw("otr");
 
-end:
 	free(cmd);
+
+end:
 	return;
 }
 
