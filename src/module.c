@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <glib/gstdio.h>
+#include <pthread.h>
 #include <stdio.h>
 
 #include "cmd.h"
