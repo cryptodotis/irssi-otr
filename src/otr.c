@@ -493,7 +493,7 @@ void otr_finish(SERVER_REC *irssi, const char *nick)
 	otr_status_change(irssi, nick, OTR_STATUS_FINISHED);
 
 	IRSSI_INFO(irssi, nick, "Finished conversation with %9%s%9",
-			ctx->accountname);
+			nick);
 
 end:
 	return;
