@@ -281,11 +281,10 @@ error_alloc:
 void irssi_send_message(SERVER_REC *irssi, const char *recipient,
 		const char *msg)
 {
-	/* XXX: Maybe an assert here. Code flow error? */
-	if (irssi) {
-		irssi->send_message(irssi, recipient, msg,
-				GPOINTER_TO_INT(SEND_TARGET_NICK));
-	}
+	assert(irssi);
+
+	irssi->send_message(irssi, recipient, msg,
+			GPOINTER_TO_INT(SEND_TARGET_NICK));
 }
 
 /*

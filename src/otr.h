@@ -48,6 +48,13 @@
 #define OTR_INSTAG_FILE               OTR_DIR "/otr.instag"
 
 /*
+ * Specified in OTR protocol version 3. See:
+ * http://www.cypherpunks.ca/otr/Protocol-v3-4.0.0.html
+ */
+#define OTR_MSG_BEGIN_TAG             "?OTR:"
+#define OTR_MSG_END_TAG               '.'
+
+/*
  * Memory allocation zeroed. Really useful!
  */
 #define zmalloc(x) calloc(1, x)
@@ -71,6 +78,16 @@ struct otr_peer_context {
 	 * automatically.
 	 */
 	Fingerprint *active_fingerprint;
+	/*
+	 * If needed, used to reconstruct the full message from fragmentation.
+	 * Bitlbee for instance does that where we receive a *long* OTR message
+	 * split in multiple PRIVMSG so we need to reconstruct it.
+	 */
+	char *full_msg;
+	/* Size of full_msg. Note this is the allocated memory size. */
+	size_t msg_size;
+	/* Len of the actual string in full_msg NOT counting the NULL byte. */
+	size_t msg_len;
 };
 
 /* given to otr_status_change */
@@ -90,6 +107,13 @@ enum otr_status_event {
 	OTR_STATUS_GONE_SECURE,
 	OTR_STATUS_GONE_INSECURE,
 	OTR_STATUS_CTX_UPDATE
+};
+
+enum otr_msg_status {
+	OTR_MSG_ORIGINAL		= 1,
+	OTR_MSG_WAIT_MORE		= 2,
+	OTR_MSG_USE_QUEUE		= 3,
+	OTR_MSG_ERROR			= 4,
 };
 
 /* there can be only one */
