@@ -42,15 +42,24 @@ static char *ltrim(char *s)
  */
 static char *rtrim(char *s)
 {
+	size_t len;
 	char *back;
 
 	assert(s);
 
-	back = s + strlen(s);
+	len = strlen(s);
+	if (len == 0) {
+		goto end;
+	}
 
+	back = s + len;
+
+	/* Move up to the first non whitespace character. */
 	while (isspace(*--back));
+	/* Remove whitespace(s) from the string. */
 	*(back + 1) = '\0';
 
+end:
 	return s;
 }
 

@@ -28,5 +28,6 @@ int utils_io_extract_smp(const char *data, char **question, char **secret);
 void utils_string_to_upper(char *string);
 int utils_auth_extract_secret(const char *_data, char **secret);
 void utils_hash_parts_to_readable_hash(const char **parts, char *dst);
+char *utils_trim_string(char *s);
 
 #endif /* IRSSI_OTR_UTILS_H */
