@@ -276,9 +276,7 @@ error:
  */
 struct otr_peer_context *otr_create_peer_context(void)
 {
-	struct otr_peer_context *opc;
-
-	return zmalloc(sizeof(*opc));
+	return zmalloc(sizeof(struct otr_peer_context));
 }
 
 /*
