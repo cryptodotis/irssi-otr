@@ -83,7 +83,7 @@ int utils_io_extract_smp(const char *data, char **question, char **secret)
 {
 	unsigned int q_len, s_len;
 	const char *tmp, *q_end, *q_beg, *args = data;
-	char *q, *s;
+	char *q = NULL, *s = NULL;
 
 	if (!data || !question || !secret) {
 		goto error;
@@ -140,7 +140,6 @@ int utils_io_extract_smp(const char *data, char **question, char **secret)
 
 	s = malloc((s_len + 1) * sizeof(char));
 	if (s == NULL) {
-		free(q);
 		goto error;
 	}
 
@@ -153,6 +152,8 @@ int utils_io_extract_smp(const char *data, char **question, char **secret)
 	return 0;
 
 error:
+	free(q);
+	free(s);
 	return -1;
 }
 
