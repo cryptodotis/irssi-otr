@@ -46,7 +46,7 @@ Quick Start
 ---------
 
 1. `/load otr` in the Irssi main window.
-2. Open a chat window with your buggy.
+2. Open a chat window with your buddy.
 3. `/otr init`, initiate OTR session.
 
 If no key is found for your user and server, the key generation will be
