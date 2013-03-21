@@ -54,6 +54,10 @@
 #define OTR_MSG_BEGIN_TAG             "?OTR:"
 #define OTR_MSG_END_TAG               '.'
 
+/* IRC /me command marker and len. */
+#define OTR_IRC_MARKER_ME             "/me "
+#define OTR_IRC_MARKER_ME_LEN         sizeof(OTR_IRC_MARKER_ME) - 1
+
 /*
  * Memory allocation zeroed. Really useful!
  */

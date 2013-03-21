@@ -108,8 +108,19 @@ void sig_message_private(SERVER_REC *server, const char *msg,
 		/* This message was not OTR */
 		signal_continue(4, server, msg, nick, address);
 	} else {
-		/* OTR received message */
-		signal_continue(4, server, new_msg, nick, address);
+		/*
+		 * Check for /me IRC marker and if so, handle it so the user does not
+		 * receive a message beginning with /me but rather let irssi handle it
+		 * as a IRC action.
+		 */
+		if (!strncmp(new_msg, OTR_IRC_MARKER_ME, OTR_IRC_MARKER_ME_LEN)) {
+			signal_stop();
+			signal_emit("message irc action", 5, server,
+					new_msg + OTR_IRC_MARKER_ME_LEN, nick, address, nick);
+		} else {
+			/* OTR received message */
+			signal_continue(4, server, new_msg, nick, address);
+		}
 	}
 
 end:
@@ -157,7 +168,7 @@ static void cmd_me(const char *data, IRC_SERVER_REC *server,
 
 	target = window_item_get_target(item);
 
-	ret = asprintf(&msg, "/me %s", data);
+	ret = asprintf(&msg, OTR_IRC_MARKER_ME "%s", data);
 	if (ret < 0) {
 		goto end;
 	}
