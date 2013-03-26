@@ -57,7 +57,7 @@ static guint otr_timerid;
 static char *create_account_name(SERVER_REC *irssi)
 {
 	int ret;
-	char *accname = NULL;
+	char *accname;
 
 	assert(irssi);
 
@@ -66,6 +66,11 @@ static char *create_account_name(SERVER_REC *irssi)
 			IRSSI_CONN_ADDR(irssi));
 	if (ret < 0) {
 		IRSSI_INFO(NULL, NULL, "Unable to allocate account name.");
+		/*
+		 * As stated in asprintf(3), if an error occurs, the contents of the
+		 * passed pointer is undefined. Force it to NULL here.
+		 */
+		accname = NULL;
 	}
 
 	return accname;
