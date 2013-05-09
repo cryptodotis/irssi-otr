@@ -14,16 +14,14 @@ IRSSI_INCLUDE = -I$(IRSSI_DIST) \
 INCLUDES = -I$(top_srcdir)/src $(IRSSI_INCLUDE)
 
 plugindir = $(IRSSI_MODULE_DIR)
-plugin_LTLIBRARIES = otr.la
+plugin_LTLIBRARIES = libotr.la
 
-otr_la_SOURCES = otr-formats.c otr-formats.h \
+libotr_la_SOURCES = otr-formats.c otr-formats.h \
                  key.c key.h cmd.c cmd.h otr.c otr-ops.c \
                  utils.h utils.c otr.h module.c module.h irssi-otr.h
 
-otr_la_LDFLAGS = -avoid-version -module
-otr_la_LDFLAGS += $(LIBOTR_LIBS) $(LIBGCRYPT_LIBS) -lpthread
+libotr_la_LDFLAGS = -avoid-version -module
+libotr_la_LDFLAGS += $(LIBOTR_LIBS) $(LIBGCRYPT_LIBS) -lpthread
 
 install-data-hook:
-	rm $(DESTDIR)$(plugindir)/otr.la
-	mv $(DESTDIR)$(plugindir)/otr.so $(DESTDIR)$(plugindir)/libotr.so
-	chmod 644 $(DESTDIR)$(plugindir)/libotr.so
+	rm $(DESTDIR)/$(plugindir)/libotr.la
