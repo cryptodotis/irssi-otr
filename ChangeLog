@@ -1,3 +1,20 @@
+2013-05-09 irssi-otr 1.0.0-alpha2
+	* Merge pull request #30 from anarcat/master
+	* cleanup automake voodoo
+	* Fix: explicitly set ptr to NULL on asprintf error
+	* Fix: handle IRC /me marker on msg receive
+	* Fix: small typo in README.md
+	* Fix: memory leak on error path
+	* Fix: remove useless value
+	* Fix: handle zero length string in rtrim()
+	* Support split OTR message on receive. Bitlbee support.
+	* Fix: print right nick name on otr finish
+	* Merge pull request #18 from cbab/master
+	* Fix: Automake install-data-hook must respect $DESTDIR
+	* Fix: missing pthread header include
+	* Fix: install help in /usr
+	* Fix: move NULL free out of end label
+
 2012-12-02 irssi-otr 1.0.0-alpha1
 	* Initial import of the alpha1 version
 	* Major refactoring from the last version
