@@ -24,4 +24,8 @@ libotr_la_LDFLAGS = -avoid-version -module
 libotr_la_LDFLAGS += $(LIBOTR_LIBS) $(LIBGCRYPT_LIBS) -lpthread
 
 install-data-hook:
+	chmod 644 $(DESTDIR)/$(plugindir)/libotr.so
 	rm $(DESTDIR)/$(plugindir)/libotr.la
+
+uninstall-hook:
+	rm $(DESTDIR)/$(plugindir)/libotr.so
