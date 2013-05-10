@@ -36,7 +36,7 @@ AM_PATH_LIBOTR(4.0.0, [], [AC_MSG_ERROR([libotr 4.0.0 or newer is required.])])
 pkg_modules="gmodule-2.0 >= 2.0.0"
 PKG_CHECK_MODULES(GMODULE, [$pkg_modules])
 
-LIBS="$LIBS $GMODULE_LIBS"
+LIBS="$LIBS"
 
 PACKAGE_CFLAGS="$GMODULE_CFLAGS -Wall -Werror=format-security"
 AC_SUBST(PACKAGE_CFLAGS)
