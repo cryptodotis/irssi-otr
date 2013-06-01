@@ -36,7 +36,7 @@
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 
 static const char *signal_args_otr_event[] = {
-	"iobject", "string", "string", "NULL"
+	"iobject", "string", "string", NULL
 };
 
 int debug = FALSE;
