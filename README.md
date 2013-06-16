@@ -1,3 +1,9 @@
+## IMPORTANT ##
+Please use the git head master branch of libotr which contains a critical fix
+for irssi-otr to work. (Fix commit: d748757e581b74e7298df155ad49174cb914102b)
+
+http://sourceforge.net/p/otr/libotr/ci/master/tree/
+
 irssi-otr
 =========
 
@@ -83,7 +89,7 @@ the keys will be generated automatically for you. Or else, you can run:
 
 `/otr genkey nickname@server-addr-fqdn`
 
-Once down, you should see a message in the irssi main window indicating
+Once done, you should see a message in the irssi main window indicating
 completion.
 
 `OTR: Key generation for <nickname> completed in X seconds. Reloading keys.`
