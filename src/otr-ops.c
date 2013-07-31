@@ -92,7 +92,7 @@ static void ops_secure(void *opdata, ConnContext *context)
 			context->accountname, OTR_PROTOCOL_ID);
 
 	IRSSI_NOTICE(irssi, context->username, "Your peer is not "
-			"authenticated. To make sure you're talking to the right guy you can "
+			"authenticated. To make sure you're talking to the right person you can "
 			"either agree on a secret and use the authentication command "
 			"%9/otr auth%9 or %9/otr authq [QUESTION] SECRET%9. You can also "
 			"use the traditional way and compare fingerprints "
