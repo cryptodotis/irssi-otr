@@ -338,6 +338,32 @@ error:
 	return;
 }
 
+/*
+ * /otr info
+ */
+static void _cmd_info(struct otr_user_state *ustate, SERVER_REC *irssi,
+		const char *target, const void *data)
+{
+	unsigned int fp_found = 0;
+	char ownfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
+	ConnContext *ctx;
+
+	for (ctx = ustate->otr_state->context_root; ctx != NULL; ctx = ctx->next) {
+		if (ctx == ctx->m_context) {
+			otrl_privkey_fingerprint(user_state_global->otr_state, ownfp,
+					ctx->accountname, OTR_PROTOCOL_ID);
+			IRSSI_NOTICE(irssi, target, "%B%s%n fingerprint:",
+					ctx->accountname, ownfp);
+			IRSSI_NOTICE(irssi, target, "%g%s%n", ownfp);
+			fp_found = 1;
+		}
+	}
+
+	if (!fp_found) {
+		IRSSI_NOTICE(irssi, target, "No key found!");
+	}
+}
+
 static struct irssi_commands cmds[] = {
 	{ "version", _cmd_version },
 	{ "debug", _cmd_debug },
@@ -352,6 +378,7 @@ static struct irssi_commands cmds[] = {
 	{ "authq", _cmd_authq },
 	{ "genkey", _cmd_genkey },
 	{ "contexts", _cmd_contexts },
+	{ "info", _cmd_info },
 	{ NULL, NULL },
 	{ NULL, NULL }
 };
