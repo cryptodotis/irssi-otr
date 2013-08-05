@@ -104,6 +104,8 @@ announcement (as in opportunistic) but we still handle whitespaces if we see it
 from the other side. Therefore if your peer uses opportunistic the handshake
 should still start automatically once he writes something.
 
+To display the fingerprint of the OTR key you just generated, one can type `/otr info` to show the fingerprint.
+
 #### Authentication ####
 
 In order to be sure you are communicating with the right person you can do two
