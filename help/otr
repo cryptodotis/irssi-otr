@@ -60,6 +60,9 @@ GENKEY <nickname>@<im.server.net>
 HELP
     Print this help.
 
+INFO
+	To display the fingerprint of your OTR key(s).
+
 INIT
     Initialize an OTR conversation within a private conversation window.
 
