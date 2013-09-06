@@ -346,17 +346,16 @@ static void _cmd_info(struct otr_user_state *ustate, SERVER_REC *irssi,
 {
 	unsigned int fp_found = 0;
 	char ownfp[OTRL_PRIVKEY_FPRINT_HUMAN_LEN];
-	ConnContext *ctx;
+	OtrlPrivKey *key;
 
-	for (ctx = ustate->otr_state->context_root; ctx != NULL; ctx = ctx->next) {
-		if (ctx == ctx->m_context) {
-			otrl_privkey_fingerprint(user_state_global->otr_state, ownfp,
-					ctx->accountname, OTR_PROTOCOL_ID);
-			IRSSI_NOTICE(irssi, target, "%B%s%n fingerprint:",
-					ctx->accountname, ownfp);
-			IRSSI_NOTICE(irssi, target, "%g%s%n", ownfp);
-			fp_found = 1;
-		}
+	for (key = user_state_global->otr_state->privkey_root; key != NULL;
+			key = key->next) {
+		otrl_privkey_fingerprint(user_state_global->otr_state, ownfp,
+				key->accountname, OTR_PROTOCOL_ID);
+		IRSSI_NOTICE(irssi, target, "%B%s%n fingerprint:",
+				key->accountname, ownfp);
+		IRSSI_NOTICE(irssi, target, "%g%s%n", ownfp);
+		fp_found = 1;
 	}
 
 	if (!fp_found) {
