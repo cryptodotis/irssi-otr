@@ -61,7 +61,7 @@ HELP
     Print this help.
 
 INFO
-	To display the fingerprint of your OTR key(s).
+    Display the OTR fingerprint(s) of all your account(s).
 
 INIT
     Initialize an OTR conversation within a private conversation window.
