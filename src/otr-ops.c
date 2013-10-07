@@ -298,7 +298,7 @@ static void ops_smp_event(void *opdata, OtrlSMPEvent smp_event,
 		otr_status_change(irssi, from, OTR_STATUS_SMP_INCOMING);
 		break;
 	case OTRL_SMPEVENT_IN_PROGRESS:
-		IRSSI_NOTICE(irssi, from, "%9%s%9 replied to our auth request",
+		IRSSI_NOTICE(irssi, from, "%9%s%9 replied to your auth request",
 				from);
 		otr_status_change(irssi, from, OTR_STATUS_SMP_FINALIZE);
 		break;
