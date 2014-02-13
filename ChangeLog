@@ -1,3 +1,17 @@
+2014-02-12 irssi-otr 1.0.0
+	* Fix: typo in notice message of SMP event
+	* Fix: otr info help syntax
+	* Fix: otr info printing every user fingerprints
+	* Update help page with otr info command
+	* Updated README.md with otr fingerprint info
+	* Add /otr info command
+	* Merge pull request #38 from KwadroNaut/master
+	* language, gender
+	* Fix typo and add important notice to README
+	* Fix: remove double quotes around a NULL value
+	* Fix: remove gmodule useless linked library flags
+	* Fix: remove .so on uninstall and set +x the .so on install
+
 2013-05-09 irssi-otr 1.0.0-alpha2
 	* Merge pull request #30 from anarcat/master
 	* cleanup automake voodoo
