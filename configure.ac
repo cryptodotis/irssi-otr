@@ -85,6 +85,7 @@ AC_CONFIG_FILES([
 	Makefile
 	help/Makefile
 	src/Makefile
+        irssi-otr.spec
 ])
 
 AC_OUTPUT

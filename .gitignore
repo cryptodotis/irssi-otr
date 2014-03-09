@@ -28,3 +28,6 @@ tags
 
 config/
 !config/libotr.m4
+
+irssi-otr.spec
+rpmbuild/
