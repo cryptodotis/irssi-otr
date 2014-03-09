@@ -1,0 +1,40 @@
+Name:           irssi-otr
+Version:        @PACKAGE_VERSION@
+Release:        1%{?dist}
+Summary:        Off-The-Record Messaging plugin for irssi
+Group:          Applications/Internet
+License:        GPLv2+
+URL:            https://github.com/cryptodotis/irssi-otr
+Source0:        %{name}-%{version}.tar.bz2
+
+BuildRequires:  glib2-devel >= 2.13
+BuildRequires:  irssi-devel
+BuildRequires:  libotr-devel >= 4.0.0
+BuildRequires:  pkgconfig
+Requires:       irssi
+
+%description
+This provides module which implements Off-The-Record (OTR)
+Messaging for the irssi IRC client.
+
+%prep
+%setup -q
+
+%build
+#./bootstrap
+%configure --with-irssi-module-dir=%{_libdir}/irssi/modules
+make %{?_smp_mflags}
+
+%install
+make install DESTDIR=%{buildroot}
+# needed for debuginfo subpackage
+chmod +x %{buildroot}%{_libdir}/irssi/modules/libotr.so
+
+%files
+%doc README.md LICENSE ChangeLog
+%{_libdir}/irssi/modules/libotr.so
+%{_datadir}/irssi/help/otr
+
+%changelog
+* Sun Mar 09 2014 Martin Milata <mmilata@srck.net> - 1.0-1
+- Initial package based on Conrad Meyer's spec for irc-otr.
