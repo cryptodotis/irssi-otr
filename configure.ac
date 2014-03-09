@@ -69,9 +69,16 @@ CFLAGS="-Wall $CFLAGS -g -fno-strict-aliasing -fstack-protector-all -D_FORTIFY_S
 DEFAULT_INCLUDES="-I\$(top_srcdir) -I\$(top_builddir) -I\$(top_builddir)/src -I\$(top_builddir)/include"
 AC_SUBST(DEFAULT_INCLUDES)
 
-# Hardcoded here since irssi only searches in $HOME/.irssi/modules or this path
-# which is unfortunate...
-IRSSI_MODULE_DIR="/usr/lib/irssi/modules"
+# Irssi searches for modules in $HOME/.irssi/modules and  $(libdir)/irssi/modules
+# where the value of $(libdir) may depend on your distribution, architecture,
+# and whether irssi was installed from package or from source.
+# The hardcoded value should work for most systems but you need to override it for
+# e.g. x86_64 Fedora.
+AC_ARG_WITH([irssi-module-dir],
+	AS_HELP_STRING([--with-irssi-module-dir=DIR], [Irssi module directory]),
+	[IRSSI_MODULE_DIR="$withval"],
+	[IRSSI_MODULE_DIR="/usr/lib/irssi/modules"])
+
 AC_SUBST(IRSSI_MODULE_DIR)
 
 AC_CONFIG_FILES([
