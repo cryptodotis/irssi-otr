@@ -74,6 +74,17 @@ char *utils_trim_string(char *s)
 }
 
 /*
+ * Convert invalid characters (newlines from libotr) into spaces
+ */
+char *utils_escape_message(char *s) {
+	size_t i;
+	for (i = 0; s[i]; ++i) {
+		if (s[i] == '\n' || s[i] == '\r') s[i] = ' ';
+	}
+	return s;
+}
+
+/*
  * Extract question and secret for an SMP authentication.
  *
  * Return 0 and set question/secret on success. Else, return negative value and

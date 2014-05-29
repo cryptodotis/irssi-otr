@@ -364,6 +364,9 @@ int otr_send(SERVER_REC *irssi, const char *msg, const char *to, char **otr_msg)
 		goto error;
 	}
 
+	/* Remove newlines. */
+	if (otr_msg) utils_escape_message(*otr_msg);
+
 	IRSSI_DEBUG("Message sent...");
 
 	/* Add peer context to OTR context if none exists. */
