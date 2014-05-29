@@ -79,7 +79,6 @@ char *utils_trim_string(char *s)
  */
 char *utils_escape_message(char *s) {
 	char const* helpmsg = OTR_MSG_HELP;
-	char* p;
 	size_t i;
 	if (strncmp(s, "?OTR", 4) == 0 && strstr(s, "</b> has requested an <a href")) {
 		i = strcspn(s, "\n");
