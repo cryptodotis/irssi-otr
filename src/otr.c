@@ -363,8 +363,8 @@ int otr_send(SERVER_REC *irssi, const char *msg, const char *to, char **otr_msg)
 		IRSSI_NOTICE(irssi, to, "Send failed.");
 		goto error;
 	}
-
-	/* Remove newlines. */
+	
+	/* Modify some libotr messages (OTR init in particular) to work better with IRC. */
 	if (otr_msg) utils_escape_message(*otr_msg);
 
 	IRSSI_DEBUG("Message sent...");
