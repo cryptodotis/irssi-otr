@@ -26,6 +26,8 @@ stamp-h1
 libtool
 tags
 
+build/
+
 config/
 !config/libotr.m4
 
