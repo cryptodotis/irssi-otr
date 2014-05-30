@@ -26,6 +26,7 @@
 #include <glib/gstdio.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "cmd.h"
 #include "key.h"
