@@ -292,7 +292,14 @@ error_alloc:
 void irssi_send_message(SERVER_REC *irssi, const char *recipient,
 		const char *msg)
 {
-	assert(irssi);
+	/*
+	 * Apparently, there are cases where the server record is NULL which has
+	 * been reported with the irssi xmpp plugin. In that case, just return an
+	 * do nothing.
+	 */
+	if (!irssi) {
+		return;
+	}
 
 	irssi->send_message(irssi, recipient, msg,
 			GPOINTER_TO_INT(SEND_TARGET_NICK));
