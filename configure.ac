@@ -1,4 +1,4 @@
-AC_INIT([irssi-otr],[1.0.0],[dgoulet@ev0ke.net],[],[https://github.com/dgoulet/irssi-otr])
+AC_INIT([irssi-otr],[1.0.0],[dgoulet@ev0ke.net],[],[https://github.com/cryptodotis/irssi-otr])
 AC_CONFIG_AUX_DIR([config])
 AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
