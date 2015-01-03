@@ -1,3 +1,12 @@
+2015-01-03 irssi-otr 1.0.1
+	* Fix: bad comment for cmd_generic
+	* Add cscope files to gitignore
+	* Fix: change project URL in configure.ac
+	* Fix: assertion when server record is NULL
+	* Add spec file for building RPMs
+	* Add additional files into dist tarball
+	* Make irssi module directory configurable
+
 2014-02-12 irssi-otr 1.0.0
 	* Fix: typo in notice message of SMP event
 	* Fix: otr info help syntax
