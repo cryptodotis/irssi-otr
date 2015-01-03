@@ -25,6 +25,7 @@ config.status
 stamp-h1
 libtool
 tags
+cscope.*
 
 config/
 !config/libotr.m4
