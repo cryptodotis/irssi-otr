@@ -111,5 +111,5 @@ files:
     Instance tag of the libotr. This should NEVER be copied to an other
     computer. If unsure, just ignore this file.
 
-For more information on OTR, see http://www.cypherpunks.ca/otr/
+For more information on OTR, see https://otr.cypherpunks.ca/
 
