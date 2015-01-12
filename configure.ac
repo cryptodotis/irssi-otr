@@ -31,7 +31,7 @@ AM_PATH_GLIB_2_0([2.22.0], [],
 
 AM_PATH_LIBGCRYPT(1:1.2.0,,AC_MSG_ERROR(libgcrypt 1.2.0 or newer is required.))
 
-AM_PATH_LIBOTR(4.0.0, [], [AC_MSG_ERROR([libotr 4.0.0 or newer is required.])])
+AM_PATH_LIBOTR(4.1.0, [], [AC_MSG_ERROR([libotr 4.1.0 or newer is required.])])
 
 pkg_modules="gmodule-2.0 >= 2.0.0"
 PKG_CHECK_MODULES(GMODULE, [$pkg_modules])

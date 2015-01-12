@@ -9,7 +9,7 @@ Source0:        %{name}-%{version}.tar.bz2
 
 BuildRequires:  glib2-devel >= 2.13
 BuildRequires:  irssi-devel
-BuildRequires:  libotr-devel >= 4.0.0
+BuildRequires:  libotr-devel >= 4.1.0
 BuildRequires:  pkgconfig
 Requires:       irssi
 
