@@ -1,13 +1,7 @@
-## IMPORTANT ##
-Please use the git head master branch of libotr which contains a critical fix
-for irssi-otr to work. (Fix commit: d748757e581b74e7298df155ad49174cb914102b)
-
-http://sourceforge.net/p/otr/libotr/ci/master/tree/
-
 irssi-otr
 =========
 
-LibOTR (http://www.cypherpunks.ca/otr/) support for IRSSI.
+Libotr (https://otr.cypherpunks.ca) support for Irssi.
 
 **Mailing list**: otr-dev@lists.cypherpunks.ca
 
@@ -26,8 +20,8 @@ Future works is to handle IRC excess flood inside this module.
 Requirements
 ---------
 
-* libotr 4.0.x - [Download
-  Link](http://www.cypherpunks.ca/otr/index.php#downloads)
+* libotr 4.1.x - [Download
+  Link](https://otr.cypherpunks.ca/index.php#downloads)
 
 * irssi-dev >= 0.8.15 - [Download Link](http://www.irssi.org/download)
 
