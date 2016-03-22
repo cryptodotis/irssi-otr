@@ -1,6 +1,6 @@
 AM_CFLAGS = $(LIBOTR_CFLAGS) $(LIBGCRYPT_CFLAGS) $(PACKAGE_FLAGS)
 
-IRSSI_DIST=/usr/include/irssi
+IRSSI_DIST=$(includedir)/irssi
 IRSSI_INCLUDE = -I$(IRSSI_DIST) \
 				-I$(IRSSI_DIST)/src \
 				-I$(IRSSI_DIST)/src/fe-common/core \
