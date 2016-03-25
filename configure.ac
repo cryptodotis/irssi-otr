@@ -77,7 +77,7 @@ AC_SUBST(DEFAULT_INCLUDES)
 AC_ARG_WITH([irssi-module-dir],
 	AS_HELP_STRING([--with-irssi-module-dir=DIR], [Irssi module directory]),
 	[IRSSI_MODULE_DIR="$withval"],
-	[IRSSI_MODULE_DIR="/usr/lib/irssi/modules"])
+	[IRSSI_MODULE_DIR='${libdir}/irssi/modules'])
 
 AC_SUBST(IRSSI_MODULE_DIR)
 
