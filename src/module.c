@@ -372,3 +372,13 @@ void otr_deinit(void)
 
 	theme_unregister();
 }
+
+#ifdef IRSSI_ABI_VERSION
+/*
+ * irssi abicheck()
+ */
+void otr_abicheck(int *version)
+{
+	*version = IRSSI_ABI_VERSION;
+}
+#endif
