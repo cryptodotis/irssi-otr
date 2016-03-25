@@ -74,13 +74,16 @@ char *utils_trim_string(char *s)
 }
 
 /*
- * Convert invalid characters (newlines from libotr) into spaces.
- * Also change the init help string because IRC does not support HTML.
+ * Convert invalid characters (newlines from libotr) into spaces. Also change
+ * the init help string because IRC does not support HTML.
  */
-char *utils_escape_message(char *s) {
-	char const* helpmsg = OTR_MSG_HELP;
+char *utils_escape_message(char *s)
+{
+	char const *helpmsg = OTR_MSG_HELP;
 	size_t i;
-	if (strncmp(s, "?OTR", 4) == 0 && strstr(s, "</b> has requested an <a href")) {
+
+	if (strncmp(s, "?OTR", 4) == 0 &&
+		strstr(s, "</b> has requested an <a href")) {
 		i = strcspn(s, "\n");
 		if (i + strlen(helpmsg) <= strlen(s)) {
 			strcpy(s + i, helpmsg);

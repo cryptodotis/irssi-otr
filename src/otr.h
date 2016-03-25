@@ -54,9 +54,10 @@
 #define OTR_MSG_BEGIN_TAG             "?OTR:"
 #define OTR_MSG_END_TAG               '.'
 
-#define OTR_MSG_HELP                  "  This is a request for an Off-the-Record private conversation. "\
-                                      "However, you do not have a plugin to support that. If you are using Irssi, "\
-                                      "please install irssi-otr (irssi-plugin-otr).";
+#define OTR_MSG_HELP \
+	" This is a request for an Off-the-Record private conversation. " \
+    "However, you do not have a plugin to support that. " \
+	"If you are using Irssi, please install irssi-otr (irssi-plugin-otr)."
 
 /* IRC /me command marker and len. */
 #define OTR_IRC_MARKER_ME             "/me "
