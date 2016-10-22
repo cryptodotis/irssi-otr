@@ -44,22 +44,20 @@ AC_SUBST(PACKAGE_CFLAGS)
 # Checking only a few Irssi headers is enough to tell that everything is
 # available. This is broken I know but tell that to the irssi guys to NOT use
 # cluster fu*** of headers and local inclusion system wide...
-CPPFLAGS="$CPPFLAGS $PACKAGE_CFLAGS -I$IRSSI_HEADER_DIR"
+CPPFLAGS="$CPPFLAGS $PACKAGE_CFLAGS -I${IRSSI_HEADER_DIR}/irssi -I${IRSSI_HEADER_DIR}/irssi/src -I${IRSSI_HEADER_DIR}/irssi/src/core" 
 AC_CHECK_HEADERS([\
-				irssi/src/common.h \
-				irssi/src/core/commands.h \
-				irssi/src/core/modules.h \
-				irssi/src/core/servers.h \
-				irssi/src/core/signals.h \
-				irssi/src/core/levels.h \
-				irssi/src/core/queries.h \
-				irssi/src/core/settings.h \
+				src/core/commands.h \
+				src/core/modules.h \
+				src/core/servers.h \
+				src/core/signals.h \
+				src/core/levels.h \
+				src/core/queries.h \
+				src/core/settings.h \
+				src/fe-common/core/fe-windows.h \
 				], [], [AC_MSG_ERROR([Irssi Header files are needed])],
 [
-#include <irssi/irssi-config.h>
-#ifdef HAVE_IRSSI_SRC_COMMON_H
-#include <irssi/src/common.h>
-#endif
+#include <irssi-config.h>
+#include <src/common.h>
 ])
 
 LT_INIT
