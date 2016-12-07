@@ -1,3 +1,20 @@
+2016-12-07 irssi-otr 1.0.2
+	* libotr >= 4.1.0 in configure.ac and spec file
+	* Merge remote-tracking branch 'ailin/abicheck'
+	* Don't use INCLUDES anymore and use system includedir for irssi headers
+	* Merge remote-tracking branch 'anarcat/prefix'
+	* Fix formatting in tronic escape message patch
+	* Merge remote-tracking branch 'tronic/master'
+	* respect $PREFIX on install
+	* implement ABI check for irssi 0.8.18
+	* Fix: update README replacing old info
+	* use https link to otr.cypherpunks.ca instead of http redirect
+	* Add missing #include.
+	* Fix my broken NULL pointer check (and some segfaults).
+	* Remove unused variable.
+	* Detect the libotr-emitted HTML-formatted init string and replace it with a description customized for IRC and irssi-otr.
+	* Remove linebreaks from libotr messages to avoid sending random IRC commands.
+
 2015-01-03 irssi-otr 1.0.1
 	* Fix: bad comment for cmd_generic
 	* Add cscope files to gitignore
