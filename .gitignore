@@ -27,6 +27,8 @@ libtool
 tags
 cscope.*
 
+build/
+
 config/
 !config/libotr.m4
 
