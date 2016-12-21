@@ -1111,3 +1111,8 @@ end:
 error:
 	return;
 }
+
+void otr_abicheck(int *version)
+{
+    *version = 1;
+}
