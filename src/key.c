@@ -146,7 +146,7 @@ void key_gen_check(void)
 }
 
 /*
- * Run key generation in a seperate process (takes ages). The other process
+ * Run key generation in a separate process (takes ages). The other process
  * will rewrite the key file, we shouldn't change anything till it's done and
  * we've reloaded the keys.
  */
